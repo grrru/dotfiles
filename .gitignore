@@ -1,0 +1,12 @@
+nvim/tt.*
+nvim/.tests
+nvim/doc/tags
+nvim/debug
+nvim/.repro
+nvim/foo.*
+nvim/*.log
+nvim/data
+nvim/lazy-lock.json
+nvim/spell/*.spl
+
+tmux/plugins/
