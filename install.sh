@@ -7,45 +7,27 @@ CONFIG_DIR="$HOME/.config"
 install_dependencies() {
   echo "Checking for dependencies..."
 
-  # 1. Use Homebrew if available (works on both macOS and Linux)
-  if command -v brew &> /dev/null; then
+  if command -v brew &>/dev/null; then
     echo "Using Homebrew to install dependencies..."
     local deps=(lazygit ripgrep fd stylua gh fzf zoxide)
     for dep in "${deps[@]}"; do
-      if ! command -v "$dep" &> /dev/null; then
+      if ! command -v "$dep" &>/dev/null; then
         brew install "$dep"
       fi
     done
-    return
-  fi
-
-  # 2. Native Package Managers for Linux
-  if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-    if [ -f /etc/os-release ]; then
-      . /etc/os-release
-      case "$ID" in
-        ubuntu|debian)
-          echo "Detected Ubuntu/Debian. Updating and installing..."
-          sudo apt-get update
-          # Note: fd is 'fd-find' on Ubuntu. lazygit/stylua/gh often need separate repos.
-          sudo apt-get install -y ripgrep fd-find fzf zoxide
-          echo "Tip: For lazygit and gh, follow official manual installation for Debian/Ubuntu."
-          ;;
-        arch)
-          echo "Detected Arch Linux. Installing..."
-          sudo pacman -S --noconfirm ripgrep fd fzf zoxide github-cli lazygit stylua
-          ;;
-        fedora)
-          echo "Detected Fedora. Installing..."
-          sudo dnf install -y ripgrep fd-find fzf zoxide gh lazygit
-          ;;
-        *)
-          echo "Unsupported Linux distribution: $ID. Please install dependencies manually."
-          ;;
-      esac
-    fi
-  elif [[ "$OSTYPE" == "darwin"* ]]; then
-    echo "Homebrew is required on macOS. Please install it first: https://brew.sh/"
+  elif command -v dnf &>/dev/null; then
+    echo "Detected dnf (Fedora). Installing..."
+    sudo dnf install -y ripgrep fd-find fzf zoxide gh lazygit
+  elif command -v pacman &>/dev/null; then
+    echo "Detected pacman (Arch Linux). Installing..."
+    sudo pacman -S --noconfirm --needed ripgrep fd fzf zoxide github-cli lazygit stylua
+  elif command -v apt-get &>/dev/null; then
+    echo "Detected apt-get (Ubuntu/Debian). Installing..."
+    sudo apt-get update
+    sudo apt-get install -y ripgrep fd-find fzf zoxide
+    echo "Tip: For lazygit, gh, and stylua, follow official manual installation for Debian/Ubuntu."
+  else
+    echo "No supported package manager found (brew, pacman, dnf, apt-get). Please install dependencies manually."
   fi
 }
 
@@ -77,7 +59,7 @@ link_config "nvim"
 link_config "tmux"
 
 # Link ghostty config only if ghostty is installed
-if command -v ghostty &> /dev/null; then
+if command -v ghostty &>/dev/null; then
   link_config "ghostty"
 fi
 
