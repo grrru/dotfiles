@@ -75,7 +75,11 @@ install_dependencies
 mkdir -p "$CONFIG_DIR"
 link_config "nvim"
 link_config "tmux"
-link_config "ghostty"
+
+# Link ghostty config only if ghostty is installed
+if command -v ghostty &> /dev/null; then
+  link_config "ghostty"
+fi
 
 # 3. Ensure tpm is installed
 if [ ! -d "$DOTFILES_DIR/tmux/plugins/tpm" ]; then
