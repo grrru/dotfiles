@@ -7,6 +7,7 @@ CONFIG_DIR="$HOME/.config"
 install_dependencies() {
   echo "Checking for dependencies..."
 
+  # TODO: 필요한 패키지 스캔 후 설치하는 방식으로 변경
   if command -v brew &>/dev/null; then
     echo "Using Homebrew to install dependencies..."
     local deps=(lazygit ripgrep fd stylua gh fzf zoxide)
@@ -15,12 +16,13 @@ install_dependencies() {
         brew install "$dep"
       fi
     done
-  elif command -v dnf &>/dev/null; then
-    echo "Detected dnf (Fedora). Installing..."
-    sudo dnf install -y ripgrep fd-find fzf zoxide gh lazygit
   elif command -v pacman &>/dev/null; then
     echo "Detected pacman (Arch Linux). Installing..."
     sudo pacman -S --noconfirm --needed ripgrep fd fzf zoxide github-cli lazygit stylua
+  elif command -v dnf &>/dev/null; then
+    echo "Detected dnf (Fedora). Installing..."
+    sudo dnf copr enable -y atim/lazygit
+    sudo dnf install -y ripgrep fd-find fzf zoxide gh lazygit
   elif command -v apt-get &>/dev/null; then
     echo "Detected apt-get (Ubuntu/Debian). Installing..."
     sudo apt-get update
