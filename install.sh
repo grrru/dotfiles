@@ -75,6 +75,7 @@ install_dependencies
 mkdir -p "$CONFIG_DIR"
 link_config "nvim"
 link_config "tmux"
+link_config "ghostty"
 
 # 3. Ensure tpm is installed
 if [ ! -d "$DOTFILES_DIR/tmux/plugins/tpm" ]; then
