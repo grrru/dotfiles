@@ -26,4 +26,4 @@ copy-on-select = false
 term = xterm-256color
 
 # scroll setup
-mouse-scroll-multiplier = 1
+mouse-scroll-multiplier = 0.5
