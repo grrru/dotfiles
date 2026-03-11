@@ -1,5 +1,8 @@
 return {
   "folke/snacks.nvim",
+  keys = {
+    { "<leader><space>", function() Snacks.picker.files({ root = false }) end, desc = "Find Files (cwd)" },
+  },
   opts = {
     picker = {
       layout = {
