@@ -1,10 +1,15 @@
 return {
   {
-    "sindrets/diffview.nvim",
-    cmd = { "DiffviewOpen", "DiffviewFileHistory" },
+    "esmuellert/codediff.nvim",
+    cmd = { "CodeDiff" },
     keys = {
-      { "<leader>gv", "<cmd>DiffviewOpen<cr>", desc = "Diffview Open" },
+      { "<leader>gv", "<cmd>CodeDiff<cr>", desc = "Git Diff Explorer" },
+      { "<leader>gV", "<cmd>CodeDiff history<cr>", desc = "Git Diff History" },
     },
-    opts = {},
+    opts = {
+      diff = {
+        layout = "side-by-side",
+      },
+    },
   },
 }
