@@ -10,6 +10,12 @@ return {
       diff = {
         layout = "side-by-side",
       },
+      keymaps = {
+        view = {
+          next_hunk = "]h",
+          prev_hunk = "[h",
+        },
+      },
     },
   },
 }
