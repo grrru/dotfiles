@@ -8,5 +8,6 @@ opt.relativenumber = true
 opt.tabstop = 4
 opt.clipboard = "unnamedplus"
 opt.spelllang = { "en", "cjk" }
+opt.timeoutlen = 500
 
 vim.g.lazyvim_python_lsp = "basedpyright"
