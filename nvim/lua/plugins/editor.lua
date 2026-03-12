@@ -67,4 +67,8 @@ return {
       opts.options.max_name_length = 30
     end,
   },
+  {
+    "gbprod/cutlass.nvim",
+    opts = {},
+  },
 }
