@@ -53,7 +53,6 @@ return {
       opts.options.indicator = {
         style = "none",
       }
-      -- opts.options.separator_style = "slant"
 
       opts.options.diagnostics_indicator = function(_, _, diag)
         local icons = LazyVim.config.icons.diagnostics
