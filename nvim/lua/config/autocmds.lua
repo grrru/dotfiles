@@ -17,9 +17,7 @@ vim.api.nvim_create_autocmd("BufEnter", {
   callback = function()
     local saved = vim.b._saved_view
     if saved then
-      vim.schedule(function()
-        vim.fn.winrestview(saved)
-      end)
+      vim.fn.winrestview(saved)
     end
   end,
 })
