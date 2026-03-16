@@ -1,11 +1,41 @@
 return {
   "folke/snacks.nvim",
   keys = {
-    { "<leader><space>", function() Snacks.picker.files({ root = false }) end, desc = "Find Files (cwd)" },
-    { "<leader>e", function() Snacks.picker.explorer({ root = false }) end, desc = "Explorer (cwd)" },
-    { "<leader>E", function() Snacks.picker.explorer({ cwd = LazyVim.root() }) end, desc = "Explorer (root)" },
-    { "<leader>sg", function() Snacks.picker.grep({ root = false }) end, desc = "Grep (cwd)" },
-    { "<leader>sG", function() Snacks.picker.grep({ cwd = LazyVim.root() }) end, desc = "Grep (root)" },
+    {
+      "<leader><space>",
+      function()
+        Snacks.picker.files({ root = false })
+      end,
+      desc = "Find Files (cwd)",
+    },
+    {
+      "<leader>e",
+      function()
+        Snacks.picker.explorer({ root = false })
+      end,
+      desc = "Explorer (cwd)",
+    },
+    {
+      "<leader>E",
+      function()
+        Snacks.picker.explorer({ cwd = LazyVim.root() })
+      end,
+      desc = "Explorer (root)",
+    },
+    {
+      "<leader>sg",
+      function()
+        Snacks.picker.grep({ root = false })
+      end,
+      desc = "Grep (cwd)",
+    },
+    {
+      "<leader>sG",
+      function()
+        Snacks.picker.grep({ cwd = LazyVim.root() })
+      end,
+      desc = "Grep (root)",
+    },
   },
   opts = {
     picker = {
@@ -39,7 +69,7 @@ return {
         inline = true,
         float = false,
       },
-      formats = { "png", "jpg", "jpeg", "gif", "webp", "pdf", "mp4", "mov", "bmp", "tiff" },
+      formats = { "png", "jpg", "jpeg", "gif", "webp", "pdf", "mp4", "mov", "bmp", "tiff", "ico" },
     },
   },
 }
