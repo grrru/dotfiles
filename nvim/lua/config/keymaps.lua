@@ -4,8 +4,6 @@
 
 local map = vim.keymap.set
 
-map({ "n", "x" }, "<Space>", "<Nop>", { silent = true })
-
 map("i", "jk", "<Esc>", { desc = "Exit insert mode" })
 map("i", "kj", "<Esc>", { desc = "Exit insert mode" })
 
