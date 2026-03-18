@@ -6,7 +6,7 @@ font-thicken-strength = 50
 
 # themes
 # theme = TokyoNight Day
-theme = Catppuccin Latte 
+theme = dark:Catppuccin Frappe,light:Catppuccin Latte
 
 # macos settings
 macos-titlebar-style = tabs
