@@ -1,0 +1,49 @@
+#!/bin/bash
+
+STATE_FILE="$HOME/.theme_mode"
+DOTFILES="$HOME/dotfiles"
+
+# Determine new mode
+if [ -f "$STATE_FILE" ] && [ "$(cat "$STATE_FILE")" = "dark" ]; then
+  NEW_MODE="light"
+else
+  NEW_MODE="dark"
+fi
+echo "$NEW_MODE" >"$STATE_FILE"
+
+# === Ghostty ===
+GHOSTTY_CONFIG="$DOTFILES/ghostty/config"
+if [ "$NEW_MODE" = "dark" ]; then
+  sed -i '' 's/^theme = Catppuccin Latte/theme = Catppuccin Mocha/' "$GHOSTTY_CONFIG"
+  sed -i '' 's/^font-thicken = true/font-thicken = false/' "$GHOSTTY_CONFIG"
+else
+  sed -i '' 's/^theme = Catppuccin Mocha/theme = Catppuccin Latte/' "$GHOSTTY_CONFIG"
+  sed -i '' 's/^font-thicken = false/font-thicken = true/' "$GHOSTTY_CONFIG"
+fi
+# Reload ghostty config (applies to new windows; existing windows may need manual reload)
+pkill -USR2 com.mitchellh.ghostty 2>/dev/null || pkill -USR2 ghostty 2>/dev/null || true
+
+# === Neovim colorscheme.lua ===
+NVIM_CONFIG="$DOTFILES/nvim/lua/plugins/colorscheme.lua"
+if [ "$NEW_MODE" = "dark" ]; then
+  sed -i '' 's/colorscheme = "catppuccin-latte"/colorscheme = "catppuccin-mocha"/' "$NVIM_CONFIG"
+  NVIM_SCHEME="catppuccin-mocha"
+else
+  sed -i '' 's/colorscheme = "catppuccin-mocha"/colorscheme = "catppuccin-latte"/' "$NVIM_CONFIG"
+  NVIM_SCHEME="catppuccin-latte"
+fi
+
+# === Tmux ===
+if [ "$NEW_MODE" = "dark" ]; then
+  tmux set-option -g status-bg "#1e1e2e"
+  tmux set-option -g status-fg "#cdd6f4"
+  tmux set-option -g pane-border-style "fg=#585b70"
+  tmux set-option -g pane-active-border-style "fg=#89b4fa"
+else
+  tmux set-option -g status-bg "#d5d6db"
+  tmux set-option -g status-fg "#343b58"
+  tmux set-option -g pane-border-style "fg=#9699a3"
+  tmux set-option -g pane-active-border-style "fg=#2e7de9"
+fi
+
+tmux display-message "Theme: $NEW_MODE"
