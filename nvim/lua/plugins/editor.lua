@@ -1,13 +1,5 @@
 return {
   {
-    "folke/which-key.nvim",
-    opts = {
-      triggers = {
-        { "<leader>", mode = { "n", "v" } },
-      },
-    },
-  },
-  {
     "nvim-treesitter/nvim-treesitter-context",
     event = "LazyFile",
     opts = {
