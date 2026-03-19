@@ -20,18 +20,6 @@ else
   sed -i '' 's/^theme = Catppuccin Mocha/theme = Catppuccin Latte/' "$GHOSTTY_CONFIG"
   sed -i '' 's/^font-thicken = false/font-thicken = true/' "$GHOSTTY_CONFIG"
 fi
-# Reload ghostty config (applies to new windows; existing windows may need manual reload)
-pkill -USR2 com.mitchellh.ghostty 2>/dev/null || pkill -USR2 ghostty 2>/dev/null || true
-
-# === Neovim colorscheme.lua ===
-NVIM_CONFIG="$DOTFILES/nvim/lua/plugins/colorscheme.lua"
-if [ "$NEW_MODE" = "dark" ]; then
-  sed -i '' 's/colorscheme = "catppuccin-latte"/colorscheme = "catppuccin-mocha"/' "$NVIM_CONFIG"
-  NVIM_SCHEME="catppuccin-mocha"
-else
-  sed -i '' 's/colorscheme = "catppuccin-mocha"/colorscheme = "catppuccin-latte"/' "$NVIM_CONFIG"
-  NVIM_SCHEME="catppuccin-latte"
-fi
 
 # === Tmux ===
 if [ "$NEW_MODE" = "dark" ]; then
