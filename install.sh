@@ -3,6 +3,58 @@
 DOTFILES_DIR="$HOME/dotfiles"
 CONFIG_DIR="$HOME/.config"
 
+select_neovim_distribution() {
+  local choice
+
+  echo "Select Neovim distribution:"
+  echo "1) LazyVim"
+  echo "2) NvChad"
+
+  while true; do
+    read -r -p "Enter choice [1-2]: " choice
+    choice="${choice:-1}"
+
+    case "$choice" in
+      1)
+        echo "Selected: LazyVim"
+        NVIM_CONFIG_SOURCE="nvim"
+        NVIM_DISTRIBUTION_NAME="LazyVim"
+        return
+        ;;
+      2)
+        echo "Selected: NvChad"
+        NVIM_CONFIG_SOURCE="nvchad"
+        NVIM_DISTRIBUTION_NAME="NvChad"
+        return
+        ;;
+      *)
+        echo "Invalid choice. Please enter 1 or 2."
+        ;;
+    esac
+  done
+}
+
+ensure_neovim_distribution_source() {
+  case "$NVIM_CONFIG_SOURCE" in
+    nvim)
+      if [ ! -d "$DOTFILES_DIR/nvim" ]; then
+        echo "LazyVim config not found at $DOTFILES_DIR/nvim"
+        exit 1
+      fi
+      ;;
+    nvchad)
+      if [ ! -d "$DOTFILES_DIR/nvchad" ]; then
+        echo "Cloning NvChad starter into $DOTFILES_DIR/nvchad"
+        git clone https://github.com/NvChad/starter "$DOTFILES_DIR/nvchad"
+      fi
+      ;;
+    *)
+      echo "Unsupported Neovim distribution source: $NVIM_CONFIG_SOURCE"
+      exit 1
+      ;;
+  esac
+}
+
 # Function to install dependencies
 install_dependencies() {
   echo "Checking for dependencies..."
@@ -52,13 +104,50 @@ link_config() {
   fi
 }
 
+link_app_config() {
+  local source_name="$1"
+  local app_name="$2"
+  local target="$DOTFILES_DIR/$source_name"
+  local dest="$CONFIG_DIR/$app_name"
+  local current_target
+
+  if [ -L "$dest" ]; then
+    current_target="$(readlink "$dest")"
+    if [ "$current_target" = "$target" ]; then
+      echo "Symlink for $app_name already points to $source_name, skipping."
+    else
+      rm "$dest"
+      ln -s "$target" "$dest"
+      echo "Updated symlink for $app_name -> $source_name"
+    fi
+  elif [ -d "$dest" ] || [ -f "$dest" ]; then
+    echo "Existing config for $app_name found. Backing up to $dest.bak"
+    mv "$dest" "$dest.bak"
+    ln -s "$target" "$dest"
+    echo "Created symlink for $app_name -> $source_name"
+  else
+    ln -s "$target" "$dest"
+    echo "Created symlink for $app_name -> $source_name"
+  fi
+}
+
 # 1. Install dependencies
 install_dependencies
 
 # 2. Create config directory and link configs
 mkdir -p "$CONFIG_DIR"
-link_config "nvim"
+select_neovim_distribution
+ensure_neovim_distribution_source
+link_app_config "$NVIM_CONFIG_SOURCE" "nvim"
 link_config "tmux"
+
+if [ -d "$DOTFILES_DIR/nvchad" ]; then
+  link_app_config "nvchad" "nvchad"
+fi
+
+if [ -d "$DOTFILES_DIR/kickstart-nvui" ]; then
+  link_app_config "kickstart-nvui" "kickstart-nvui"
+fi
 
 # Link ghostty config only if ghostty is installed
 if command -v ghostty &>/dev/null; then
@@ -72,3 +161,4 @@ if [ ! -d "$DOTFILES_DIR/tmux/plugins/tpm" ]; then
 fi
 
 echo "Installation complete!"
+echo "Default Neovim config now points to: $NVIM_DISTRIBUTION_NAME"
