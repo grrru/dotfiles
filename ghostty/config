@@ -1,11 +1,11 @@
 # font settings
 font-family = CodeNewRoman Nerd Font
 font-size = 16
-font-thicken = true
+font-thicken = false
 font-thicken-strength = 50
 
 # themes
-theme = Catppuccin Latte
+theme = Catppuccin Mocha
 
 # macos settings
 macos-titlebar-style = tabs
