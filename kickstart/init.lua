@@ -114,10 +114,10 @@ vim.diagnostic.config {
   update_in_insert = false,
   severity_sort = true,
   float = { border = 'rounded', source = 'if_many' },
-  underline = { severity = { min = vim.diagnostic.severity.WARN } },
+  underline = { severity = { min = vim.diagnostic.severity.ERROR } },
 
   -- Can switch between these as you prefer
-  virtual_text = true, -- Text shows up at the end of the line
+  virtual_text = { severity = { min = vim.diagnostic.severity.ERROR } }, -- Text shows up at the end of the line
   virtual_lines = false, -- Text shows up underneath the line, with virtual lines
 
   -- Auto open the float, so you can easily read the errors when jumping with `[d` and `]d`
@@ -541,8 +541,25 @@ require('lazy').setup({
       ---@type table<string, vim.lsp.Config>
       local servers = {
         -- clangd = {},
-        -- gopls = {},
-        -- pyright = {},
+        gopls = {
+          settings = {
+            gopls = {
+              gofumpt = false,
+            },
+          },
+        },
+        basedpyright = {
+          settings = {
+            basedpyright = {
+              analysis = {
+                typeCheckingMode = 'basic',
+                autoSearchPaths = true,
+                useLibraryCodeForTypes = true,
+                autoImportCompletions = true,
+              },
+            },
+          },
+        },
         -- rust_analyzer = {},
         --
         -- Some languages (like typescript) have entire language plugins that can be useful:
@@ -636,6 +653,7 @@ require('lazy').setup({
       end,
       formatters_by_ft = {
         lua = { 'stylua' },
+        go = { 'goimports', 'gofmt' },
         -- Conform can also run multiple formatters sequentially
         -- python = { "isort", "black" },
         --
@@ -739,24 +757,59 @@ require('lazy').setup({
   },
 
   { -- You can easily change to a different colorscheme.
-    -- Change the name of the colorscheme plugin below, and then
-    -- change the command in the config to whatever the name of that colorscheme is.
-    --
     -- If you want to see what colorschemes are already installed, you can use `:Telescope colorscheme`.
-    'folke/tokyonight.nvim',
+    'catppuccin/nvim',
+    name = 'catppuccin',
     priority = 1000, -- Make sure to load this before all the other start plugins.
     config = function()
-      ---@diagnostic disable-next-line: missing-fields
-      require('tokyonight').setup {
+      local theme = 'catppuccin'
+      local mode_file = vim.fn.expand '~/.theme_mode'
+      local watcher
+
+      local function apply_mode(mode)
+        if mode ~= 'light' and mode ~= 'dark' then return end
+        if vim.o.background == mode then return end
+
+        vim.o.background = mode
+        if vim.g.colors_name == theme then vim.cmd.colorscheme(theme) end
+      end
+
+      local function load_mode()
+        if vim.fn.filereadable(mode_file) == 0 then return end
+
+        local mode = (vim.fn.readfile(mode_file, '', 1)[1] or ''):lower()
+        apply_mode(mode)
+      end
+
+      local function watch_mode()
+        if watcher or vim.fn.has 'nvim-0.10' == 0 then return end
+
+        watcher = vim.uv.new_fs_event()
+        if not watcher then return end
+
+        watcher:start(mode_file, {}, function() vim.schedule(load_mode) end)
+      end
+
+      require('catppuccin').setup {
         styles = {
-          comments = { italic = false }, -- Disable italics in comments
+          comments = {},
+          conditionals = {},
+          loops = {},
+          functions = { 'italic' },
+          keywords = {},
+          strings = {},
+          variables = {},
+          numbers = {},
+          booleans = { 'italic' },
+          properties = {},
+          types = { 'italic' },
+          operators = {},
         },
       }
 
-      -- Load the colorscheme here.
-      -- Like many other themes, this one has different styles, and you could load
-      -- any other, such as 'tokyonight-storm', 'tokyonight-moon', or 'tokyonight-day'.
-      vim.cmd.colorscheme 'tokyonight-night'
+      vim.cmd.colorscheme 'catppuccin'
+      load_mode()
+      watch_mode()
     end,
   },
 
@@ -788,19 +841,6 @@ require('lazy').setup({
       -- - sd'   - [S]urround [D]elete [']quotes
       -- - sr)'  - [S]urround [R]eplace [)] [']
       require('mini.surround').setup()
-
-      -- Simple and easy statusline.
-      --  You could remove this setup call if you don't like it,
-      --  and try some other statusline plugin
-      local statusline = require 'mini.statusline'
-      -- set use_icons to true if you have a Nerd Font
-      statusline.setup { use_icons = vim.g.have_nerd_font }
-
-      -- You can configure sections in the statusline by overriding their
-      -- default behavior. For example, here we set the section for
-      -- cursor location to LINE:COLUMN
-      ---@diagnostic disable-next-line: duplicate-set-field
-      statusline.section_location = function() return '%2l:%-2v' end
 
       -- ... and there is more!
       --  Check out: https://github.com/nvim-mini/mini.nvim

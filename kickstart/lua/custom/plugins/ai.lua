@@ -47,6 +47,14 @@ return {
         desc = 'Sidekick Select Prompt',
       },
     },
-    opts = {},
+    opts = {
+      nes = { enabled = false },
+      cli = {
+        mux = {
+          enabled = true,
+          backend = 'tmux',
+        },
+      },
+    },
   },
 }

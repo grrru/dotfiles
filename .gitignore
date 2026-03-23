@@ -10,3 +10,5 @@ LazyVim/lazy-lock.json
 LazyVim/spell/*.spl
 
 tmux/plugins/
+
+.nvimlog
