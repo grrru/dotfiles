@@ -9,49 +9,71 @@ select_neovim_distribution() {
   echo "Select Neovim distribution:"
   echo "1) LazyVim"
   echo "2) NvChad"
+  echo "3) kickstart (not a distribution)"
 
   while true; do
-    read -r -p "Enter choice [1-2]: " choice
+    read -r -p "Enter choice [1-3]: " choice
     choice="${choice:-1}"
 
     case "$choice" in
-      1)
-        echo "Selected: LazyVim"
-        NVIM_CONFIG_SOURCE="nvim"
-        NVIM_DISTRIBUTION_NAME="LazyVim"
-        return
-        ;;
-      2)
-        echo "Selected: NvChad"
-        NVIM_CONFIG_SOURCE="nvchad"
-        NVIM_DISTRIBUTION_NAME="NvChad"
-        return
-        ;;
-      *)
-        echo "Invalid choice. Please enter 1 or 2."
-        ;;
+    1)
+      echo "Selected: LazyVim"
+      NVIM_CONFIG_SOURCE="LazyVim"
+      NVIM_DISTRIBUTION_NAME="LazyVim"
+      return
+      ;;
+    2)
+      echo "Selected: NvChad"
+      NVIM_CONFIG_SOURCE="nvchad"
+      NVIM_DISTRIBUTION_NAME="NvChad"
+      return
+      ;;
+    3)
+      echo "Selected: kickstart"
+      NVIM_CONFIG_SOURCE="kickstart"
+      NVIM_DISTRIBUTION_NAME="kickstart"
+      return
+      ;;
+    *)
+      echo "Invalid choice. Please enter 1, 2, or 3."
+      ;;
     esac
   done
 }
 
+ensure_config_directory() {
+  local dest_dir="$1"
+  local display_name="$2"
+  local setup_hint="$3"
+
+  if [ -d "$dest_dir" ]; then
+    return
+  fi
+
+  echo "$display_name config not found at $dest_dir"
+  echo "Please prepare it first, for example:"
+  echo "  $setup_hint"
+  exit 1
+}
+
 ensure_neovim_distribution_source() {
   case "$NVIM_CONFIG_SOURCE" in
-    nvim)
-      if [ ! -d "$DOTFILES_DIR/nvim" ]; then
-        echo "LazyVim config not found at $DOTFILES_DIR/nvim"
-        exit 1
-      fi
-      ;;
-    nvchad)
-      if [ ! -d "$DOTFILES_DIR/nvchad" ]; then
-        echo "Cloning NvChad starter into $DOTFILES_DIR/nvchad"
-        git clone https://github.com/NvChad/starter "$DOTFILES_DIR/nvchad"
-      fi
-      ;;
-    *)
-      echo "Unsupported Neovim distribution source: $NVIM_CONFIG_SOURCE"
+  LazyVim)
+    if [ ! -d "$DOTFILES_DIR/LazyVim" ]; then
+      echo "LazyVim config not found at $DOTFILES_DIR/LazyVim"
       exit 1
-      ;;
+    fi
+    ;;
+  nvchad)
+    ensure_config_directory "$DOTFILES_DIR/nvchad" "NvChad" "git clone https://github.com/NvChad/starter \"$DOTFILES_DIR/nvchad\""
+    ;;
+  kickstart)
+    ensure_config_directory "$DOTFILES_DIR/kickstart" "kickstart.nvim" "git clone https://github.com/nvim-lua/kickstart.nvim.git \"$DOTFILES_DIR/kickstart\""
+    ;;
+  *)
+    echo "Unsupported Neovim distribution source: $NVIM_CONFIG_SOURCE"
+    exit 1
+    ;;
   esac
 }
 
@@ -149,6 +171,10 @@ if [ -d "$DOTFILES_DIR/kickstart-nvui" ]; then
   link_app_config "kickstart-nvui" "kickstart-nvui"
 fi
 
+if [ -d "$DOTFILES_DIR/kickstart" ]; then
+  link_app_config "kickstart" "kickstart"
+fi
+
 # Link ghostty config only if ghostty is installed
 if command -v ghostty &>/dev/null; then
   link_config "ghostty"
@@ -162,3 +188,4 @@ fi
 
 echo "Installation complete!"
 echo "Default Neovim config now points to: $NVIM_DISTRIBUTION_NAME"
+echo "You can also test kickstart with: NVIM_APPNAME=kickstart nvim"

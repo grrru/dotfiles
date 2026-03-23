@@ -1,4 +1,4 @@
-# dotfiles/nvim
+# dotfiles/LazyVim
 
 <a href="https://dotfyle.com/grrru/dotfiles-nvim"><img src="https://dotfyle.com/grrru/dotfiles-nvim/badges/plugins?style=flat" /></a>
 <a href="https://dotfyle.com/grrru/dotfiles-nvim"><img src="https://dotfyle.com/grrru/dotfiles-nvim/badges/leaderkey?style=flat" /></a>
@@ -18,7 +18,13 @@ git clone git@github.com:grrru/dotfiles ~/.config/grrru/dotfiles
 Open Neovim with this config:
 
 ```sh
-NVIM_APPNAME=grrru/dotfiles/nvim nvim
+NVIM_APPNAME=grrru/dotfiles/LazyVim nvim
+```
+
+After running `./install.sh`, you can also try the stock kickstart setup without replacing your default config:
+
+```sh
+NVIM_APPNAME=kickstart nvim
 ```
 
 ## Plugins
