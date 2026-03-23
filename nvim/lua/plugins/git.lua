@@ -11,6 +11,11 @@ return {
       diff = {
         layout = "inline",
       },
+      explorer = {
+        width = 30,
+        view_mode = "tree",
+        focus_on_select = true,
+      },
       keymaps = {
         view = {
           next_hunk = "]h",
