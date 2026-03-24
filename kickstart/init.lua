@@ -45,6 +45,7 @@ vim.o.mouse = 'a'
 
 -- Don't show the mode, since it's already in the status line
 vim.o.showmode = false
+vim.o.laststatus = 3
 
 -- Sync clipboard between OS and Neovim.
 --  Schedule the setting after `UiEnter` because it can increase startup-time.
@@ -249,6 +250,7 @@ require('lazy').setup({
     ---@type wk.Opts
     ---@diagnostic disable-next-line: missing-fields
     opts = {
+      preset = 'helix',
       -- delay between pressing a key and opening which-key (milliseconds)
       delay = 0,
       icons = { mappings = vim.g.have_nerd_font },

@@ -13,7 +13,7 @@ return {
   },
   lazy = false,
   keys = {
-    { '<leader>e', ':Neotree reveal<CR>', desc = 'NeoTree reveal', silent = true },
+    { '<leader>e', '<cmd>Neotree reveal toggle<CR>', desc = 'NeoTree toggle', silent = true },
   },
   ---@module 'neo-tree'
   ---@type neotree.Config
@@ -23,8 +23,12 @@ return {
         hide_dotfiles = false,
       },
       window = {
+        width = 30,
         mappings = {
-          ['<leader>e'] = 'close_window',
+          ['<space>'] = 'none',
+          ['<tab>'] = 'toggle_node',
+          ['q'] = 'close_window',
+          ['<esc>'] = 'close_window',
         },
       },
     },
