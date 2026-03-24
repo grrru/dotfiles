@@ -21,3 +21,16 @@ vim.api.nvim_create_autocmd("BufEnter", {
     end
   end,
 })
+
+-- Remove LazyVim's default VimResized autocmd and replace with a safe version
+vim.schedule(function()
+  pcall(vim.api.nvim_del_augroup_by_name, "lazyvim_resize_splits")
+  vim.api.nvim_create_autocmd("VimResized", {
+    callback = function()
+      if vim.fn.getcmdwintype() ~= "" then
+        return
+      end
+      vim.cmd("tabdo wincmd =")
+    end,
+  })
+end)
