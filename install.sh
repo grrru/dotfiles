@@ -8,11 +8,10 @@ select_neovim_distribution() {
 
   echo "Select Neovim distribution:"
   echo "1) LazyVim"
-  echo "2) NvChad"
-  echo "3) kickstart (not a distribution)"
+  echo "2) kickstart (not a distribution)"
 
   while true; do
-    read -r -p "Enter choice [1-3]: " choice
+    read -r -p "Enter choice [1-2]: " choice
     choice="${choice:-1}"
 
     case "$choice" in
@@ -23,19 +22,13 @@ select_neovim_distribution() {
       return
       ;;
     2)
-      echo "Selected: NvChad"
-      NVIM_CONFIG_SOURCE="nvchad"
-      NVIM_DISTRIBUTION_NAME="NvChad"
-      return
-      ;;
-    3)
       echo "Selected: kickstart"
       NVIM_CONFIG_SOURCE="kickstart"
       NVIM_DISTRIBUTION_NAME="kickstart"
       return
       ;;
     *)
-      echo "Invalid choice. Please enter 1, 2, or 3."
+      echo "Invalid choice. Please enter 1 or 2 ."
       ;;
     esac
   done
@@ -162,14 +155,6 @@ select_neovim_distribution
 ensure_neovim_distribution_source
 link_app_config "$NVIM_CONFIG_SOURCE" "nvim"
 link_config "tmux"
-
-if [ -d "$DOTFILES_DIR/nvchad" ]; then
-  link_app_config "nvchad" "nvchad"
-fi
-
-if [ -d "$DOTFILES_DIR/kickstart-nvui" ]; then
-  link_app_config "kickstart-nvui" "kickstart-nvui"
-fi
 
 if [ -d "$DOTFILES_DIR/kickstart" ]; then
   link_app_config "kickstart" "kickstart"
