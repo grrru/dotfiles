@@ -16,12 +16,6 @@ return {
         view_mode = "tree",
         focus_on_select = true,
       },
-      keymaps = {
-        view = {
-          next_hunk = "]h",
-          prev_hunk = "[h",
-        },
-      },
     },
   },
 }
