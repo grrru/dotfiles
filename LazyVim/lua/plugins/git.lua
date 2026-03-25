@@ -1,6 +1,6 @@
 return {
   {
-    "esmuellert/codediff.nvim",
+    "grrru/codediff.nvim",
     cmd = { "CodeDiff" },
     keys = {
       { "<leader>gv", "<cmd>CodeDiff<cr>", desc = "Git Diff Explorer" },
