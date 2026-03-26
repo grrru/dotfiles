@@ -6,6 +6,7 @@ return {
       { "<leader>gv", "<cmd>CodeDiff<cr>", desc = "Git Diff Explorer" },
       { "<leader>gV", "<cmd>CodeDiff history<cr>", desc = "Git Diff History" },
       { "<leader>gm", "<cmd>CodeDiff main<cr>", desc = "Git Diff main branch" },
+      { "<leader>gM", "<cmd>CodeDiff master<cr>", desc = "Git Diff master branch" },
     },
     opts = {
       diff = {
