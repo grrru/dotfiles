@@ -48,7 +48,7 @@ return {
       sources = {
         explorer = {
           hidden = true,
-          ignored = true,
+          ignored = false,
           layout = { layout = { width = 30 } },
           format = function(item, picker)
             if item.severity and item.severity > vim.diagnostic.severity.ERROR then
