@@ -1,8 +1,10 @@
 # font settings
-font-family = CodeNewRoman Nerd Font
+# font-family = CodeNewRoman Nerd Font
+font-family = D2CodingLigature Nerd Font
 font-size = 16
 font-thicken = true
 font-thicken-strength = 50
+font-feature = -calt
 
 # themes
 theme = Catppuccin Latte
