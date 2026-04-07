@@ -2,6 +2,8 @@
 
 STATE_FILE="$HOME/.theme_mode"
 DOTFILES="$HOME/dotfiles"
+LIGHT_THEME="Catppuccin Latte"
+DARK_THEME="Catppuccin Mocha"
 
 # Determine new mode
 if [ -f "$STATE_FILE" ] && [ "$(cat "$STATE_FILE")" = "dark" ]; then
@@ -14,10 +16,10 @@ echo "$NEW_MODE" >"$STATE_FILE"
 # === Ghostty ===
 GHOSTTY_CONFIG="$DOTFILES/ghostty/config"
 if [ "$NEW_MODE" = "dark" ]; then
-  sed -i '' 's/^theme = Catppuccin Latte/theme = Catppuccin Mocha/' "$GHOSTTY_CONFIG"
+  sed -i '' "s/^theme = .*/theme = $DARK_THEME/" "$GHOSTTY_CONFIG"
   sed -i '' 's/^font-thicken = true/font-thicken = false/' "$GHOSTTY_CONFIG"
 else
-  sed -i '' 's/^theme = Catppuccin Mocha/theme = Catppuccin Latte/' "$GHOSTTY_CONFIG"
+  sed -i '' "s/^theme = .*/theme = $LIGHT_THEME/" "$GHOSTTY_CONFIG"
   sed -i '' 's/^font-thicken = false/font-thicken = true/' "$GHOSTTY_CONFIG"
 fi
 
