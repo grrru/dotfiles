@@ -5,6 +5,14 @@ return {
       { 'nvim-tree/nvim-web-devicons', enabled = vim.g.have_nerd_font },
     },
     opts = function(_, opts)
+      local ok_snacks, snacks = pcall(require, 'snacks')
+      local function snacks_color(name, fallback)
+        if ok_snacks and snacks.util and snacks.util.color then
+          return { fg = snacks.util.color(name) }
+        end
+        return { fg = fallback }
+      end
+
       opts.options = opts.options or {}
       opts.options.globalstatus = true
       opts.sections = opts.sections or {}
@@ -13,6 +21,47 @@ return {
           'filename',
           file_status = true,
           path = 0,
+        },
+      }
+      opts.sections.lualine_x = {
+        ok_snacks and snacks.profiler and snacks.profiler.status() or function() return '' end,
+        {
+          function() return require('noice').api.status.command.get() end,
+          cond = function() return package.loaded['noice'] and require('noice').api.status.command.has() end,
+          color = function() return snacks_color('Statement', '#a6da95') end,
+        },
+        {
+          function() return require('noice').api.status.mode.get() end,
+          cond = function() return package.loaded['noice'] and require('noice').api.status.mode.has() end,
+          color = function() return snacks_color('Constant', '#f5a97f') end,
+        },
+        {
+          function() return '  ' .. require('dap').status() end,
+          cond = function() return package.loaded['dap'] and require('dap').status() ~= '' end,
+          color = function() return snacks_color('Debug', '#c6a0f6') end,
+        },
+        {
+          require('lazy.status').updates,
+          cond = require('lazy.status').has_updates,
+          color = function() return snacks_color('Special', '#8aadf4') end,
+        },
+        {
+          'diff',
+          symbols = {
+            added = '+',
+            modified = '~',
+            removed = '-',
+          },
+          source = function()
+            local gitsigns = vim.b.gitsigns_status_dict
+            if gitsigns then
+              return {
+                added = gitsigns.added,
+                modified = gitsigns.changed,
+                removed = gitsigns.removed,
+              }
+            end
+          end,
         },
       }
       opts.sections.lualine_z = { 'encoding' }
@@ -31,9 +80,7 @@ return {
       }
       opts.options.offsets = {
         {
-          filetype = 'snacks_picker_list',
-          text = 'Explorer',
-          text_align = 'left',
+          filetype = 'snacks_layout_box',
           separator = true,
         },
       }
