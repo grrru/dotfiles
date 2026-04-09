@@ -45,6 +45,7 @@ return {
           path = 0,
         },
       }
+      opts.sections.lualine_z = { "encoding" }
     end,
   },
   {
