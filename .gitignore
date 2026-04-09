@@ -12,3 +12,4 @@ LazyVim/spell/*.spl
 tmux/plugins/
 
 .nvimlog
+.omx/
