@@ -1,5 +1,7 @@
 return {
   'folke/snacks.nvim',
+  priority = 1000,
+  lazy = false,
   keys = {
     {
       '<leader><space>',
@@ -30,6 +32,8 @@ return {
   opts = {
     dashboard = { enabled = false },
     explorer = { enabled = true },
+    indent = { enabled = true },
+    statuscolumn = { enabled = true },
     picker = {
       enabled = true,
       layout = {
