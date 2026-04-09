@@ -8,11 +8,19 @@ return {
     ---@diagnostic disable-next-line: missing-fields
     opts = {
       signs = {
-        add = { text = '+' }, ---@diagnostic disable-line: missing-fields
-        change = { text = '~' }, ---@diagnostic disable-line: missing-fields
-        delete = { text = '_' }, ---@diagnostic disable-line: missing-fields
-        topdelete = { text = '‾' }, ---@diagnostic disable-line: missing-fields
-        changedelete = { text = '~' }, ---@diagnostic disable-line: missing-fields
+        add = { text = '▎' }, ---@diagnostic disable-line: missing-fields
+        change = { text = '▎' }, ---@diagnostic disable-line: missing-fields
+        delete = { text = '' }, ---@diagnostic disable-line: missing-fields
+        topdelete = { text = '' }, ---@diagnostic disable-line: missing-fields
+        changedelete = { text = '▎' }, ---@diagnostic disable-line: missing-fields
+        untracked = { text = '▎' }, ---@diagnostic disable-line: missing-fields
+      },
+      signs_staged = {
+        add = { text = '▎' }, ---@diagnostic disable-line: missing-fields
+        change = { text = '▎' }, ---@diagnostic disable-line: missing-fields
+        delete = { text = '' }, ---@diagnostic disable-line: missing-fields
+        topdelete = { text = '' }, ---@diagnostic disable-line: missing-fields
+        changedelete = { text = '▎' }, ---@diagnostic disable-line: missing-fields
       },
     },
   },
@@ -86,23 +94,31 @@ return {
         end,
       })
 
-      vim.keymap.set('n', '<leader>/', function()
-        builtin.current_buffer_fuzzy_find(require('telescope.themes').get_dropdown {
-          winblend = 10,
-          previewer = false,
-        })
-      end, { desc = '[/] Fuzzily search in current buffer' })
+      vim.keymap.set(
+        'n',
+        '<leader>/',
+        function()
+          builtin.current_buffer_fuzzy_find(require('telescope.themes').get_dropdown {
+            winblend = 10,
+            previewer = false,
+          })
+        end,
+        { desc = '[/] Fuzzily search in current buffer' }
+      )
 
-      vim.keymap.set('n', '<leader>s/', function()
-        builtin.live_grep {
-          grep_open_files = true,
-          prompt_title = 'Live Grep in Open Files',
-        }
-      end, { desc = '[S]earch [/] in Open Files' })
+      vim.keymap.set(
+        'n',
+        '<leader>s/',
+        function()
+          builtin.live_grep {
+            grep_open_files = true,
+            prompt_title = 'Live Grep in Open Files',
+          }
+        end,
+        { desc = '[S]earch [/] in Open Files' }
+      )
 
-      vim.keymap.set('n', '<leader>sn', function()
-        builtin.find_files { cwd = vim.fn.stdpath 'config' }
-      end, { desc = '[S]earch [N]eovim files' })
+      vim.keymap.set('n', '<leader>sn', function() builtin.find_files { cwd = vim.fn.stdpath 'config' } end, { desc = '[S]earch [N]eovim files' })
     end,
   },
 
@@ -158,9 +174,7 @@ return {
           end
 
           if client and client:supports_method('textDocument/inlayHint', event.buf) then
-            map('<leader>th', function()
-              vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled { bufnr = event.buf })
-            end, '[T]oggle Inlay [H]ints')
+            map('<leader>th', function() vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled { bufnr = event.buf }) end, '[T]oggle Inlay [H]ints')
           end
         end,
       })
@@ -172,11 +186,7 @@ return {
           on_init = function(client)
             if client.workspace_folders then
               local path = client.workspace_folders[1].name
-              if path ~= vim.fn.stdpath 'config'
-                and (vim.uv.fs_stat(path .. '/.luarc.json') or vim.uv.fs_stat(path .. '/.luarc.jsonc'))
-              then
-                return
-              end
+              if path ~= vim.fn.stdpath 'config' and (vim.uv.fs_stat(path .. '/.luarc.json') or vim.uv.fs_stat(path .. '/.luarc.jsonc')) then return end
             end
 
             client.config.settings.Lua = vim.tbl_deep_extend('force', client.config.settings.Lua, {
@@ -228,9 +238,7 @@ return {
       notify_on_error = false,
       format_on_save = function(bufnr)
         local disable_filetypes = { c = true, cpp = true }
-        if disable_filetypes[vim.bo[bufnr].filetype] then
-          return nil
-        end
+        if disable_filetypes[vim.bo[bufnr].filetype] then return nil end
 
         return {
           timeout_ms = 500,
@@ -252,9 +260,7 @@ return {
         'L3MON4D3/LuaSnip',
         version = '2.*',
         build = (function()
-          if vim.fn.has 'win32' == 1 or vim.fn.executable 'make' == 0 then
-            return
-          end
+          if vim.fn.has 'win32' == 1 or vim.fn.executable 'make' == 0 then return end
           return 'make install_jsregexp'
         end)(),
         opts = {},
@@ -311,9 +317,7 @@ return {
       ---@param buf integer
       ---@param language string
       local function treesitter_try_attach(buf, language)
-        if not vim.treesitter.language.add(language) then
-          return
-        end
+        if not vim.treesitter.language.add(language) then return end
         vim.treesitter.start(buf, language)
         vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
       end
@@ -323,17 +327,13 @@ return {
         callback = function(args)
           local buf, filetype = args.buf, args.match
           local language = vim.treesitter.language.get_lang(filetype)
-          if not language then
-            return
-          end
+          if not language then return end
 
           local installed_parsers = require('nvim-treesitter').get_installed 'parsers'
           if vim.tbl_contains(installed_parsers, language) then
             treesitter_try_attach(buf, language)
           elseif vim.tbl_contains(available_parsers, language) then
-            require('nvim-treesitter').install(language):await(function()
-              treesitter_try_attach(buf, language)
-            end)
+            require('nvim-treesitter').install(language):await(function() treesitter_try_attach(buf, language) end)
           else
             treesitter_try_attach(buf, language)
           end
