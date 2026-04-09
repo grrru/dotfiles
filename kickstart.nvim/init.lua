@@ -20,8 +20,70 @@
 =====================================================================
 =====================================================================
 
--- ]]
---
+What is Kickstart?
+
+  Kickstart.nvim is *not* a distribution.
+
+  Kickstart.nvim is a starting point for your own configuration.
+    The goal is that you can read every line of code, top-to-bottom, understand
+    what your configuration is doing, and modify it to suit your needs.
+
+    Once you've done that, you can start exploring, configuring and tinkering to
+    make Neovim your own! That might mean leaving Kickstart just the way it is for a while
+    or immediately breaking it into modular pieces. It's up to you!
+
+    If you don't know anything about Lua, I recommend taking some time to read through
+    a guide. One possible example which will only take 10-15 minutes:
+      - https://learnxinyminutes.com/docs/lua/
+
+    After understanding a bit more about Lua, you can use `:help lua-guide` as a
+    reference for how Neovim integrates Lua.
+    - :help lua-guide
+    - (or HTML version): https://neovim.io/doc/user/lua-guide.html
+
+Kickstart Guide:
+
+  TODO: The very first thing you should do is to run the command `:Tutor` in Neovim.
+
+    If you don't know what this means, type the following:
+      - <escape key>
+      - :
+      - Tutor
+      - <enter key>
+
+    (If you already know the Neovim basics, you can skip this step.)
+
+  Once you've completed that, you can continue working through **AND READING** the rest
+  of the kickstart init.lua.
+
+  Next, run AND READ `:help`.
+    This will open up a help window with some basic information
+    about reading, navigating and searching the builtin help documentation.
+
+    This should be the first place you go to look when you're stuck or confused
+    with something. It's one of my favorite Neovim features.
+
+    MOST IMPORTANTLY, we provide a keymap "<space>sh" to [s]earch the [h]elp documentation,
+    which is very useful when you're not exactly sure of what you're looking for.
+
+  I have left several `:help X` comments throughout the init.lua
+    These are hints about where to find more information about the relevant settings,
+    plugins or Neovim features used in Kickstart.
+
+   NOTE: Look for lines like this
+
+    Throughout the file. These are for you, the reader, to help you understand what is happening.
+    Feel free to delete them once you know what you're doing, but they should serve as a guide
+    for when you are first encountering a few different constructs in your Neovim config.
+
+If you experience any errors while trying to install kickstart, run `:checkhealth` for more info.
+
+I hope you enjoy your Neovim journey,
+- TJ
+
+P.S. You can delete this when you're done too. It's your config now! :)
+--]]
+
 -- Set <space> as the leader key
 -- See `:help mapleader`
 --  NOTE: Must happen before plugins are loaded (otherwise wrong leader will be used)
@@ -29,7 +91,7 @@ vim.g.mapleader = ' '
 vim.g.maplocalleader = ' '
 
 -- Set to true if you have a Nerd Font installed and selected in the terminal
-vim.g.have_nerd_font = true
+vim.g.have_nerd_font = false
 
 -- [[ Setting options ]]
 -- See `:help vim.o`
@@ -38,14 +100,15 @@ vim.g.have_nerd_font = true
 
 -- Make line numbers default
 vim.o.number = true
-vim.o.relativenumber = true
+-- You can also add relative line numbers, to help with jumping.
+--  Experiment for yourself to see if you like it!
+-- vim.o.relativenumber = true
 
 -- Enable mouse mode, can be useful for resizing splits for example!
 vim.o.mouse = 'a'
 
 -- Don't show the mode, since it's already in the status line
 vim.o.showmode = false
-vim.o.laststatus = 3
 
 -- Sync clipboard between OS and Neovim.
 --  Schedule the setting after `UiEnter` because it can increase startup-time.
@@ -55,7 +118,6 @@ vim.schedule(function() vim.o.clipboard = 'unnamedplus' end)
 
 -- Enable break indent
 vim.o.breakindent = true
-vim.o.wrap = false
 
 -- Enable undo/redo changes even after closing and reopening a file
 vim.o.undofile = true
@@ -95,7 +157,7 @@ vim.o.inccommand = 'split'
 vim.o.cursorline = true
 
 -- Minimal number of screen lines to keep above and below the cursor.
-vim.o.scrolloff = 4
+vim.o.scrolloff = 10
 
 -- if performing an operation that would fail due to unsaved changes in the buffer (like `:q`),
 -- instead raise a dialog asking if you wish to save the current file(s)
@@ -115,10 +177,10 @@ vim.diagnostic.config {
   update_in_insert = false,
   severity_sort = true,
   float = { border = 'rounded', source = 'if_many' },
-  underline = { severity = { min = vim.diagnostic.severity.ERROR } },
+  underline = { severity = { min = vim.diagnostic.severity.WARN } },
 
   -- Can switch between these as you prefer
-  virtual_text = { severity = { min = vim.diagnostic.severity.ERROR } }, -- Text shows up at the end of the line
+  virtual_text = true, -- Text shows up at the end of the line
   virtual_lines = false, -- Text shows up underneath the line, with virtual lines
 
   -- Auto open the float, so you can easily read the errors when jumping with `[d` and `]d`
@@ -136,10 +198,10 @@ vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagn
 vim.keymap.set('t', '<Esc><Esc>', '<C-\\><C-n>', { desc = 'Exit terminal mode' })
 
 -- TIP: Disable arrow keys in normal mode
-vim.keymap.set('n', '<left>', '<cmd>echo "Use h to move!!"<CR>')
-vim.keymap.set('n', '<right>', '<cmd>echo "Use l to move!!"<CR>')
-vim.keymap.set('n', '<up>', '<cmd>echo "Use k to move!!"<CR>')
-vim.keymap.set('n', '<down>', '<cmd>echo "Use j to move!!"<CR>')
+-- vim.keymap.set('n', '<left>', '<cmd>echo "Use h to move!!"<CR>')
+-- vim.keymap.set('n', '<right>', '<cmd>echo "Use l to move!!"<CR>')
+-- vim.keymap.set('n', '<up>', '<cmd>echo "Use k to move!!"<CR>')
+-- vim.keymap.set('n', '<down>', '<cmd>echo "Use j to move!!"<CR>')
 
 -- Keybinds to make split navigation easier.
 --  Use CTRL+<hjkl> to switch between windows
@@ -149,8 +211,6 @@ vim.keymap.set('n', '<C-h>', '<C-w><C-h>', { desc = 'Move focus to the left wind
 vim.keymap.set('n', '<C-l>', '<C-w><C-l>', { desc = 'Move focus to the right window' })
 vim.keymap.set('n', '<C-j>', '<C-w><C-j>', { desc = 'Move focus to the lower window' })
 vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper window' })
-
-require 'custom.keymaps'
 
 -- NOTE: Some terminals have colliding keymaps or are not able to send distinct keycodes
 -- vim.keymap.set("n", "<C-S-h>", "<C-w>H", { desc = "Move window to the left" })
@@ -250,14 +310,12 @@ require('lazy').setup({
     ---@type wk.Opts
     ---@diagnostic disable-next-line: missing-fields
     opts = {
-      preset = 'helix',
       -- delay between pressing a key and opening which-key (milliseconds)
       delay = 0,
       icons = { mappings = vim.g.have_nerd_font },
 
       -- Document existing key chains
       spec = {
-        { '<leader>a', group = '[A]I' },
         { '<leader>s', group = '[S]earch', mode = { 'n', 'v' } },
         { '<leader>t', group = '[T]oggle' },
         { '<leader>h', group = 'Git [H]unk', mode = { 'n', 'v' } }, -- Enable gitsigns recommended keymaps first
@@ -543,25 +601,8 @@ require('lazy').setup({
       ---@type table<string, vim.lsp.Config>
       local servers = {
         -- clangd = {},
-        gopls = {
-          settings = {
-            gopls = {
-              gofumpt = false,
-            },
-          },
-        },
-        basedpyright = {
-          settings = {
-            basedpyright = {
-              analysis = {
-                typeCheckingMode = 'basic',
-                autoSearchPaths = true,
-                useLibraryCodeForTypes = true,
-                autoImportCompletions = true,
-              },
-            },
-          },
-        },
+        -- gopls = {},
+        -- pyright = {},
         -- rust_analyzer = {},
         --
         -- Some languages (like typescript) have entire language plugins that can be useful:
@@ -655,7 +696,6 @@ require('lazy').setup({
       end,
       formatters_by_ft = {
         lua = { 'stylua' },
-        go = { 'goimports', 'gofmt' },
         -- Conform can also run multiple formatters sequentially
         -- python = { "isort", "black" },
         --
@@ -758,63 +798,6 @@ require('lazy').setup({
     },
   },
 
-  { -- You can easily change to a different colorscheme.
-    -- If you want to see what colorschemes are already installed, you can use `:Telescope colorscheme`.
-    'catppuccin/nvim',
-    name = 'catppuccin',
-    priority = 1000, -- Make sure to load this before all the other start plugins.
-    config = function()
-      local theme = 'catppuccin'
-      local mode_file = vim.fn.expand '~/.theme_mode'
-      local watcher
-
-      local function apply_mode(mode)
-        if mode ~= 'light' and mode ~= 'dark' then return end
-        if vim.o.background == mode then return end
-
-        vim.o.background = mode
-        if vim.g.colors_name == theme then vim.cmd.colorscheme(theme) end
-      end
-
-      local function load_mode()
-        if vim.fn.filereadable(mode_file) == 0 then return end
-
-        local mode = (vim.fn.readfile(mode_file, '', 1)[1] or ''):lower()
-        apply_mode(mode)
-      end
-
-      local function watch_mode()
-        if watcher or vim.fn.has 'nvim-0.10' == 0 then return end
-
-        watcher = vim.uv.new_fs_event()
-        if not watcher then return end
-
-        watcher:start(mode_file, {}, function() vim.schedule(load_mode) end)
-      end
-
-      require('catppuccin').setup {
-        styles = {
-          comments = {},
-          conditionals = {},
-          loops = {},
-          functions = { 'italic' },
-          keywords = {},
-          strings = {},
-          variables = {},
-          numbers = {},
-          booleans = { 'italic' },
-          properties = {},
-          types = { 'italic' },
-          operators = {},
-        },
-      }
-
-      vim.cmd.colorscheme 'catppuccin'
-      load_mode()
-      watch_mode()
-    end,
-  },
-
   -- Highlight todo, notes, etc in comments
   {
     'folke/todo-comments.nvim',
@@ -844,6 +827,19 @@ require('lazy').setup({
       -- - sr)'  - [S]urround [R]eplace [)] [']
       require('mini.surround').setup()
 
+      -- Simple and easy statusline.
+      --  You could remove this setup call if you don't like it,
+      --  and try some other statusline plugin
+      local statusline = require 'mini.statusline'
+      -- set use_icons to true if you have a Nerd Font
+      statusline.setup { use_icons = vim.g.have_nerd_font }
+
+      -- You can configure sections in the statusline by overriding their
+      -- default behavior. For example, here we set the section for
+      -- cursor location to LINE:COLUMN
+      ---@diagnostic disable-next-line: duplicate-set-field
+      statusline.section_location = function() return '%2l:%-2v' end
+
       -- ... and there is more!
       --  Check out: https://github.com/nvim-mini/mini.nvim
     end,
@@ -856,8 +852,28 @@ require('lazy').setup({
     branch = 'main',
     -- [[ Configure Treesitter ]] See `:help nvim-treesitter-intro`
     config = function()
+      -- ensure basic parser are installed
       local parsers = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' }
       require('nvim-treesitter').install(parsers)
+
+      ---@param buf integer
+      ---@param language string
+      local function treesitter_try_attach(buf, language)
+        -- check if parser exists and load it
+        if not vim.treesitter.language.add(language) then return end
+        -- enables syntax highlighting and other treesitter features
+        vim.treesitter.start(buf, language)
+
+        -- enables treesitter based folds
+        -- for more info on folds see `:help folds`
+        -- vim.wo.foldexpr = 'v:lua.vim.treesitter.foldexpr()'
+        -- vim.wo.foldmethod = 'expr'
+
+        -- enables treesitter based indentation
+        vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+      end
+
+      local available_parsers = require('nvim-treesitter').get_available()
       vim.api.nvim_create_autocmd('FileType', {
         callback = function(args)
           local buf, filetype = args.buf, args.match
@@ -865,18 +881,18 @@ require('lazy').setup({
           local language = vim.treesitter.language.get_lang(filetype)
           if not language then return end
 
-          -- check if parser exists and load it
-          if not vim.treesitter.language.add(language) then return end
-          -- enables syntax highlighting and other treesitter features
-          vim.treesitter.start(buf, language)
+          local installed_parsers = require('nvim-treesitter').get_installed 'parsers'
 
-          -- enables treesitter based folds
-          -- for more info on folds see `:help folds`
-          -- vim.wo.foldexpr = 'v:lua.vim.treesitter.foldexpr()'
-          -- vim.wo.foldmethod = 'expr'
-
-          -- enables treesitter based indentation
-          vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+          if vim.tbl_contains(installed_parsers, language) then
+            -- enable the parser if it is installed
+            treesitter_try_attach(buf, language)
+          elseif vim.tbl_contains(available_parsers, language) then
+            -- if a parser is available in `nvim-treesitter` auto install it, and enable it after the installation is done
+            require('nvim-treesitter').install(language):await(function() treesitter_try_attach(buf, language) end)
+          else
+            -- try to enable treesitter features in case the parser exists but is not available from `nvim-treesitter`
+            treesitter_try_attach(buf, language)
+          end
         end,
       })
     end,
@@ -891,12 +907,12 @@ require('lazy').setup({
   --  Here are some example plugins that I've included in the Kickstart repository.
   --  Uncomment any of the lines below to enable them (you will need to restart nvim).
   --
-  require 'kickstart.plugins.debug',
-  require 'kickstart.plugins.indent_line',
-  require 'kickstart.plugins.lint',
-  require 'kickstart.plugins.autopairs',
-  require 'kickstart.plugins.neo-tree',
-  require 'kickstart.plugins.gitsigns', -- adds gitsigns recommended keymaps
+  -- require 'kickstart.plugins.debug',
+  -- require 'kickstart.plugins.indent_line',
+  -- require 'kickstart.plugins.lint',
+  -- require 'kickstart.plugins.autopairs',
+  -- require 'kickstart.plugins.neo-tree',
+  -- require 'kickstart.plugins.gitsigns', -- adds gitsigns recommended keymaps
 
   -- NOTE: The import below can automatically add your own plugins, configuration, etc from `lua/custom/plugins/*.lua`
   --    This is the easiest way to modularize your config.

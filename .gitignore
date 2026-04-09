@@ -13,3 +13,4 @@ tmux/plugins/
 
 .nvimlog
 .omx/
+.DS_Store

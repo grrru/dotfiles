@@ -2,13 +2,14 @@
 
 DOTFILES_DIR="$HOME/dotfiles"
 CONFIG_DIR="$HOME/.config"
+KICKSTART_DIR_NAME="kickstart.nvim"
 
 select_neovim_distribution() {
   local choice
 
   echo "Select Neovim distribution:"
   echo "1) LazyVim"
-  echo "2) kickstart (not a distribution)"
+  echo "2) kickstart.nvim (not a distribution)"
 
   while true; do
     read -r -p "Enter choice [1-2]: " choice
@@ -22,9 +23,9 @@ select_neovim_distribution() {
       return
       ;;
     2)
-      echo "Selected: kickstart"
-      NVIM_CONFIG_SOURCE="kickstart"
-      NVIM_DISTRIBUTION_NAME="kickstart"
+      echo "Selected: kickstart.nvim"
+      NVIM_CONFIG_SOURCE="$KICKSTART_DIR_NAME"
+      NVIM_DISTRIBUTION_NAME="kickstart.nvim"
       return
       ;;
     *)
@@ -60,8 +61,8 @@ ensure_neovim_distribution_source() {
   nvchad)
     ensure_config_directory "$DOTFILES_DIR/nvchad" "NvChad" "git clone https://github.com/NvChad/starter \"$DOTFILES_DIR/nvchad\""
     ;;
-  kickstart)
-    ensure_config_directory "$DOTFILES_DIR/kickstart" "kickstart.nvim" "git clone https://github.com/nvim-lua/kickstart.nvim.git \"$DOTFILES_DIR/kickstart\""
+  "$KICKSTART_DIR_NAME")
+    ensure_config_directory "$DOTFILES_DIR/$KICKSTART_DIR_NAME" "kickstart.nvim" "git clone https://github.com/nvim-lua/kickstart.nvim.git \"$DOTFILES_DIR/$KICKSTART_DIR_NAME\""
     ;;
   *)
     echo "Unsupported Neovim distribution source: $NVIM_CONFIG_SOURCE"
@@ -156,8 +157,8 @@ ensure_neovim_distribution_source
 link_app_config "$NVIM_CONFIG_SOURCE" "nvim"
 link_config "tmux"
 
-if [ -d "$DOTFILES_DIR/kickstart" ]; then
-  link_app_config "kickstart" "kickstart"
+if [ -d "$DOTFILES_DIR/$KICKSTART_DIR_NAME" ]; then
+  link_app_config "$KICKSTART_DIR_NAME" "kickstart"
 fi
 
 # Link ghostty config only if ghostty is installed
