@@ -24,6 +24,7 @@ return {
     ---@type wk.Opts
     ---@diagnostic disable-next-line: missing-fields
     opts = {
+      preset = 'helix',
       delay = 0,
       icons = { mappings = vim.g.have_nerd_font },
       spec = {
