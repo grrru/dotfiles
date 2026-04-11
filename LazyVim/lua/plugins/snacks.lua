@@ -1,5 +1,5 @@
 return {
-  "folke/snacks.nvim",
+  "grrru/snacks.nvim",
   keys = {
     {
       "<leader><space>",
