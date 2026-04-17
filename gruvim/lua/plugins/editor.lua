@@ -1,0 +1,567 @@
+return {
+
+  -- Snacks (picker, explorer, dashboard, image, scratch, etc.)
+  {
+    "grrru/snacks.nvim",
+    priority = 1000,
+    lazy = false,
+    opts = {
+      bigfile = { enabled = true },
+      quickfile = { enabled = true },
+      picker = {
+        layout = {
+          layout = {
+            width = 0.9,
+            height = 0.9,
+          },
+        },
+        sources = {
+          explorer = {
+            hidden = true,
+            ignored = false,
+            layout = { layout = { width = 30 } },
+            format = function(item, picker)
+              if item.severity and item.severity > vim.diagnostic.severity.ERROR then
+                item.severity = nil
+              end
+              return Snacks.picker.format.file(item, picker)
+            end,
+          },
+          files = {
+            hidden = true,
+            ignored = true,
+          },
+        },
+      },
+      image = {
+        enabled = true,
+        doc = {
+          inline = true,
+          float = false,
+        },
+        formats = { "png", "jpg", "jpeg", "gif", "webp", "pdf", "mp4", "mov", "bmp", "tiff", "ico" },
+      },
+      dashboard = {
+        preset = {
+          keys = {
+            { icon = " ", key = "f", desc = "Find File", action = ":lua Snacks.dashboard.pick('files')" },
+            {
+              icon = " ",
+              key = "c",
+              desc = "Config",
+              action = ":lua Snacks.dashboard.pick('files', {cwd = vim.fn.stdpath('config')})",
+            },
+            { icon = "󰒲 ", key = "l", desc = "Lazy", action = ":Lazy", enabled = package.loaded.lazy ~= nil },
+            { icon = " ", key = "q", desc = "Quit", action = ":qa" },
+          },
+        },
+      },
+      terminal = { enabled = true },
+      notifier = { enabled = true },
+      scope = { enabled = true },
+      indent = { enabled = true },
+      scroll = { enabled = true },
+      animate = { enabled = true },
+      dim = { enabled = true },
+      words = { enabled = true },
+      statuscolumn = { enabled = true },
+    },
+    keys = {
+      -- Find
+      {
+        "<leader><space>",
+        function()
+          Snacks.picker.files({ root = false })
+        end,
+        desc = "Find Files (cwd)",
+      },
+      {
+        "<leader>ff",
+        function()
+          Snacks.picker.files()
+        end,
+        desc = "Find Files (root)",
+      },
+      {
+        "<leader>fF",
+        function()
+          Snacks.picker.files({ root = false })
+        end,
+        desc = "Find Files (cwd)",
+      },
+      {
+        "<leader>fc",
+        function()
+          Snacks.picker.files({ cwd = vim.fn.stdpath("config") })
+        end,
+        desc = "Find Config File",
+      },
+      {
+        "<leader>fb",
+        function()
+          Snacks.picker.buffers()
+        end,
+        desc = "Buffers",
+      },
+      -- Explorer
+      {
+        "<leader>e",
+        function()
+          Snacks.picker.explorer({ root = false })
+        end,
+        desc = "Explorer (cwd)",
+      },
+      {
+        "<leader>E",
+        function()
+          Snacks.picker.explorer()
+        end,
+        desc = "Explorer (root)",
+      },
+      -- Grep
+      {
+        "<leader>sg",
+        function()
+          Snacks.picker.grep({ root = false })
+        end,
+        desc = "Grep (cwd)",
+      },
+      {
+        "<leader>sG",
+        function()
+          Snacks.picker.grep()
+        end,
+        desc = "Grep (root)",
+      },
+      {
+        "<leader>sw",
+        function()
+          Snacks.picker.grep_word()
+        end,
+        desc = "Visual selection or word (root)",
+        mode = { "n", "x" },
+      },
+      {
+        "<leader>sb",
+        function()
+          Snacks.picker.lines()
+        end,
+        desc = "Buffer Lines",
+      },
+      {
+        "<leader>sB",
+        function()
+          Snacks.picker.grep_buffers()
+        end,
+        desc = "Grep Open Buffers",
+      },
+      -- Search
+      {
+        "<leader>:",
+        function()
+          Snacks.picker.command_history()
+        end,
+        desc = "Command History",
+      },
+      {
+        "<leader>n",
+        function()
+          Snacks.picker.notifications()
+        end,
+        desc = "Notification History",
+      },
+      {
+        '<leader>s"',
+        function()
+          Snacks.picker.registers()
+        end,
+        desc = "Registers",
+      },
+      {
+        "<leader>sa",
+        function()
+          Snacks.picker.autocmds()
+        end,
+        desc = "Autocmds",
+      },
+      {
+        "<leader>sc",
+        function()
+          Snacks.picker.command_history()
+        end,
+        desc = "Command History",
+      },
+      {
+        "<leader>sC",
+        function()
+          Snacks.picker.commands()
+        end,
+        desc = "Commands",
+      },
+      {
+        "<leader>sd",
+        function()
+          Snacks.picker.diagnostics()
+        end,
+        desc = "Diagnostics",
+      },
+      {
+        "<leader>sD",
+        function()
+          Snacks.picker.diagnostics_buffer()
+        end,
+        desc = "Buffer Diagnostics",
+      },
+      {
+        "<leader>sh",
+        function()
+          Snacks.picker.help()
+        end,
+        desc = "Help Pages",
+      },
+      {
+        "<leader>sH",
+        function()
+          Snacks.picker.highlights()
+        end,
+        desc = "Highlights",
+      },
+      {
+        "<leader>si",
+        function()
+          Snacks.picker.icons()
+        end,
+        desc = "Icons",
+      },
+      {
+        "<leader>sj",
+        function()
+          Snacks.picker.jumps()
+        end,
+        desc = "Jumps",
+      },
+      {
+        "<leader>sk",
+        function()
+          Snacks.picker.keymaps()
+        end,
+        desc = "Keymaps",
+      },
+      {
+        "<leader>sm",
+        function()
+          Snacks.picker.marks()
+        end,
+        desc = "Marks",
+      },
+      {
+        "<leader>sR",
+        function()
+          Snacks.picker.resume()
+        end,
+        desc = "Resume",
+      },
+      {
+        "<leader>su",
+        function()
+          Snacks.picker.undo()
+        end,
+        desc = "Undotree",
+      },
+      {
+        "<leader>uC",
+        function()
+          Snacks.picker.colorschemes()
+        end,
+        desc = "Colorschemes",
+      },
+      -- Git
+      {
+        "<leader>gg",
+        function()
+          Snacks.lazygit()
+        end,
+        desc = "Lazygit (root)",
+      },
+      {
+        "<leader>gG",
+        function()
+          Snacks.lazygit({ cwd = vim.fn.expand("%:p:h") })
+        end,
+        desc = "Lazygit (cwd)",
+      },
+      {
+        "<leader>gl",
+        function()
+          Snacks.picker.git_log()
+        end,
+        desc = "Git Log",
+      },
+      {
+        "<leader>gL",
+        function()
+          Snacks.picker.git_log({ cwd = vim.fn.expand("%:p:h") })
+        end,
+        desc = "Git Log (cwd)",
+      },
+      {
+        "<leader>gb",
+        function()
+          Snacks.picker.git_log_line()
+        end,
+        desc = "Git Blame Line",
+      },
+      {
+        "<leader>gf",
+        function()
+          Snacks.picker.git_log_file()
+        end,
+        desc = "Git Current File History",
+      },
+      {
+        "<leader>gB",
+        function()
+          Snacks.gitbrowse()
+        end,
+        desc = "Git Browse",
+        mode = { "n", "x" },
+      },
+      {
+        "<leader>gs",
+        function()
+          Snacks.picker.git_status()
+        end,
+        desc = "Git Status",
+      },
+      {
+        "<leader>gS",
+        function()
+          Snacks.picker.git_stash()
+        end,
+        desc = "Git Stash",
+      },
+      {
+        "<leader>gd",
+        function()
+          Snacks.picker.git_diff()
+        end,
+        desc = "Git Diff (hunks)",
+      },
+      -- Terminal
+      {
+        "<leader>ft",
+        function()
+          Snacks.terminal()
+        end,
+        desc = "Terminal (root)",
+      },
+      {
+        "<leader>fT",
+        function()
+          Snacks.terminal(nil, { cwd = vim.fn.expand("%:p:h") })
+        end,
+        desc = "Terminal (cwd)",
+      },
+      {
+        "<c-/>",
+        function()
+          Snacks.terminal.toggle()
+        end,
+        desc = "Toggle Terminal",
+        mode = { "n", "t" },
+      },
+      -- Scratch
+      {
+        "<leader>.",
+        function()
+          Snacks.scratch()
+        end,
+        desc = "Toggle Scratch Buffer",
+      },
+      {
+        "<leader>S",
+        function()
+          Snacks.scratch.select()
+        end,
+        desc = "Select Scratch Buffer",
+      },
+      -- UI toggles
+      {
+        "<leader>uD",
+        function()
+          Snacks.dim.toggle()
+        end,
+        desc = "Toggle Dimming",
+      },
+      {
+        "<leader>ua",
+        function()
+          Snacks.animate.toggle()
+        end,
+        desc = "Toggle Animations",
+      },
+      {
+        "<leader>ug",
+        function()
+          Snacks.indent.toggle()
+        end,
+        desc = "Toggle Indent Guides",
+      },
+      {
+        "<leader>uS",
+        function()
+          Snacks.scroll.toggle()
+        end,
+        desc = "Toggle Smooth Scroll",
+      },
+      {
+        "<leader>uZ",
+        function()
+          Snacks.zen.zoom()
+        end,
+        desc = "Toggle Zoom",
+      },
+      {
+        "<leader>wm",
+        function()
+          Snacks.zen.zoom()
+        end,
+        desc = "Toggle Zoom",
+      },
+      {
+        "<leader>uz",
+        function()
+          Snacks.zen()
+        end,
+        desc = "Toggle Zen Mode",
+      },
+    },
+  },
+
+  -- Flash (jump/search)
+  {
+    "folke/flash.nvim",
+    event = "VeryLazy",
+    opts = {},
+    keys = {
+      {
+        "s",
+        function()
+          require("flash").jump()
+        end,
+        desc = "Flash",
+        mode = { "n", "x", "o" },
+      },
+      {
+        "S",
+        function()
+          require("flash").treesitter()
+        end,
+        desc = "Flash Treesitter",
+        mode = { "n", "x", "o" },
+      },
+      {
+        "r",
+        function()
+          require("flash").remote()
+        end,
+        desc = "Remote Flash",
+        mode = "o",
+      },
+      {
+        "R",
+        function()
+          require("flash").treesitter_search()
+        end,
+        desc = "Treesitter Search",
+        mode = { "o", "x" },
+      },
+      {
+        "<c-s>",
+        function()
+          require("flash").toggle()
+        end,
+        desc = "Toggle Flash Search",
+        mode = "c",
+      },
+      {
+        "<c-space>",
+        function()
+          require("flash").treesitter({
+            actions = { ["<c-space>"] = "next", ["<BS>"] = "prev" },
+          })
+        end,
+        desc = "Treesitter Incremental Selection",
+        mode = { "n", "o", "x" },
+      },
+    },
+  },
+
+  -- Grug-far (find and replace)
+  {
+    "MagicDuck/grug-far.nvim",
+    opts = { headerMaxWidth = 80 },
+    cmd = { "GrugFar", "GrugFarWithin" },
+    keys = {
+      {
+        "<leader>sr",
+        function()
+          local grug = require("grug-far")
+          local ext = vim.bo.buftype == "" and vim.fn.expand("%:e")
+          grug.open({
+            transient = true,
+            prefills = {
+              filesFilter = ext and ext ~= "" and "*." .. ext or nil,
+            },
+          })
+        end,
+        mode = { "n", "x" },
+        desc = "Search and Replace",
+      },
+    },
+  },
+
+  -- Todo comments
+  {
+    "folke/todo-comments.nvim",
+    dependencies = { "nvim-lua/plenary.nvim" },
+    event = "VeryLazy",
+    opts = {},
+    keys = {
+      {
+        "]t",
+        function()
+          require("todo-comments").jump_next()
+        end,
+        desc = "Next Todo Comment",
+      },
+      {
+        "[t",
+        function()
+          require("todo-comments").jump_prev()
+        end,
+        desc = "Previous Todo Comment",
+      },
+      {
+        "<leader>st",
+        function()
+          Snacks.picker.todo_comments()
+        end,
+        desc = "Todo",
+      },
+      {
+        "<leader>sT",
+        function()
+          Snacks.picker.todo_comments({ keywords = { "TODO", "FIX", "FIXME" } })
+        end,
+        desc = "Todo/Fix/Fixme",
+      },
+      { "<leader>xt", "<cmd>Trouble todo toggle<cr>", desc = "Todo (Trouble)" },
+      {
+        "<leader>xT",
+        "<cmd>Trouble todo toggle filter = {tag = {TODO,FIX,FIXME}}<cr>",
+        desc = "Todo/Fix/Fixme (Trouble)",
+      },
+    },
+  },
+}

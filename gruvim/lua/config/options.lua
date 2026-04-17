@@ -1,0 +1,22 @@
+local opt = vim.opt
+
+opt.relativenumber = true
+opt.number = true
+opt.tabstop = 4
+opt.shiftwidth = 4
+opt.expandtab = true
+opt.clipboard = "unnamedplus"
+opt.spelllang = { "en", "cjk" }
+opt.timeoutlen = 500
+opt.termguicolors = true
+opt.signcolumn = "yes"
+opt.updatetime = 200
+opt.undofile = true
+opt.ignorecase = true
+opt.smartcase = true
+opt.splitbelow = true
+opt.splitright = true
+opt.scrolloff = 4
+opt.sidescrolloff = 8
+opt.cursorline = true
+opt.wrap = false

@@ -9,7 +9,7 @@ select_neovim_distribution() {
 
   echo "Select Neovim distribution:"
   echo "1) LazyVim"
-  echo "2) kickstart.nvim (not a distribution)"
+  echo "2) gruvim (not a distribution)"
 
   while true; do
     read -r -p "Enter choice [1-2]: " choice
@@ -23,13 +23,13 @@ select_neovim_distribution() {
       return
       ;;
     2)
-      echo "Selected: kickstart.nvim"
-      NVIM_CONFIG_SOURCE="$KICKSTART_DIR_NAME"
-      NVIM_DISTRIBUTION_NAME="kickstart.nvim"
+      echo "Selected: gruvim"
+      NVIM_CONFIG_SOURCE="gruvim"
+      NVIM_DISTRIBUTION_NAME="gruvim"
       return
       ;;
     *)
-      echo "Invalid choice. Please enter 1 or 2 ."
+      echo "Invalid choice. Please enter 1 or 2."
       ;;
     esac
   done
@@ -63,6 +63,12 @@ ensure_neovim_distribution_source() {
     ;;
   "$KICKSTART_DIR_NAME")
     ensure_config_directory "$DOTFILES_DIR/$KICKSTART_DIR_NAME" "kickstart.nvim" "git clone https://github.com/nvim-lua/kickstart.nvim.git \"$DOTFILES_DIR/$KICKSTART_DIR_NAME\""
+    ;;
+  gruvim)
+    if [ ! -d "$DOTFILES_DIR/gruvim" ]; then
+      echo "gruvim config not found at $DOTFILES_DIR/gruvim"
+      exit 1
+    fi
     ;;
   *)
     echo "Unsupported Neovim distribution source: $NVIM_CONFIG_SOURCE"
