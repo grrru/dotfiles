@@ -37,6 +37,14 @@ return {
     },
     config = function(_, opts)
       require("nvim-treesitter").setup(opts)
+
+      -- Enable Tree-sitter highlighting on FileType events
+      vim.api.nvim_create_autocmd("FileType", {
+        group = vim.api.nvim_create_augroup("gruvim_treesitter_highlight", { clear = true }),
+        callback = function(ev)
+          pcall(vim.treesitter.start, ev.buf)
+        end,
+      })
     end,
   },
 
