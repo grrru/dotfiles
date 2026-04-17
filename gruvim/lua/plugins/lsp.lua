@@ -41,7 +41,6 @@ return {
           map("gD", vim.lsp.buf.declaration, "Goto Declaration")
           map("K", vim.lsp.buf.hover, "Hover")
           map("gK", vim.lsp.buf.signature_help, "Signature Help")
-          map("<leader>ca", vim.lsp.buf.code_action, "Code Action")
           map("<leader>cR", function()
             Snacks.rename.rename_file()
           end, "Rename File")
@@ -156,10 +155,6 @@ return {
     keys = {
       { "<leader>xx", "<cmd>Trouble diagnostics toggle<cr>", desc = "Diagnostics (Trouble)" },
       { "<leader>xX", "<cmd>Trouble diagnostics toggle filter.buf=0<cr>", desc = "Buffer Diagnostics (Trouble)" },
-      { "<leader>cs", "<cmd>Trouble symbols toggle<cr>", desc = "Symbols (Trouble)" },
-      { "<leader>cS", "<cmd>Trouble lsp toggle<cr>", desc = "LSP (Trouble)" },
-      { "<leader>xL", "<cmd>Trouble loclist toggle<cr>", desc = "Location List (Trouble)" },
-      { "<leader>xQ", "<cmd>Trouble qflist toggle<cr>", desc = "Quickfix List (Trouble)" },
       {
         "[q",
         function()

@@ -48,41 +48,6 @@ return {
     end,
   },
 
-  -- Treesitter textobjects (함수/클래스/파라미터 단위 이동)
-  {
-    "nvim-treesitter/nvim-treesitter-textobjects",
-    branch = "main",
-    event = "VeryLazy",
-    config = function()
-      require("nvim-treesitter-textobjects").setup({
-        move = {
-          enable = true,
-          set_jumps = true,
-          goto_next_start = {
-            ["]f"] = "@function.outer",
-            ["]c"] = "@class.outer",
-            ["]a"] = "@parameter.inner",
-          },
-          goto_next_end = {
-            ["]F"] = "@function.outer",
-            ["]C"] = "@class.outer",
-            ["]A"] = "@parameter.inner",
-          },
-          goto_previous_start = {
-            ["[f"] = "@function.outer",
-            ["[c"] = "@class.outer",
-            ["[a"] = "@parameter.inner",
-          },
-          goto_previous_end = {
-            ["[F"] = "@function.outer",
-            ["[C"] = "@class.outer",
-            ["[A"] = "@parameter.inner",
-          },
-        },
-      })
-    end,
-  },
-
   -- Treesitter context (상단 컨텍스트 표시)
   {
     "nvim-treesitter/nvim-treesitter-context",

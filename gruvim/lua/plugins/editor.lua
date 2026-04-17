@@ -52,13 +52,13 @@ return {
           },
         },
       },
-      terminal = { enabled = true },
+      terminal = { enabled = true }, -- TODO: terminal 열 때, 파일 윈도우 스크롤이 올라가는 현상 해결
       notifier = { enabled = true },
       scope = { enabled = true },
       indent = { enabled = true },
       scroll = { enabled = true },
       animate = { enabled = true },
-      dim = { enabled = true },
+      dim = { enabled = false },
       words = { enabled = true },
       statuscolumn = { enabled = true },
     },
@@ -153,13 +153,6 @@ return {
       },
       -- Search
       {
-        "<leader>:",
-        function()
-          Snacks.picker.command_history()
-        end,
-        desc = "Command History",
-      },
-      {
         "<leader>n",
         function()
           Snacks.picker.notifications()
@@ -216,13 +209,6 @@ return {
         desc = "Help Pages",
       },
       {
-        "<leader>sH",
-        function()
-          Snacks.picker.highlights()
-        end,
-        desc = "Highlights",
-      },
-      {
         "<leader>si",
         function()
           Snacks.picker.icons()
@@ -251,13 +237,6 @@ return {
         desc = "Marks",
       },
       {
-        "<leader>sR",
-        function()
-          Snacks.picker.resume()
-        end,
-        desc = "Resume",
-      },
-      {
         "<leader>su",
         function()
           Snacks.picker.undo()
@@ -278,13 +257,6 @@ return {
           Snacks.lazygit()
         end,
         desc = "Lazygit (root)",
-      },
-      {
-        "<leader>gG",
-        function()
-          Snacks.lazygit({ cwd = vim.fn.expand("%:p:h") })
-        end,
-        desc = "Lazygit (cwd)",
       },
       {
         "<leader>gl",
@@ -345,21 +317,7 @@ return {
       },
       -- Terminal
       {
-        "<leader>ft",
-        function()
-          Snacks.terminal()
-        end,
-        desc = "Terminal (root)",
-      },
-      {
-        "<leader>fT",
-        function()
-          Snacks.terminal(nil, { cwd = vim.fn.expand("%:p:h") })
-        end,
-        desc = "Terminal (cwd)",
-      },
-      {
-        "<c-/>",
+        "<c-_>",
         function()
           Snacks.terminal.toggle()
         end,
@@ -385,28 +343,28 @@ return {
       {
         "<leader>uD",
         function()
-          Snacks.dim.toggle()
+          Snacks.toggle.dim():toggle()
         end,
         desc = "Toggle Dimming",
       },
       {
         "<leader>ua",
         function()
-          Snacks.animate.toggle()
+          Snacks.toggle.animate():toggle()
         end,
         desc = "Toggle Animations",
       },
       {
         "<leader>ug",
         function()
-          Snacks.indent.toggle()
+          Snacks.toggle.indent():toggle()
         end,
         desc = "Toggle Indent Guides",
       },
       {
         "<leader>uS",
         function()
-          Snacks.scroll.toggle()
+          Snacks.toggle.scroll():toggle()
         end,
         desc = "Toggle Smooth Scroll",
       },
@@ -447,48 +405,6 @@ return {
         end,
         desc = "Flash",
         mode = { "n", "x", "o" },
-      },
-      {
-        "S",
-        function()
-          require("flash").treesitter()
-        end,
-        desc = "Flash Treesitter",
-        mode = { "n", "x", "o" },
-      },
-      {
-        "r",
-        function()
-          require("flash").remote()
-        end,
-        desc = "Remote Flash",
-        mode = "o",
-      },
-      {
-        "R",
-        function()
-          require("flash").treesitter_search()
-        end,
-        desc = "Treesitter Search",
-        mode = { "o", "x" },
-      },
-      {
-        "<c-s>",
-        function()
-          require("flash").toggle()
-        end,
-        desc = "Toggle Flash Search",
-        mode = "c",
-      },
-      {
-        "<c-space>",
-        function()
-          require("flash").treesitter({
-            actions = { ["<c-space>"] = "next", ["<BS>"] = "prev" },
-          })
-        end,
-        desc = "Treesitter Incremental Selection",
-        mode = { "n", "o", "x" },
       },
     },
   },
@@ -544,19 +460,6 @@ return {
           Snacks.picker.todo_comments()
         end,
         desc = "Todo",
-      },
-      {
-        "<leader>sT",
-        function()
-          Snacks.picker.todo_comments({ keywords = { "TODO", "FIX", "FIXME" } })
-        end,
-        desc = "Todo/Fix/Fixme",
-      },
-      { "<leader>xt", "<cmd>Trouble todo toggle<cr>", desc = "Todo (Trouble)" },
-      {
-        "<leader>xT",
-        "<cmd>Trouble todo toggle filter = {tag = {TODO,FIX,FIXME}}<cr>",
-        desc = "Todo/Fix/Fixme (Trouble)",
       },
     },
   },

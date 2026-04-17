@@ -142,7 +142,8 @@ return {
       { "<leader>bj",  "<cmd>BufferLinePick<cr>",                desc = "Pick Buffer" },
       { "<leader>bp",  "<cmd>BufferLineTogglePin<cr>",           desc = "Toggle Pin" },
       { "<leader>bP",  "<cmd>BufferLineGroupClose ungrouped<cr>", desc = "Delete Non-Pinned Buffers" },
-      { "<leader>br",  "<cmd>BufferLineCloseRight<cr>",          desc = "Delete Buffers to the Right" },
+      { "<leader>bR",  "<cmd>BufferLineCloseRight<cr>",          desc = "Delete Buffers to the Right" },
+      { "<leader>bL",  "<cmd>BufferLineCloseLeft<cr>",          desc = "Delete Buffers to the Left" },
     },
     dependencies = { "catppuccin/nvim" },
     opts = function()
@@ -192,7 +193,7 @@ return {
         },
       },
       presets = {
-        bottom_search = true,
+        bottom_search = false,
         command_palette = true,
         long_message_to_split = true,
         inc_rename = true,
