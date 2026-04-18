@@ -45,10 +45,15 @@ return {
         preset = {
           keys = {
             { icon = " ", key = "f", desc = "Find File", action = ":lua Snacks.dashboard.pick('files')" },
-            { icon = " ", key = "c", desc = "Config",    action = ":lua Snacks.dashboard.pick('files', {cwd = vim.fn.stdpath('config')})" },
-            { icon = "󰒲 ", key = "l", desc = "Lazy",     action = ":Lazy", enabled = package.loaded.lazy ~= nil },
+            {
+              icon = " ",
+              key = "c",
+              desc = "Config",
+              action = ":lua Snacks.dashboard.pick('files', {cwd = vim.fn.stdpath('config')})",
+            },
+            { icon = "󰒲 ", key = "l", desc = "Lazy", action = ":Lazy", enabled = package.loaded.lazy ~= nil },
             { icon = " ", key = "r", desc = "Restore Session", section = "session" },
-            { icon = " ", key = "q", desc = "Quit",      action = ":qa" },
+            { icon = " ", key = "q", desc = "Quit", action = ":qa" },
           },
         },
       },
