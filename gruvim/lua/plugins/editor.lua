@@ -1,3 +1,39 @@
+local function nvim_meta_section()
+  local version = vim.version()
+  return {
+    align = "center",
+    text = {
+      { string.format("NVIM v%d.%d.%d", version.major, version.minor, version.patch), hl = "title" },
+      {
+        "\n────────────────────────────────────────────",
+        hl = "nontext",
+      },
+      { "\nNvim is open source and freely distributable", hl = "comment" },
+      { "\nhttps://neovim.io/#chat", hl = "comment" },
+      {
+        "\n────────────────────────────────────────────",
+        hl = "nontext",
+      },
+    },
+    padding = 1,
+  }
+end
+
+local function nvim_logo_section()
+  return {
+    align = "center",
+    text = {
+      { "│ ", hl = "special" },
+      { "╲ ││", hl = "string" },
+      { "\n││", hl = "special" },
+      { "╲╲││", hl = "string" },
+      { "\n││ ", hl = "special" },
+      { "╲ │", hl = "string" },
+    },
+    padding = 1,
+  }
+end
+
 return {
 
   -- Snacks (picker, explorer, dashboard, image, scratch, etc.)
@@ -42,6 +78,13 @@ return {
         formats = { "png", "jpg", "jpeg", "gif", "webp", "pdf", "mp4", "mov", "bmp", "tiff", "ico" },
       },
       dashboard = {
+        enabled = true,
+        sections = {
+          nvim_logo_section(),
+          nvim_meta_section(),
+          { section = "keys", gap = 1, padding = 1 },
+          { section = "startup" },
+        },
         preset = {
           keys = {
             { icon = " ", key = "f", desc = "Find File", action = ":lua Snacks.dashboard.pick('files')" },
