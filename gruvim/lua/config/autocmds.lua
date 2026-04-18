@@ -55,6 +55,16 @@ vim.api.nvim_create_autocmd("FileType", {
   end,
 })
 
+-- Per-filetype indentation
+vim.api.nvim_create_autocmd("FileType", {
+  group = augroup("indent"),
+  pattern = { "lua", "javascript", "typescript", "typescriptreact", "javascriptreact", "json", "yaml", "html", "css" },
+  callback = function()
+    vim.opt_local.tabstop = 2
+    vim.opt_local.shiftwidth = 2
+  end,
+})
+
 -- Auto-create parent directories on save
 vim.api.nvim_create_autocmd("BufWritePre", {
   group = augroup("auto_create_dir"),
