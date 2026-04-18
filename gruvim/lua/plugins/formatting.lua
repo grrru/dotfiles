@@ -3,7 +3,7 @@ return {
   -- Conform (formatter)
   {
     "stevearc/conform.nvim",
-    lazy = true,
+    event = "BufWritePre",
     cmd = "ConformInfo",
     keys = {
       {
