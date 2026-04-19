@@ -20,3 +20,4 @@ opt.scrolloff = 4
 opt.sidescrolloff = 8
 opt.cursorline = true
 opt.wrap = false
+opt.guicursor:append("t:blinkon0")
