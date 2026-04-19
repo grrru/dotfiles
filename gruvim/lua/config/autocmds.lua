@@ -58,7 +58,18 @@ vim.api.nvim_create_autocmd("FileType", {
 -- Per-filetype indentation
 vim.api.nvim_create_autocmd("FileType", {
   group = augroup("indent"),
-  pattern = { "lua", "javascript", "typescript", "typescriptreact", "javascriptreact", "json", "yaml", "html", "css" },
+  pattern = {
+    "lua",
+    "javascript",
+    "typescript",
+    "typescriptreact",
+    "javascriptreact",
+    "json",
+    "yaml",
+    "html",
+    "css",
+    "sh",
+  },
   callback = function()
     vim.opt_local.tabstop = 2
     vim.opt_local.shiftwidth = 2
