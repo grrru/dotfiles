@@ -2,7 +2,6 @@
 
 DOTFILES_DIR="$HOME/dotfiles"
 CONFIG_DIR="$HOME/.config"
-KICKSTART_DIR_NAME="kickstart.nvim"
 
 select_neovim_distribution() {
   local choice
@@ -35,21 +34,6 @@ select_neovim_distribution() {
   done
 }
 
-ensure_config_directory() {
-  local dest_dir="$1"
-  local display_name="$2"
-  local setup_hint="$3"
-
-  if [ -d "$dest_dir" ]; then
-    return
-  fi
-
-  echo "$display_name config not found at $dest_dir"
-  echo "Please prepare it first, for example:"
-  echo "  $setup_hint"
-  exit 1
-}
-
 ensure_neovim_distribution_source() {
   case "$NVIM_CONFIG_SOURCE" in
   LazyVim)
@@ -57,12 +41,6 @@ ensure_neovim_distribution_source() {
       echo "LazyVim config not found at $DOTFILES_DIR/LazyVim"
       exit 1
     fi
-    ;;
-  nvchad)
-    ensure_config_directory "$DOTFILES_DIR/nvchad" "NvChad" "git clone https://github.com/NvChad/starter \"$DOTFILES_DIR/nvchad\""
-    ;;
-  "$KICKSTART_DIR_NAME")
-    ensure_config_directory "$DOTFILES_DIR/$KICKSTART_DIR_NAME" "kickstart.nvim" "git clone https://github.com/nvim-lua/kickstart.nvim.git \"$DOTFILES_DIR/$KICKSTART_DIR_NAME\""
     ;;
   gruvim)
     if [ ! -d "$DOTFILES_DIR/gruvim" ]; then
@@ -163,10 +141,6 @@ ensure_neovim_distribution_source
 link_app_config "$NVIM_CONFIG_SOURCE" "nvim"
 link_config "tmux"
 
-if [ -d "$DOTFILES_DIR/$KICKSTART_DIR_NAME" ]; then
-  link_app_config "$KICKSTART_DIR_NAME" "kickstart"
-fi
-
 # Link ghostty config only if ghostty is installed
 if command -v ghostty &>/dev/null; then
   link_config "ghostty"
@@ -180,4 +154,3 @@ fi
 
 echo "Installation complete!"
 echo "Default Neovim config now points to: $NVIM_DISTRIBUTION_NAME"
-echo "You can also test kickstart with: NVIM_APPNAME=kickstart nvim"
