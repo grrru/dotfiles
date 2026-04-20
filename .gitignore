@@ -12,5 +12,6 @@ LazyVim/spell/*.spl
 tmux/plugins/
 
 .nvimlog
+nvim.log
 .omx/
 .DS_Store
