@@ -76,6 +76,24 @@ vim.api.nvim_create_autocmd("FileType", {
   end,
 })
 
+-- Preserve view when switching buffers
+local preserve_view_group = augroup("preserve_view")
+vim.api.nvim_create_autocmd("BufLeave", {
+  group = preserve_view_group,
+  callback = function()
+    vim.b._saved_view = vim.fn.winsaveview()
+  end,
+})
+vim.api.nvim_create_autocmd("BufEnter", {
+  group = preserve_view_group,
+  callback = function()
+    local saved = vim.b._saved_view
+    if saved then
+      vim.fn.winrestview(saved)
+    end
+  end,
+})
+
 -- Auto-create parent directories on save
 vim.api.nvim_create_autocmd("BufWritePre", {
   group = augroup("auto_create_dir"),
