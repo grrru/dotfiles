@@ -3,7 +3,7 @@
 STATE_FILE="$HOME/.theme_mode"
 DOTFILES="$HOME/dotfiles"
 LIGHT_THEME="Catppuccin Latte"
-DARK_THEME="Catppuccin Mocha"
+DARK_THEME="TokyoNight Night"
 
 # Determine new mode
 if [ -f "$STATE_FILE" ] && [ "$(cat "$STATE_FILE")" = "dark" ]; then

@@ -1,6 +1,6 @@
 return {
 
-  -- Colorscheme
+  -- Colorscheme: catppuccin (light) / tokyonight (dark)
   {
     "catppuccin/nvim",
     name = "catppuccin",
@@ -41,28 +41,23 @@ return {
     config = function(_, opts)
       require("catppuccin").setup(opts)
 
-      -- apply light/dark mode
-      local theme = "catppuccin"
       local mode_file = vim.fn.expand("~/.theme_mode")
 
       local function apply_mode(mode)
-        if mode ~= "light" and mode ~= "dark" then
-          return
-        end
-        if vim.o.background == mode then
-          return
-        end
-        vim.o.background = mode
-        if vim.g.colors_name == theme then
-          vim.cmd.colorscheme(theme)
+        if mode == "light" then
+          vim.o.background = "light"
+          vim.cmd.colorscheme("catppuccin")
+        else
+          vim.o.background = "dark"
+          vim.cmd.colorscheme("tokyonight")
         end
       end
 
       local function load_mode()
-        if vim.fn.filereadable(mode_file) == 0 then
-          return
+        local mode = "dark"
+        if vim.fn.filereadable(mode_file) == 1 then
+          mode = (vim.fn.readfile(mode_file, "", 1)[1] or "dark"):lower()
         end
-        local mode = (vim.fn.readfile(mode_file, "", 1)[1] or ""):lower()
         apply_mode(mode)
       end
 
@@ -74,9 +69,16 @@ return {
           vim.schedule(load_mode)
         end)
       end
-
-      vim.cmd.colorscheme(theme)
     end,
+  },
+
+  {
+    "folke/tokyonight.nvim",
+    lazy = false,
+    priority = 999,
+    opts = {
+      style = "night",
+    },
   },
 
   -- Statusline
@@ -149,7 +151,9 @@ return {
     dependencies = { "catppuccin/nvim" },
     opts = function()
       return {
-        highlights = require("catppuccin.special.bufferline").get_theme(),
+        highlights = (vim.g.colors_name or ""):find("^catppuccin")
+            and require("catppuccin.special.bufferline").get_theme()
+          or {},
         options = {
           indicator = { style = "none" },
           diagnostics = "nvim_lsp",
