@@ -62,12 +62,6 @@ return {
           end, "Prev Reference")
 
           vim.keymap.set("i", "<C-k>", vim.lsp.buf.signature_help, { buffer = event.buf, desc = "Signature Help" })
-          vim.keymap.set(
-            { "n", "x" },
-            "<leader>ca",
-            vim.lsp.buf.code_action,
-            { buffer = event.buf, desc = "Code Action" }
-          )
         end,
       })
 
