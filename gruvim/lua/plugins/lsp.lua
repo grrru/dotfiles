@@ -29,7 +29,7 @@ return {
           map("gd", function()
             Snacks.picker.lsp_definitions()
           end, "Goto Definition")
-          map("gr", function()
+          map("grr", function()
             Snacks.picker.lsp_references()
           end, "References")
           map("gI", function()
