@@ -24,7 +24,7 @@ trap cleanup EXIT INT TERM
 
 tmp_window=$(tmux new-window -d -P -F '#{window_id}' -t "$session_id:" -n "$tmp_name")
 tmp_first_pane=$(tmux list-panes -t "$tmp_window" -F '#{pane_id}')
-tmux split-window -d -h -p 40 -t "$tmp_first_pane" >/dev/null
+tmux split-window -d -h -p 36 -t "$tmp_first_pane" >/dev/null
 tmux split-window -d -v -p 50 -t "$tmp_first_pane" >/dev/null
 
 layout=$(tmux display-message -p -t "$tmp_window" '#{window_layout}')
