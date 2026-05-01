@@ -17,7 +17,7 @@ cd ~/dotfiles
 ./install.sh
 ```
 
-The installer installs the basic CLI dependencies, oh-my-zsh, and mise-managed runtimes, then links the selected Neovim config to `~/.config/nvim`.
+The installer installs the basic CLI dependencies, oh-my-zsh, and mise, then links the selected Neovim config to `~/.config/nvim`.
 
 Open Neovim after installation:
 

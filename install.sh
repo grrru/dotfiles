@@ -147,16 +147,6 @@ configure_mise_shell() {
   fi
 }
 
-install_mise_tools() {
-  if ! command_exists mise; then
-    echo "mise is not installed. Skipping runtime installation."
-    return
-  fi
-
-  echo "Installing mise-managed runtimes..."
-  mise install --yes
-}
-
 # Function to create symlinks
 link_config() {
   local name="$1"
@@ -209,9 +199,7 @@ install_oh_my_zsh
 
 # 2. Create config directory and link configs
 mkdir -p "$CONFIG_DIR"
-link_config "mise"
 configure_mise_shell
-install_mise_tools
 select_neovim_distribution
 ensure_neovim_distribution_source
 link_app_config "$NVIM_CONFIG_SOURCE" "nvim"
