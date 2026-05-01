@@ -116,9 +116,14 @@ return {
     },
     opts = {
       ensure_installed = {
-        "stylua",
-        "gopls",
         "basedpyright",
+        "gofumpt",
+        "goimports",
+        "golangci-lint",
+        "gopls",
+        "ruff",
+        "shfmt",
+        "stylua",
       },
     },
     config = function(_, opts)

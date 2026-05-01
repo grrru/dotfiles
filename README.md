@@ -9,20 +9,24 @@
 
  > Install requires Neovim 0.9+. Always review the code before installing a configuration.
 
-Clone the repository and install the plugins:
+Clone the repository and run the installer:
 
 ```sh
-git clone git@github.com:grrru/dotfiles ~/.config/grrru/dotfiles
+git clone git@github.com:grrru/dotfiles ~/dotfiles
+cd ~/dotfiles
+./install.sh
 ```
 
-Open Neovim with this config:
+The installer installs the basic CLI dependencies, oh-my-zsh, and mise-managed runtimes, then links the selected Neovim config to `~/.config/nvim`.
+
+Open Neovim after installation:
 
 ```sh
-NVIM_APPNAME=grrru/dotfiles/gruvim nvim
+nvim
 ```
 
-Or run `./install.sh` and choose one of the two options (`LazyVim`, `gruvim`),   
-but this document is for `gruvim` (`LazyVim` is deprecated).
+Choose one of the two options (`LazyVim`, `gruvim`) when `./install.sh` runs.
+This document is for `gruvim` (`LazyVim` is deprecated).
 
 ## Plugins
 
