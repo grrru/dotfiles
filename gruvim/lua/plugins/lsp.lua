@@ -117,9 +117,7 @@ return {
     opts = {
       ensure_installed = {
         "basedpyright",
-        "gofumpt",
         "goimports",
-        "golangci-lint",
         "gopls",
         "ruff",
         "shfmt",
@@ -128,6 +126,33 @@ return {
     },
     config = function(_, opts)
       require("mason").setup(opts)
+
+      local registry = require("mason-registry")
+      local ensure_installed = opts.ensure_installed or {}
+
+      vim.api.nvim_create_user_command("GruvimMasonInstall", function()
+        registry.refresh(function()
+          for _, package_name in ipairs(ensure_installed) do
+            if registry.has_package(package_name) and not registry.is_installed(package_name) then
+              local package = registry.get_package(package_name)
+              package:install({}, function(success, result)
+                if not success then
+                  vim.schedule(function()
+                    vim.notify(
+                      ("Failed to install Mason package %s: %s"):format(package_name, result),
+                      vim.log.levels.ERROR
+                    )
+                  end)
+                end
+              end)
+            elseif not registry.has_package(package_name) then
+              vim.schedule(function()
+                vim.notify(("Unknown Mason package: %s"):format(package_name), vim.log.levels.WARN)
+              end)
+            end
+          end
+        end)
+      end, { desc = "Install gruvim Mason packages" })
     end,
   },
 

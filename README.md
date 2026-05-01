@@ -25,6 +25,12 @@ Open Neovim after installation:
 nvim
 ```
 
+Install gruvim-managed Mason packages from Neovim:
+
+```vim
+:GruvimMasonInstall
+```
+
 Choose one of the two options (`LazyVim`, `gruvim`) when `./install.sh` runs.
 This document is for `gruvim` (`LazyVim` is deprecated).
 
