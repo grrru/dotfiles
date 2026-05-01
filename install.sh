@@ -9,56 +9,11 @@ command_exists() {
   command -v "$1" &>/dev/null
 }
 
-select_neovim_distribution() {
-  local choice
-
-  echo "Select Neovim distribution:"
-  echo "1) LazyVim"
-  echo "2) gruvim (not a distribution)"
-
-  while true; do
-    read -r -p "Enter choice [1-2]: " choice
-    choice="${choice:-1}"
-
-    case "$choice" in
-    1)
-      echo "Selected: LazyVim"
-      NVIM_CONFIG_SOURCE="LazyVim"
-      NVIM_DISTRIBUTION_NAME="LazyVim"
-      return
-      ;;
-    2)
-      echo "Selected: gruvim"
-      NVIM_CONFIG_SOURCE="gruvim"
-      NVIM_DISTRIBUTION_NAME="gruvim"
-      return
-      ;;
-    *)
-      echo "Invalid choice. Please enter 1 or 2."
-      ;;
-    esac
-  done
-}
-
-ensure_neovim_distribution_source() {
-  case "$NVIM_CONFIG_SOURCE" in
-  LazyVim)
-    if [ ! -d "$DOTFILES_DIR/LazyVim" ]; then
-      echo "LazyVim config not found at $DOTFILES_DIR/LazyVim"
-      exit 1
-    fi
-    ;;
-  gruvim)
-    if [ ! -d "$DOTFILES_DIR/gruvim" ]; then
-      echo "gruvim config not found at $DOTFILES_DIR/gruvim"
-      exit 1
-    fi
-    ;;
-  *)
-    echo "Unsupported Neovim distribution source: $NVIM_CONFIG_SOURCE"
+ensure_gruvim_source() {
+  if [ ! -d "$DOTFILES_DIR/gruvim" ]; then
+    echo "gruvim config not found at $DOTFILES_DIR/gruvim"
     exit 1
-    ;;
-  esac
+  fi
 }
 
 # Function to install dependencies
@@ -200,9 +155,8 @@ install_oh_my_zsh
 # 2. Create config directory and link configs
 mkdir -p "$CONFIG_DIR"
 configure_mise_shell
-select_neovim_distribution
-ensure_neovim_distribution_source
-link_app_config "$NVIM_CONFIG_SOURCE" "nvim"
+ensure_gruvim_source
+link_app_config "gruvim" "nvim"
 link_config "tmux"
 
 # Link ghostty config only if ghostty is installed
@@ -217,4 +171,4 @@ if [ ! -d "$DOTFILES_DIR/tmux/plugins/tpm" ]; then
 fi
 
 echo "Installation complete!"
-echo "Default Neovim config now points to: $NVIM_DISTRIBUTION_NAME"
+echo "Default Neovim config now points to: gruvim"

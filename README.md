@@ -31,8 +31,7 @@ Install gruvim-managed Mason packages from Neovim:
 :GruvimMasonInstall
 ```
 
-Choose one of the two options (`LazyVim`, `gruvim`) when `./install.sh` runs.
-This document is for `gruvim` (`LazyVim` is deprecated).
+The installer links `gruvim` as the default Neovim config.
 
 ## Plugins
 
