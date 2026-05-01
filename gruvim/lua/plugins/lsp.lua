@@ -110,13 +110,15 @@ return {
   -- Mason (LSP/tool installer)
   {
     "mason-org/mason.nvim",
-    cmd = "Mason",
+    cmd = { "Mason", "GruvimMasonInstall" },
     keys = {
       { "<leader>cm", "<cmd>Mason<cr>", desc = "Mason" },
     },
     opts = {
       ensure_installed = {
         "basedpyright",
+        "gdscript-formatter",
+        "gdtoolkit",
         "goimports",
         "gopls",
         "ruff",
