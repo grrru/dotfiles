@@ -13,6 +13,7 @@ return {
         "bash",
         "c",
         "diff",
+        "gdscript",
         "go",
         "gomod",
         "gosum",

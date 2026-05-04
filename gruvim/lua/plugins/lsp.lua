@@ -104,6 +104,11 @@ return {
           },
         },
       })
+
+      vim.lsp.config("gdscript", {
+        cmd = vim.lsp.rpc.connect("127.0.0.1", 6005),
+      })
+      vim.lsp.enable("gdscript")
     end,
   },
 

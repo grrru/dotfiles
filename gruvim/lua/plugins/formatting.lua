@@ -23,6 +23,7 @@ return {
         lsp_format = "fallback",
       },
       formatters_by_ft = {
+        gdscript = { "gdscript-formatter" },
         lua = { "stylua" },
         go = { "goimports", "gofmt" },
         sh = { "shfmt" },
