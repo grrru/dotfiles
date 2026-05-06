@@ -222,10 +222,40 @@ link_app_config() {
   fi
 }
 
+configure_bash_common() {
+  local shell_rc="$HOME/.bashrc"
+  local source_line="source \"$DOTFILES_DIR/bash/omb_config.sh\""
+
+  touch "$shell_rc"
+  if grep -Fq "$source_line" "$shell_rc"; then
+    echo "bash common config already sourced, skipping."
+  else
+    printf '\n# dotfiles bash common (oh-my-bash + PATH helpers)\n%s\n' "$source_line" >>"$shell_rc"
+    echo "Added bash common config source to $shell_rc"
+  fi
+}
+
+configure_zsh_common() {
+  local shell_rc="${ZDOTDIR:-$HOME}/.zshrc"
+  local source_line="source \"$DOTFILES_DIR/zsh/omz_config.sh\""
+
+  touch "$shell_rc"
+  if grep -Fq "$source_line" "$shell_rc"; then
+    echo "zsh common config already sourced, skipping."
+  else
+    printf '\n# dotfiles zsh common (oh-my-zsh + PATH helpers)\n%s\n' "$source_line" >>"$shell_rc"
+    echo "Added zsh common config source to $shell_rc"
+  fi
+}
+
 install_shell() {
   local shell_name="${1:-$(default_shell_name)}"
 
   install_oh_my_for_shell "$shell_name"
+  case "$shell_name" in
+  bash) configure_bash_common ;;
+  zsh)  configure_zsh_common ;;
+  esac
   configure_mise_shell "$shell_name"
 }
 
