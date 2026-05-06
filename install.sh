@@ -9,6 +9,10 @@ command_exists() {
   command -v "$1" &>/dev/null
 }
 
+default_shell_name() {
+  basename "${SHELL:-}"
+}
+
 ensure_gruvim_source() {
   if [ ! -d "$DOTFILES_DIR/gruvim" ]; then
     echo "gruvim config not found at $DOTFILES_DIR/gruvim"
@@ -23,7 +27,7 @@ install_dependencies() {
   # TODO: 필요한 패키지 스캔 후 설치하는 방식으로 변경
   if command_exists brew; then
     echo "Using Homebrew to install dependencies..."
-    local deps=(git curl zsh tmux neovim lazygit ripgrep fd gh fzf zoxide make mise)
+    local deps=(git curl tmux neovim lazygit ripgrep fd gh fzf zoxide make mise)
     for dep in "${deps[@]}"; do
       if ! brew list --formula "$dep" &>/dev/null; then
         brew install "$dep"
@@ -33,14 +37,14 @@ install_dependencies() {
     echo "Detected dnf (Fedora). Installing..."
     sudo dnf copr enable -y atim/lazygit
     sudo dnf copr enable -y jdxcode/mise
-    sudo dnf install -y git curl zsh tmux neovim ripgrep fd-find fzf zoxide gh lazygit make mise
+    sudo dnf install -y git curl tmux neovim ripgrep fd-find fzf zoxide gh lazygit make mise
   elif command_exists pacman; then
     echo "Detected pacman (Arch Linux). Installing..."
-    sudo pacman -S --noconfirm --needed git curl zsh tmux neovim ripgrep fd fzf zoxide github-cli lazygit make mise
+    sudo pacman -S --noconfirm --needed git curl tmux neovim ripgrep fd fzf zoxide github-cli lazygit make mise
   elif command_exists apt-get; then
     echo "Detected apt-get (Ubuntu/Debian). Installing..."
     sudo apt-get update
-    sudo apt-get install -y git curl zsh tmux neovim ripgrep fd-find fzf zoxide make ca-certificates gpg
+    sudo apt-get install -y git curl tmux neovim ripgrep fd-find fzf zoxide make ca-certificates gpg
     install_mise_with_apt
     echo "Tip: For lazygit and gh, follow official manual installation for Debian/Ubuntu."
   else
@@ -81,24 +85,76 @@ install_oh_my_zsh() {
   RUNZSH=no CHSH=no KEEP_ZSHRC=yes sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
 }
 
+install_oh_my_bash() {
+  if [ -d "$HOME/.oh-my-bash" ]; then
+    echo "oh-my-bash already installed, skipping."
+    return
+  fi
+
+  if ! command_exists bash; then
+    echo "bash is not installed. Skipping oh-my-bash."
+    return
+  fi
+
+  if ! command_exists curl; then
+    echo "curl is not installed. Skipping oh-my-bash."
+    return
+  fi
+
+  echo "Installing oh-my-bash..."
+  curl -fsSL https://raw.githubusercontent.com/ohmybash/oh-my-bash/master/tools/install.sh | OSH="$HOME/.oh-my-bash" bash -s -- --unattended
+}
+
+install_oh_my_for_default_shell() {
+  case "$(default_shell_name)" in
+  zsh)
+    install_oh_my_zsh
+    ;;
+  bash)
+    install_oh_my_bash
+    ;;
+  *)
+    echo "Default shell is not bash or zsh. Skipping oh-my shell setup."
+    ;;
+  esac
+}
+
 configure_mise_shell() {
-  local zshrc="${ZDOTDIR:-$HOME}/.zshrc"
-  local zsh_dir
-  local activation='eval "$(mise activate zsh)"'
+  local shell_name
+  local shell_rc
+  local shell_rc_dir
+  local activation
+
+  shell_name="$(default_shell_name)"
 
   if ! command_exists mise; then
     echo "mise is not installed. Skipping shell activation."
     return
   fi
 
-  zsh_dir="$(dirname "$zshrc")"
-  mkdir -p "$zsh_dir"
-  touch "$zshrc"
-  if grep -Fq "$activation" "$zshrc"; then
-    echo "mise zsh activation already configured, skipping."
+  case "$shell_name" in
+  zsh)
+    shell_rc="${ZDOTDIR:-$HOME}/.zshrc"
+    activation='eval "$(mise activate zsh)"'
+    ;;
+  bash)
+    shell_rc="$HOME/.bashrc"
+    activation='eval "$(mise activate bash)"'
+    ;;
+  *)
+    echo "Default shell is not bash or zsh. Skipping mise shell activation."
+    return
+    ;;
+  esac
+
+  shell_rc_dir="$(dirname "$shell_rc")"
+  mkdir -p "$shell_rc_dir"
+  touch "$shell_rc"
+  if grep -Fq "$activation" "$shell_rc"; then
+    echo "mise $shell_name activation already configured, skipping."
   else
-    printf '\n# mise\n%s\n' "$activation" >>"$zshrc"
-    echo "Configured mise activation in $zshrc"
+    printf '\n# mise\n%s\n' "$activation" >>"$shell_rc"
+    echo "Configured mise activation in $shell_rc"
   fi
 }
 
@@ -150,7 +206,7 @@ link_app_config() {
 
 # 1. Install dependencies
 install_dependencies
-install_oh_my_zsh
+install_oh_my_for_default_shell
 
 # 2. Create config directory and link configs
 mkdir -p "$CONFIG_DIR"
