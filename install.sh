@@ -13,6 +13,22 @@ default_shell_name() {
   basename "${SHELL:-}"
 }
 
+usage() {
+  cat <<EOF
+Usage: ./install.sh [target]
+
+Targets:
+  all      Install dependencies, shell setup, configs, and tpm (default)
+  deps     Install CLI dependencies only
+  shell    Install oh-my and mise activation for the default shell
+  bash     Install oh-my-bash and bash mise activation only
+  zsh      Install oh-my-zsh and zsh mise activation only
+  config   Link application configs only
+  tpm      Install tmux plugin manager only
+  help     Show this help
+EOF
+}
+
 ensure_gruvim_source() {
   if [ ! -d "$DOTFILES_DIR/gruvim" ]; then
     echo "gruvim config not found at $DOTFILES_DIR/gruvim"
@@ -105,8 +121,10 @@ install_oh_my_bash() {
   curl -fsSL https://raw.githubusercontent.com/ohmybash/oh-my-bash/master/tools/install.sh | OSH="$HOME/.oh-my-bash" bash -s -- --unattended
 }
 
-install_oh_my_for_default_shell() {
-  case "$(default_shell_name)" in
+install_oh_my_for_shell() {
+  local shell_name="${1:-$(default_shell_name)}"
+
+  case "$shell_name" in
   zsh)
     install_oh_my_zsh
     ;;
@@ -125,7 +143,7 @@ configure_mise_shell() {
   local shell_rc_dir
   local activation
 
-  shell_name="$(default_shell_name)"
+  shell_name="${1:-$(default_shell_name)}"
 
   if ! command_exists mise; then
     echo "mise is not installed. Skipping shell activation."
@@ -204,27 +222,74 @@ link_app_config() {
   fi
 }
 
-# 1. Install dependencies
-install_dependencies
-install_oh_my_for_default_shell
+install_shell() {
+  local shell_name="${1:-$(default_shell_name)}"
 
-# 2. Create config directory and link configs
-mkdir -p "$CONFIG_DIR"
-configure_mise_shell
-ensure_gruvim_source
-link_app_config "gruvim" "nvim"
-link_config "tmux"
+  install_oh_my_for_shell "$shell_name"
+  configure_mise_shell "$shell_name"
+}
 
-# Link ghostty config only if ghostty is installed
-if command_exists ghostty; then
-  link_config "ghostty"
-fi
+install_configs() {
+  mkdir -p "$CONFIG_DIR"
+  ensure_gruvim_source
+  link_app_config "gruvim" "nvim"
+  link_config "tmux"
 
-# 3. Ensure tpm is installed
-if [ ! -d "$DOTFILES_DIR/tmux/plugins/tpm" ]; then
-  echo "Installing tpm (Tmux Plugin Manager)..."
-  git clone https://github.com/tmux-plugins/tpm "$DOTFILES_DIR/tmux/plugins/tpm"
-fi
+  # Link ghostty config only if ghostty is installed
+  if command_exists ghostty; then
+    link_config "ghostty"
+  fi
+}
 
-echo "Installation complete!"
-echo "Default Neovim config now points to: gruvim"
+install_tpm() {
+  if [ ! -d "$DOTFILES_DIR/tmux/plugins/tpm" ]; then
+    echo "Installing tpm (Tmux Plugin Manager)..."
+    git clone https://github.com/tmux-plugins/tpm "$DOTFILES_DIR/tmux/plugins/tpm"
+  else
+    echo "tpm already installed, skipping."
+  fi
+}
+
+install_all() {
+  install_dependencies
+  install_shell
+  install_configs
+  install_tpm
+
+  echo "Installation complete!"
+  echo "Default Neovim config now points to: gruvim"
+}
+
+target="${1:-all}"
+
+case "$target" in
+all)
+  install_all
+  ;;
+deps)
+  install_dependencies
+  ;;
+shell)
+  install_shell
+  ;;
+bash)
+  install_shell bash
+  ;;
+zsh)
+  install_shell zsh
+  ;;
+config)
+  install_configs
+  ;;
+tpm)
+  install_tpm
+  ;;
+help | -h | --help)
+  usage
+  ;;
+*)
+  echo "Unknown target: $target"
+  usage
+  exit 1
+  ;;
+esac
