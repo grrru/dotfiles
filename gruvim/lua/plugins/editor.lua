@@ -151,16 +151,17 @@ return {
       {
         "<leader>e",
         function()
-          Snacks.picker.explorer({ root = false })
+          Snacks.picker.explorer({ cwd = vim.uv.cwd() })
         end,
         desc = "Explorer (cwd)",
       },
       {
         "<leader>E",
         function()
-          Snacks.picker.explorer()
+          local root = vim.fs.root(0, { ".git" })
+          Snacks.picker.explorer({ cwd = root or vim.uv.cwd() })
         end,
-        desc = "Explorer (root)",
+        desc = "Explorer (git root)",
       },
       -- Grep
       {
@@ -302,7 +303,8 @@ return {
       {
         "<leader>gg",
         function()
-          Snacks.lazygit()
+          local root = vim.fs.root(0, { ".git" })
+          Snacks.lazygit({ cwd = root or vim.uv.cwd() })
         end,
         desc = "Lazygit (root)",
       },
