@@ -21,3 +21,4 @@ opt.sidescrolloff = 8
 opt.cursorline = true
 opt.wrap = false
 opt.guicursor:append("t:blinkon0")
+opt.sessionoptions:remove("blank") -- Avoid restoring empty special windows such as Snacks explorer.
