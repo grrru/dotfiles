@@ -41,7 +41,7 @@ return {
           map("grr", function()
             Snacks.picker.lsp_references()
           end, "References")
-          map("gI", function()
+          map("gri", function()
             Snacks.picker.lsp_implementations()
           end, "Goto Implementation")
           map("gy", function()
