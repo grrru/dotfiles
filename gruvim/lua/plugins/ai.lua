@@ -48,6 +48,13 @@ return {
         mode = { "n", "x" },
       },
       {
+        "<leader>al",
+        function()
+          require("sidekick.cli").send({ msg = "{line}" })
+        end,
+        desc = "Send Current Line",
+      },
+      {
         "<leader>af",
         function()
           require("sidekick.cli").send({ msg = "{file}" })
