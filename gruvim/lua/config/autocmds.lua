@@ -94,6 +94,35 @@ vim.api.nvim_create_autocmd("BufEnter", {
   end,
 })
 
+-- Show the dashboard again after deleting the last file buffer.
+vim.api.nvim_create_autocmd({ "BufDelete", "BufWipeout" }, {
+  group = augroup("dashboard_on_empty"),
+  callback = function()
+    vim.schedule(function()
+      if not package.loaded["snacks"] or vim.bo.filetype == "snacks_dashboard" then
+        return
+      end
+
+      for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+        if vim.bo[buf].buflisted and vim.bo[buf].buftype == "" and vim.api.nvim_buf_get_name(buf) ~= "" then
+          return
+        end
+      end
+
+      local buf = vim.api.nvim_get_current_buf()
+      local is_empty = vim.bo[buf].buftype == ""
+        and vim.api.nvim_buf_get_name(buf) == ""
+        and not vim.bo[buf].modified
+        and vim.api.nvim_buf_line_count(buf) == 1
+        and vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1] == ""
+
+      if is_empty then
+        Snacks.dashboard.open({ buf = buf, win = 0 })
+      end
+    end)
+  end,
+})
+
 -- Auto-create parent directories on save
 vim.api.nvim_create_autocmd("BufWritePre", {
   group = augroup("auto_create_dir"),
