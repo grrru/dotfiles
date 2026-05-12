@@ -480,6 +480,18 @@ return {
         mode = { "n", "x" },
         desc = "Search and Replace",
       },
+      {
+        "<leader>sR",
+        function()
+          require("grug-far").open({
+            transient = true,
+            prefills = {
+              paths = vim.fn.expand("%:p"),
+            },
+          })
+        end,
+        desc = "Search and Replace Current File",
+      },
     },
   },
 
