@@ -68,6 +68,12 @@ return {
             ignored = true,
           },
         },
+        formatters = {
+          file = {
+            filename_first = true,
+            truncate = "left",
+          },
+        },
       },
       image = {
         enabled = true,
