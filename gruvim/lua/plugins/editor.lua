@@ -141,7 +141,7 @@ return {
         desc = "Find Config File",
       },
       {
-        "<leader>fb",
+        "<leader>bb",
         function()
           Snacks.picker.buffers()
         end,
