@@ -3,19 +3,31 @@
 set -e
 
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CONFIG_DIR="$HOME/.config"
+ORIGINAL_HOME="$HOME"
+ORIGINAL_SHELL="${SHELL:-}"
 
 command_exists() {
   command -v "$1" &>/dev/null
 }
 
 default_shell_name() {
-  basename "${SHELL:-}"
+  basename "${TARGET_SHELL:-${SHELL:-}}"
+}
+
+zsh_rc_path() {
+  if [ "$(id -un)" = "$TARGET_USER" ] && [ -n "${ZDOTDIR:-}" ]; then
+    echo "$ZDOTDIR/.zshrc"
+  else
+    echo "$HOME/.zshrc"
+  fi
 }
 
 usage() {
   cat <<EOF
-Usage: ./install.sh [target]
+Usage: ./install.sh [options] [target]
+
+Options:
+  -u, --user USER  Install user-level files for USER instead of the current user
 
 Targets:
   all      Install dependencies, shell setup, configs, and tpm (default)
@@ -27,6 +39,86 @@ Targets:
   tpm      Install tmux plugin manager only
   help     Show this help
 EOF
+}
+
+resolve_user_home() {
+  local user="$1"
+  local home=""
+
+  if command_exists dscl; then
+    home="$(dscl . -read "/Users/$user" NFSHomeDirectory 2>/dev/null | awk '{print $2}')"
+  fi
+
+  if [ -z "$home" ] && command_exists getent; then
+    home="$(getent passwd "$user" | cut -d: -f6)"
+  fi
+
+  if [ -z "$home" ] && [ "$user" = "$(id -un)" ]; then
+    home="$ORIGINAL_HOME"
+  fi
+
+  if [ -z "$home" ]; then
+    echo "Could not resolve home directory for user: $user" >&2
+    exit 1
+  fi
+
+  echo "$home"
+}
+
+resolve_user_shell() {
+  local user="$1"
+  local shell=""
+
+  if command_exists dscl; then
+    shell="$(dscl . -read "/Users/$user" UserShell 2>/dev/null | awk '{print $2}')"
+  fi
+
+  if [ -z "$shell" ] && command_exists getent; then
+    shell="$(getent passwd "$user" | cut -d: -f7)"
+  fi
+
+  if [ -z "$shell" ] && [ "$user" = "$(id -un)" ]; then
+    shell="$ORIGINAL_SHELL"
+  fi
+
+  echo "${shell:-${SHELL:-}}"
+}
+
+parse_args() {
+  TARGET_USER="$(id -un)"
+  target="all"
+
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+    -u | --user)
+      if [ -z "${2:-}" ]; then
+        echo "Missing value for $1" >&2
+        usage
+        exit 1
+      fi
+      TARGET_USER="$2"
+      shift 2
+      ;;
+    help | -h | --help)
+      target="help"
+      shift
+      ;;
+    *)
+      target="$1"
+      shift
+      ;;
+    esac
+  done
+}
+
+chown_target_path() {
+  local path="$1"
+
+  if [ "$(id -un)" = "$TARGET_USER" ] || [ ! -e "$path" ]; then
+    return
+  fi
+
+  sudo chown -R "$TARGET_USER" "$path"
 }
 
 ensure_gruvim_source() {
@@ -99,6 +191,7 @@ install_oh_my_zsh() {
 
   echo "Installing oh-my-zsh..."
   RUNZSH=no CHSH=no KEEP_ZSHRC=yes sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+  chown_target_path "$HOME/.oh-my-zsh"
 }
 
 install_oh_my_bash() {
@@ -119,6 +212,7 @@ install_oh_my_bash() {
 
   echo "Installing oh-my-bash..."
   curl -fsSL https://raw.githubusercontent.com/ohmybash/oh-my-bash/master/tools/install.sh | OSH="$HOME/.oh-my-bash" bash -s -- --unattended
+  chown_target_path "$HOME/.oh-my-bash"
 }
 
 install_oh_my_for_shell() {
@@ -152,7 +246,7 @@ configure_mise_shell() {
 
   case "$shell_name" in
   zsh)
-    shell_rc="${ZDOTDIR:-$HOME}/.zshrc"
+    shell_rc="$(zsh_rc_path)"
     activation='eval "$(mise activate zsh)"'
     ;;
   bash)
@@ -174,6 +268,7 @@ configure_mise_shell() {
     printf '\n# mise\n%s\n' "$activation" >>"$shell_rc"
     echo "Configured mise activation in $shell_rc"
   fi
+  chown_target_path "$shell_rc"
 }
 
 # Function to create symlinks
@@ -233,12 +328,14 @@ configure_bash_common() {
     printf '\n# dotfiles bash common (oh-my-bash + PATH helpers)\n%s\n' "$source_line" >>"$shell_rc"
     echo "Added bash common config source to $shell_rc"
   fi
+  chown_target_path "$shell_rc"
 }
 
 configure_zsh_common() {
-  local shell_rc="${ZDOTDIR:-$HOME}/.zshrc"
+  local shell_rc
   local source_line="source \"$DOTFILES_DIR/zsh/omz_config.sh\""
 
+  shell_rc="$(zsh_rc_path)"
   touch "$shell_rc"
   if grep -Fq "$source_line" "$shell_rc"; then
     echo "zsh common config already sourced, skipping."
@@ -246,6 +343,7 @@ configure_zsh_common() {
     printf '\n# dotfiles zsh common (oh-my-zsh + PATH helpers)\n%s\n' "$source_line" >>"$shell_rc"
     echo "Added zsh common config source to $shell_rc"
   fi
+  chown_target_path "$shell_rc"
 }
 
 install_shell() {
@@ -254,13 +352,14 @@ install_shell() {
   install_oh_my_for_shell "$shell_name"
   case "$shell_name" in
   bash) configure_bash_common ;;
-  zsh)  configure_zsh_common ;;
+  zsh) configure_zsh_common ;;
   esac
   configure_mise_shell "$shell_name"
 }
 
 install_configs() {
   mkdir -p "$CONFIG_DIR"
+  chown_target_path "$CONFIG_DIR"
   ensure_gruvim_source
   link_app_config "gruvim" "nvim"
   link_config "tmux"
@@ -275,8 +374,10 @@ install_tpm() {
   if [ ! -d "$DOTFILES_DIR/tmux/plugins/tpm" ]; then
     echo "Installing tpm (Tmux Plugin Manager)..."
     git clone https://github.com/tmux-plugins/tpm "$DOTFILES_DIR/tmux/plugins/tpm"
+    chown_target_path "$DOTFILES_DIR/tmux/plugins/tpm"
   else
     echo "tpm already installed, skipping."
+    chown_target_path "$DOTFILES_DIR/tmux/plugins/tpm"
   fi
 }
 
@@ -290,7 +391,23 @@ install_all() {
   echo "Default Neovim config now points to: gruvim"
 }
 
-target="${1:-all}"
+parse_args "$@"
+
+if [ "$target" = "help" ]; then
+  usage
+  exit 0
+fi
+
+if ! id "$TARGET_USER" >/dev/null 2>&1; then
+  echo "User not found: $TARGET_USER" >&2
+  exit 1
+fi
+
+TARGET_HOME="$(resolve_user_home "$TARGET_USER")"
+TARGET_SHELL="$(resolve_user_shell "$TARGET_USER")"
+HOME="$TARGET_HOME"
+CONFIG_DIR="$HOME/.config"
+export HOME
 
 case "$target" in
 all)

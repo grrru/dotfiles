@@ -17,7 +17,7 @@ cd ~/dotfiles
 ./install.sh
 ```
 
-The installer installs the basic CLI dependencies and mise, installs oh-my-zsh or oh-my-bash based on your default shell, then links the selected Neovim config to `~/.config/nvim`.
+The installer installs the basic CLI dependencies (`git`, `curl`, `tmux`, `neovim`, `lazygit`, `ripgrep`, `fd`, `gh`, `fzf`, `zoxide`, `make`) and mise, installs oh-my-zsh or oh-my-bash based on your default shell, then links the selected Neovim config to `~/.config/nvim`.
 
 You can also run a specific install target:
 
@@ -29,6 +29,15 @@ You can also run a specific install target:
 ./install.sh config
 ./install.sh tpm
 ```
+
+To install user-level files for a different account while running from a sudo-capable account:
+
+```sh
+./install.sh --user target_user
+./install.sh --user target_user config
+```
+
+The dotfiles checkout must be readable by `target_user` because configs are linked with symlinks.
 
 Open Neovim after installation:
 
