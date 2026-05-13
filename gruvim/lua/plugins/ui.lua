@@ -129,6 +129,13 @@ return {
     },
   },
 
+  -- Tab-local buffer scopes
+  {
+    "tiagovla/scope.nvim",
+    event = "VeryLazy",
+    opts = {},
+  },
+
   -- Bufferline
   {
     "akinsho/bufferline.nvim",
