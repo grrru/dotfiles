@@ -13,16 +13,16 @@ return {
         end
 
         -- Navigation
-        map("n", "]c", function()
+        map("n", "]h", function()
           gs.nav_hunk("next")
         end, "Next Hunk")
-        map("n", "[c", function()
+        map("n", "[h", function()
           gs.nav_hunk("prev")
         end, "Prev Hunk")
-        map("n", "]C", function()
+        map("n", "]H", function()
           gs.nav_hunk("last")
         end, "Last Hunk")
-        map("n", "[C", function()
+        map("n", "[H", function()
           gs.nav_hunk("first")
         end, "First Hunk")
 
