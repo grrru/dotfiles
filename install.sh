@@ -146,32 +146,9 @@ install_dependencies() {
     sudo dnf install -y git curl tmux neovim ripgrep fd-find fzf zoxide gh make
     install_lazygit_with_script
     install_mise_with_script
-  elif command_exists pacman; then
-    echo "Detected pacman (Arch Linux). Installing..."
-    sudo pacman -S --noconfirm --needed git curl tmux neovim ripgrep fd fzf zoxide github-cli lazygit make mise
-  elif command_exists apt-get; then
-    echo "Detected apt-get (Ubuntu/Debian). Installing..."
-    sudo apt-get update
-    sudo apt-get install -y git curl tmux neovim ripgrep fd-find fzf zoxide make ca-certificates gpg
-    install_mise_with_apt
-    install_lazygit_with_script
-    echo "Tip: For gh, follow official manual installation for Debian/Ubuntu."
   else
     echo "No supported package manager found (brew, pacman, dnf, apt-get). Please install dependencies manually."
   fi
-}
-
-install_mise_with_apt() {
-  if command_exists mise; then
-    echo "mise already installed, skipping apt setup."
-    return
-  fi
-
-  sudo install -dm 755 /etc/apt/keyrings
-  curl -fSs https://mise.en.dev/gpg-key.pub | sudo tee /etc/apt/keyrings/mise-archive-keyring.asc >/dev/null
-  echo "deb [signed-by=/etc/apt/keyrings/mise-archive-keyring.asc] https://mise.en.dev/deb stable main" | sudo tee /etc/apt/sources.list.d/mise.list >/dev/null
-  sudo apt-get update
-  sudo apt-get install -y mise
 }
 
 install_mise_with_script() {
