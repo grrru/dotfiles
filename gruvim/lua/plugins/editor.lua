@@ -105,7 +105,7 @@ return {
       scope = { enabled = true },
       indent = { enabled = true },
       scroll = { enabled = true },
-      animate = { enabled = true },
+      animate = { enabled = false },
       dim = { enabled = false },
       words = { enabled = true },
       statuscolumn = { enabled = true },
