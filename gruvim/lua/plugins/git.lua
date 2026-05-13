@@ -78,6 +78,12 @@ return {
         view_mode = "tree",
         focus_on_select = true,
       },
+      keymaps = {
+        view = {
+          toggle_explorer = "<leader>E",
+          focus_explorer = "<leader>e",
+        },
+      },
     },
   },
 }
