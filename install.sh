@@ -143,9 +143,9 @@ install_dependencies() {
     done
   elif command_exists dnf; then
     echo "Detected dnf (Fedora). Installing..."
-    sudo dnf copr enable -y atim/lazygit
-    sudo dnf copr enable -y jdxcode/mise
-    sudo dnf install -y git curl tmux neovim ripgrep fd-find fzf zoxide gh lazygit make mise
+    sudo dnf install -y git curl tmux neovim ripgrep fd-find fzf zoxide gh make
+    install_lazygit_with_script
+    install_mise_with_script
   elif command_exists pacman; then
     echo "Detected pacman (Arch Linux). Installing..."
     sudo pacman -S --noconfirm --needed git curl tmux neovim ripgrep fd fzf zoxide github-cli lazygit make mise
@@ -154,7 +154,8 @@ install_dependencies() {
     sudo apt-get update
     sudo apt-get install -y git curl tmux neovim ripgrep fd-find fzf zoxide make ca-certificates gpg
     install_mise_with_apt
-    echo "Tip: For lazygit and gh, follow official manual installation for Debian/Ubuntu."
+    install_lazygit_with_script
+    echo "Tip: For gh, follow official manual installation for Debian/Ubuntu."
   else
     echo "No supported package manager found (brew, pacman, dnf, apt-get). Please install dependencies manually."
   fi
@@ -171,6 +172,35 @@ install_mise_with_apt() {
   echo "deb [signed-by=/etc/apt/keyrings/mise-archive-keyring.asc] https://mise.en.dev/deb stable main" | sudo tee /etc/apt/sources.list.d/mise.list >/dev/null
   sudo apt-get update
   sudo apt-get install -y mise
+}
+
+install_mise_with_script() {
+  if command_exists mise; then
+    echo "mise already installed, skipping."
+    return
+  fi
+
+  curl https://mise.run | sh
+  export PATH="$HOME/.local/bin:$PATH"
+}
+
+install_lazygit_with_script() {
+  if command_exists lazygit; then
+    echo "lazygit already installed, skipping."
+    return
+  fi
+
+  local version arch
+  version=$(curl -s "https://api.github.com/repos/jesseduffield/lazygit/releases/latest" | grep -Po '"tag_name": *"v\K[^"]*')
+  if [ -z "$version" ]; then
+    echo "Failed to fetch lazygit version. Skipping lazygit installation."
+    return
+  fi
+  arch=$(uname -m | sed -e 's/aarch64/arm64/')
+  curl -Lo /tmp/lazygit.tar.gz "https://github.com/jesseduffield/lazygit/releases/download/v${version}/lazygit_${version}_Linux_${arch}.tar.gz"
+  tar xf /tmp/lazygit.tar.gz -C /tmp lazygit
+  sudo install /tmp/lazygit -D -t /usr/local/bin/
+  rm -f /tmp/lazygit.tar.gz /tmp/lazygit
 }
 
 install_oh_my_zsh() {
