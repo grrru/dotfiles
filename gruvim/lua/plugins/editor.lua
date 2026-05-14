@@ -540,7 +540,36 @@ return {
       { "nvim-telescope/telescope-fzf-native.nvim", build = "make" },
     },
     config = function()
-      require("dropbar").setup()
+      require("dropbar").setup({
+        sources = {
+          lsp = {
+            valid_symbols = {
+              "File",
+              "Module",
+              "Namespace",
+              "Package",
+              "Class",
+              "Struct",
+              "Interface",
+              "Enum",
+              "Constructor",
+              "Function",
+              "Method",
+            },
+          },
+          treesitter = {
+            valid_types = {
+              "class",
+              "struct",
+              "interface",
+              "enum",
+              "constructor",
+              "function",
+              "method",
+            },
+          },
+        },
+      })
       local api = require("dropbar.api")
       vim.keymap.set("n", "<leader>;", api.pick, { desc = "Pick symbols in winbar" })
       vim.keymap.set("n", "[;", api.goto_context_start, { desc = "Go to start of current context" })
