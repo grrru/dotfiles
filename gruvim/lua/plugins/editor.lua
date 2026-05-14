@@ -110,7 +110,7 @@ return {
       notifier = { enabled = true },
       scope = { enabled = true },
       indent = { enabled = true },
-      scroll = { enabled = true },
+      scroll = { enabled = false },
       animate = { enabled = false },
       dim = { enabled = false },
       words = { enabled = true },
