@@ -27,6 +27,7 @@ return {
         lua = { "stylua" },
         go = { "goimports", "gofmt" },
         sh = { "shfmt" },
+        python = { "ruff_format" },
       },
       formatters = {
         injected = { options = { ignore_errors = true } },
