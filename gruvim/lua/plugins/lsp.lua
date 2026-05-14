@@ -39,7 +39,7 @@ return {
             Snacks.picker.lsp_definitions()
           end, "Goto Definition")
           map("grr", function()
-            Snacks.picker.lsp_references()
+            Snacks.picker.lsp_references({ include_current = true })
           end, "References")
           map("gri", function()
             Snacks.picker.lsp_implementations()
