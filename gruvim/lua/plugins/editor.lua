@@ -55,6 +55,7 @@ return {
           explorer = {
             hidden = true,
             ignored = true,
+            follow_file = false,
             layout = { layout = { width = 30 } },
             format = function(item, picker)
               if item.severity and item.severity > vim.diagnostic.severity.ERROR then
@@ -157,7 +158,15 @@ return {
       {
         "<leader>e",
         function()
-          Snacks.picker.explorer({ cwd = vim.uv.cwd() })
+          Snacks.picker.explorer({
+            cwd = vim.uv.cwd(),
+            on_show = _G._explorer_pos and function(p)
+              p.list:set_target(_G._explorer_pos.cursor, _G._explorer_pos.top, { force = true })
+            end or nil,
+            on_close = function(p)
+              _G._explorer_pos = { cursor = p.list.cursor, top = p.list.top }
+            end,
+          })
         end,
         desc = "Explorer (cwd)",
       },
@@ -165,7 +174,15 @@ return {
         "<leader>E",
         function()
           local root = vim.fs.root(0, { ".git" })
-          Snacks.picker.explorer({ cwd = root or vim.uv.cwd() })
+          Snacks.picker.explorer({
+            cwd = root or vim.uv.cwd(),
+            on_show = _G._explorer_pos and function(p)
+              p.list:set_target(_G._explorer_pos.cursor, _G._explorer_pos.top, { force = true })
+            end or nil,
+            on_close = function(p)
+              _G._explorer_pos = { cursor = p.list.cursor, top = p.list.top }
+            end,
+          })
         end,
         desc = "Explorer (git root)",
       },
