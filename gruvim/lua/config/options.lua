@@ -18,6 +18,7 @@ opt.splitbelow = true
 opt.splitright = true
 opt.scrolloff = 5
 opt.sidescrolloff = 8
+opt.jumpoptions = { "view", "clean" }
 opt.cursorline = true
 opt.wrap = false
 opt.guicursor:append("t:blinkon0")
