@@ -83,6 +83,9 @@ return {
     config = function(_, opts)
       local lint = require("lint")
       lint.linters_by_ft = opts.linters_by_ft
+      lint.linters.golangcilint = vim.tbl_extend("force", lint.linters.golangcilint, {
+        ignore_exitcode = true,
+      })
 
       local timer = vim.uv.new_timer()
       local function debounce(ms, fn)
