@@ -65,6 +65,38 @@ return {
     end,
   },
 
+  -- Treesitter textobjects (함수 단위 이동 및 선택)
+  {
+    "nvim-treesitter/nvim-treesitter-textobjects",
+    event = "VeryLazy",
+    keys = {
+      { "]m", desc = "Next function start" },
+      { "]M", desc = "Next function end" },
+      { "[m", desc = "Prev function start" },
+      { "[M", desc = "Prev function end" },
+    },
+    config = function()
+      local move = require("nvim-treesitter-textobjects.move")
+
+      local function map(lhs, fn, modes)
+        vim.keymap.set(modes or { "n", "x", "o" }, lhs, fn, { silent = true })
+      end
+
+      map("]m", function()
+        move.goto_next_start("@function.outer")
+      end)
+      map("]M", function()
+        move.goto_next_end("@function.outer")
+      end)
+      map("[m", function()
+        move.goto_previous_start("@function.outer")
+      end)
+      map("[M", function()
+        move.goto_previous_end("@function.outer")
+      end)
+    end,
+  },
+
   -- Autotag (HTML/JSX 태그 자동 닫기)
   {
     "windwp/nvim-ts-autotag",
