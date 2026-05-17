@@ -61,7 +61,7 @@ return {
 
   -- Codediff
   {
-    "grrru/codediff.nvim",
+    "esmuellert/codediff.nvim",
     cmd = { "CodeDiff" },
     keys = {
       { "<leader>gv", "<cmd>CodeDiff<cr>", desc = "CodeDiff Explorer" },
