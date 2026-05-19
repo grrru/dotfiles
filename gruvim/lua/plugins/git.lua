@@ -66,8 +66,7 @@ return {
     keys = {
       { "<leader>gv", "<cmd>CodeDiff<cr>", desc = "CodeDiff Explorer" },
       { "<leader>gV", "<cmd>CodeDiff history<cr>", desc = "CodeDiff History" },
-      { "<leader>gm", "<cmd>CodeDiff main<cr>", desc = "CodeDiff main branch" },
-      { "<leader>gM", "<cmd>CodeDiff master<cr>", desc = "CodeDiff master branch" },
+      { "<leader>gp", "<cmd>CodeDiff origin/HEAD...HEAD<cr>", desc = "CodeDiff PR review" },
     },
     opts = {
       diff = {
