@@ -86,6 +86,21 @@ map("n", "<leader>fn", "<cmd>enew<cr>", { desc = "New File" })
 map("n", "gco", "o<esc>Vcx<esc><cmd>normal gcc<cr>fxa<bs>", { desc = "Add Comment Below" })
 map("n", "gcO", "O<esc>Vcx<esc><cmd>normal gcc<cr>fxa<bs>", { desc = "Add Comment Above" })
 
+-- Marks
+local function delete_mark()
+  local mark = vim.fn.nr2char(vim.fn.getchar())
+  if not mark:match("^[a-zA-Z]$") then
+    vim.notify("Invalid mark: " .. mark, vim.log.levels.WARN)
+    return
+  end
+
+  vim.cmd("delmarks " .. mark)
+  vim.notify("Deleted mark: " .. mark, vim.log.levels.INFO)
+end
+
+map("n", "<leader>md", delete_mark, { desc = "Delete Mark" })
+map("n", "<leader>mD", "<cmd>delmarks!<cr>", { desc = "Delete Buffer Marks" })
+
 -- Redraw
 map("n", "<leader>ur", "<cmd>nohlsearch<bar>diffupdate<bar>normal! <C-L><cr>", { desc = "Redraw / Clear hlsearch" })
 
