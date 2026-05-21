@@ -47,7 +47,7 @@ return {
       picker = {
         layout = {
           layout = {
-            width = 0.9,
+            width = 0.95,
             height = 0.9,
           },
         },
@@ -74,6 +74,12 @@ return {
             filename_first = true,
             truncate = "left",
           },
+        },
+      },
+      lazygit = {
+        win = {
+          width = 0.95,
+          height = 0.9,
         },
       },
       image = {
