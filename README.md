@@ -42,7 +42,7 @@ The dotfiles checkout must be readable by `target_user` because configs are link
 Open Neovim after installation:
 
 ```sh
-nvim
+NVIM_APPNAME=grrru/dotfiles/gruvim nvim
 ```
 
 Install gruvim-managed Mason packages from Neovim:
@@ -67,6 +67,7 @@ The installer links `gruvim` as the default Neovim config.
 ### colorscheme
 
 + [catppuccin/nvim](https://dotfyle.com/plugins/catppuccin/nvim)
++ [folke/tokyonight.nvim](https://dotfyle.com/plugins/folke/tokyonight.nvim)
 ### comment
 
 + [folke/todo-comments.nvim](https://dotfyle.com/plugins/folke/todo-comments.nvim)
@@ -98,7 +99,6 @@ The installer links `gruvim` as the default Neovim config.
 ### lsp
 
 + [mfussenegger/nvim-lint](https://dotfyle.com/plugins/mfussenegger/nvim-lint)
-+ [smjonas/inc-rename.nvim](https://dotfyle.com/plugins/smjonas/inc-rename.nvim)
 + [neovim/nvim-lspconfig](https://dotfyle.com/plugins/neovim/nvim-lspconfig)
 + [b0o/SchemaStore.nvim](https://dotfyle.com/plugins/b0o/SchemaStore.nvim)
 ### lsp-installer
