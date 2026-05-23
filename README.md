@@ -17,7 +17,7 @@ cd ~/dotfiles
 ./install.sh
 ```
 
-The installer installs the basic CLI dependencies (`git`, `curl`, `tmux`, `neovim`, `lazygit`, `ripgrep`, `fd`, `gh`, `fzf`, `zoxide`, `make`) and mise, installs oh-my-zsh or oh-my-bash based on your default shell, then links the selected Neovim config to `~/.config/nvim`.
+The installer installs the basic CLI dependencies (`git`, `curl`, `tmux`, `neovim`, `lazygit`, `ripgrep`, `fd`, `gh`, `fzf`, `zoxide`, `make`, `tree-sitter-cli`) and mise, installs oh-my-zsh or oh-my-bash based on your default shell, then links the selected Neovim config to `~/.config/nvim`.
 
 You can also run a specific install target:
 

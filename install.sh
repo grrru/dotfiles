@@ -135,7 +135,7 @@ install_dependencies() {
   # TODO: 필요한 패키지 스캔 후 설치하는 방식으로 변경
   if command_exists brew; then
     echo "Using Homebrew to install dependencies..."
-    local deps=(git curl tmux neovim lazygit ripgrep fd gh fzf zoxide make mise)
+    local deps=(git curl tmux neovim lazygit ripgrep fd gh fzf zoxide make mise tree-sitter-cli)
     for dep in "${deps[@]}"; do
       if ! brew list --formula "$dep" &>/dev/null; then
         brew install "$dep"
