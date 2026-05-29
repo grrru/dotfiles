@@ -1,14 +1,3 @@
-LazyVim/tt.*
-LazyVim/.tests
-LazyVim/doc/tags
-LazyVim/debug
-LazyVim/.repro
-LazyVim/foo.*
-LazyVim/*.log
-LazyVim/data
-LazyVim/lazy-lock.json
-LazyVim/spell/*.spl
-
 tmux/plugins/
 mise/config.toml
 
