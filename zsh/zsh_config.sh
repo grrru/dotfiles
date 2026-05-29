@@ -5,6 +5,7 @@ plugins=(
   git
   docker
   docker-compose
+  zsh-autosuggestions
 )
 
 ## powerlevel10k

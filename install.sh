@@ -209,6 +209,24 @@ install_powerlevel10k() {
   chown_target_path "$dest"
 }
 
+install_zsh_autosuggestions() {
+  local dest="$HOME/.oh-my-zsh/custom/plugins/zsh-autosuggestions"
+
+  if [ ! -d "$HOME/.oh-my-zsh" ]; then
+    echo "oh-my-zsh not installed. Skipping zsh-autosuggestions."
+    return
+  fi
+
+  if [ -d "$dest" ]; then
+    echo "zsh-autosuggestions already installed, skipping."
+  else
+    echo "Installing zsh-autosuggestions..."
+    git clone --depth=1 https://github.com/zsh-users/zsh-autosuggestions.git "$dest"
+  fi
+
+  chown_target_path "$dest"
+}
+
 install_oh_my_bash() {
   if [ -d "$HOME/.oh-my-bash" ]; then
     echo "oh-my-bash already installed, skipping."
@@ -237,6 +255,7 @@ install_oh_my_for_shell() {
   zsh)
     install_oh_my_zsh
     install_powerlevel10k
+    install_zsh_autosuggestions
     ;;
   bash)
     install_oh_my_bash
