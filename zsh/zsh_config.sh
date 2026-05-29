@@ -14,11 +14,17 @@ ZSH_THEME="powerlevel10k/powerlevel10k"
 [[ -s "$ZSH/oh-my-zsh.sh" ]] && source "$ZSH/oh-my-zsh.sh"
 [[ -r "$HOME/.p10k.zsh" ]] && source "$HOME/.p10k.zsh"
 
-## Personal shared shell layer
-[[ -r "$HOME/.shell_common.sh" ]] && source "$HOME/.shell_common.sh"
+## Shared shell layer
+_zsh_config_dir="$(cd -- "$(dirname -- "$0")" && pwd)"
+_dotfiles_dir="$(cd -- "$_zsh_config_dir/.." && pwd)"
+source "$_dotfiles_dir/common.sh"
+unset _zsh_config_dir _dotfiles_dir
 
 ## Tools (installed by install.sh; guarded so a missing tool is a no-op)
-command -v fzf >/dev/null && eval "$(fzf --zsh)"
+if command -v fzf >/dev/null 2>&1; then
+  fzf_init="$(fzf --zsh 2>/dev/null)" && eval "$fzf_init"
+  unset fzf_init
+fi
 
 ## Deduplicate PATH (zsh built-in unique array)
 typeset -U path

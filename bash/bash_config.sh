@@ -18,14 +18,20 @@ plugins=(
 
 [[ -s "$OSH/oh-my-bash.sh" ]] && source "$OSH/oh-my-bash.sh"
 
-## Personal shared shell layer
-[[ -r "$HOME/.shell_common.sh" ]] && source "$HOME/.shell_common.sh"
+## Shared shell layer
+_bash_config_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+_dotfiles_dir="$(cd -- "$_bash_config_dir/.." && pwd)"
+source "$_dotfiles_dir/common.sh"
+unset _bash_config_dir _dotfiles_dir
 
-## nvm bash completion (nvm.sh itself is loaded in the shared layer; NVM_DIR set there)
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+## nvm bash completion (when nvm is loaded by machine-local bash config)
+[ -n "${NVM_DIR:-}" ] && [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
 
 ## Tools (installed by install.sh; guarded so a missing tool is a no-op)
-command -v fzf >/dev/null && eval "$(fzf --bash)"
+if command -v fzf >/dev/null 2>&1; then
+  fzf_init="$(fzf --bash 2>/dev/null)" && eval "$fzf_init"
+  unset fzf_init
+fi
 
 ## Deduplicate PATH (catch any duplicates introduced by sourced scripts)
 PATH=$(echo "$PATH" | tr ':' '\n' | awk '!seen[$0]++' | tr '\n' ':' | sed 's/:$//')

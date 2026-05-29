@@ -16,8 +16,8 @@ via `install.sh`. The plugin/Neovim sections below this point are auto-generated
 | `install.sh` | Idempotent installer. Sets up deps, shell, configs, and tpm. Run `./install.sh help` for targets. |
 | `gruvim/` | Neovim config (linked to `~/.config/nvim`). The active config; see sections below. |
 | `tmux/` | `tmux.conf` + layout scripts (linked to `~/.config/tmux`). Plugins managed by tpm under `tmux/plugins/` (git-ignored). |
-| `zsh/`, `bash/` | Shell framework config. Zsh uses oh-my-zsh + Powerlevel10k with `zsh/p10k.zsh` linked to `~/.p10k.zsh`; bash uses oh-my-bash. Both source `~/.shell_common.sh` when present. |
-| `shell_common.example.sh` | Template for the untracked personal shared shell layer at `~/.shell_common.sh`. |
+| `zsh/`, `bash/` | Shell framework config. Zsh uses oh-my-zsh + Powerlevel10k with `zsh/p10k.zsh` linked to `~/.p10k.zsh`; bash uses oh-my-bash. Both source `common.sh`. |
+| `common.sh` | Required tracked shell layer shared by bash and zsh. |
 | `ghostty/` | Ghostty terminal config (linked to `~/.config/ghostty` when ghostty is present). |
 | `scripts/` | Helper scripts, e.g. `toggle-theme` (switches ghostty + tmux between light/dark). |
 
@@ -36,15 +36,25 @@ cd ~/dotfiles
 ./install.sh
 ```
 
-The installer installs the basic CLI dependencies (`git`, `curl`, `tmux`, `neovim`, `lazygit`, `ripgrep`, `fd`, `gh`, `fzf`, `zoxide`, `make`, `tree-sitter-cli`), installs oh-my-zsh with Powerlevel10k or oh-my-bash based on your default shell, then links the selected Neovim config to `~/.config/nvim`.
+The installer installs the basic CLI dependencies (`git`, `curl`, `zsh`, `tmux`, `neovim`, `lazygit`, `ripgrep`, `fd`, `gh`, `fzf`, `zoxide`, `make`, `tree-sitter-cli`), installs oh-my-bash as a bash bridge and oh-my-zsh with Powerlevel10k as the destination shell, then links the selected Neovim config to `~/.config/nvim`.
 
-Language runtimes are managed per-tool rather than by a version manager: go is installed under `~/sdk` (with a stable `~/sdk/go` symlink on `PATH`), node via nvm, python via the system/uv. `~/go/bin` and `~/sdk/go/bin` are added to `PATH` in `~/.shell_common.sh`.
+## Shell layout
 
-Optional personal shell settings can be kept outside git:
+Shell configuration is split into tracked repo layers and machine-local rc files:
 
-```sh
-cp shell_common.example.sh ~/.shell_common.sh
-```
+| Layer | File | Tracked | Role |
+|-------|------|---------|------|
+| Entry point | `~/.bashrc`, `~/.zshrc` | No | Machine-local setup, secrets, runtime paths, then source the repo config. |
+| Shell framework | `bash/bash_config.sh`, `zsh/zsh_config.sh` | Yes | oh-my-bash or oh-my-zsh, Powerlevel10k, fzf, PATH cleanup. |
+| Shared common | `common.sh` | Yes | Portable helpers and defaults shared by bash and zsh. |
+
+`common.sh` is required and is sourced by both shell framework configs. Keep it portable:
+helpers such as `add_path`, `ecph`, baseline user bin paths, and locale belong here.
+
+Machine-local settings belong in the rc files, not in `common.sh`: Go under `~/sdk`,
+Android SDK paths, nvm setup, private aliases, company hosts, and secrets.
+
+Language runtimes are managed per-tool rather than by a version manager: go is installed under `~/sdk`, node via nvm, python via the system/uv.
 
 You can also run a specific install target:
 

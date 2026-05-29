@@ -1,6 +1,5 @@
-# Personal shared shell layer template.
-# Copy to ~/.shell_common.sh and fill in machine-specific values.
-# This file is safe to track; ~/.shell_common.sh is intentionally untracked.
+# Shared shell layer tracked by this repo.
+# Keep machine-local environment variables in ~/.bashrc or ~/.zshrc.
 
 add_path() {
   local mode="append"
@@ -41,11 +40,3 @@ add_path --prepend "$HOME/.local/bin"
 
 # Locale
 export LANG=en_US.UTF-8
-
-# Secrets and machine-local env belong here, not in git.
-# export SOME_API_TOKEN="changeme"
-
-# Tool examples
-# export ANDROID_HOME="$HOME/Library/Android/sdk"
-# add_path "$ANDROID_HOME/emulator"
-# add_path "$ANDROID_HOME/platform-tools"
