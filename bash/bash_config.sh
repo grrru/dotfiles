@@ -17,6 +17,7 @@ plugins=(
 )
 
 [[ -s "$OSH/oh-my-bash.sh" ]] && source "$OSH/oh-my-bash.sh"
+command -v fzf >/dev/null 2>&1 && eval "$(fzf --bash)"
 
 ## Personal shared shell layer
 [[ -r "$HOME/.shell_common.sh" ]] && source "$HOME/.shell_common.sh"

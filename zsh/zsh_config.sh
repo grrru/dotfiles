@@ -12,6 +12,7 @@ plugins=(
 ZSH_THEME="powerlevel10k/powerlevel10k"
 
 [[ -s "$ZSH/oh-my-zsh.sh" ]] && source "$ZSH/oh-my-zsh.sh"
+command -v fzf >/dev/null 2>&1 && source <(fzf --zsh)
 [[ -r "$HOME/.p10k.zsh" ]] && source "$HOME/.p10k.zsh"
 
 ## Personal shared shell layer
