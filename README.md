@@ -16,7 +16,8 @@ via `install.sh`. The plugin/Neovim sections below this point are auto-generated
 | `install.sh` | Idempotent installer. Sets up deps, shell, configs, and tpm. Run `./install.sh help` for targets. |
 | `gruvim/` | Neovim config (linked to `~/.config/nvim`). The active config; see sections below. |
 | `tmux/` | `tmux.conf` + layout scripts (linked to `~/.config/tmux`). Plugins managed by tpm under `tmux/plugins/` (git-ignored). |
-| `zsh/`, `bash/` | Shell common config (oh-my-zsh / oh-my-bash + PATH helpers), sourced from the shell rc. |
+| `zsh/`, `bash/` | Shell framework config. Zsh uses oh-my-zsh + Powerlevel10k with `zsh/p10k.zsh` linked to `~/.p10k.zsh`; bash uses oh-my-bash. Both source `~/.shell_common.sh` when present. |
+| `shell_common.example.sh` | Template for the untracked personal shared shell layer at `~/.shell_common.sh`. |
 | `ghostty/` | Ghostty terminal config (linked to `~/.config/ghostty` when ghostty is present). |
 | `mise/` | Runtime version manager notes. Versions are intentionally local (`mise/config.toml` is git-ignored). |
 | `scripts/` | Helper scripts, e.g. `toggle-theme` (switches ghostty + tmux between light/dark). |
@@ -36,7 +37,13 @@ cd ~/dotfiles
 ./install.sh
 ```
 
-The installer installs the basic CLI dependencies (`git`, `curl`, `tmux`, `neovim`, `lazygit`, `ripgrep`, `fd`, `gh`, `fzf`, `zoxide`, `make`, `tree-sitter-cli`) and mise, installs oh-my-zsh or oh-my-bash based on your default shell, then links the selected Neovim config to `~/.config/nvim`.
+The installer installs the basic CLI dependencies (`git`, `curl`, `tmux`, `neovim`, `lazygit`, `ripgrep`, `fd`, `gh`, `fzf`, `zoxide`, `make`, `tree-sitter-cli`) and mise, installs oh-my-zsh with Powerlevel10k or oh-my-bash based on your default shell, then links the selected Neovim config to `~/.config/nvim`.
+
+Optional personal shell settings can be kept outside git:
+
+```sh
+cp shell_common.example.sh ~/.shell_common.sh
+```
 
 You can also run a specific install target:
 

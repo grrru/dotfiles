@@ -216,9 +216,7 @@ install_powerlevel10k() {
     git clone --depth=1 https://github.com/romkatv/powerlevel10k.git "$dest"
   fi
 
-  # ~/.p10k.zsh (prompt style/colors) is intentionally NOT tracked in dotfiles.
-  # p10k auto-launches its configuration wizard on first run when no config
-  # exists; run `p10k configure` anytime to (re)generate it per machine.
+  # Prompt style/colors live in zsh/p10k.zsh and are linked to ~/.p10k.zsh.
   chown_target_path "$dest"
 }
 
@@ -348,30 +346,68 @@ link_app_config() {
 
 configure_bash_common() {
   local shell_rc="$HOME/.bashrc"
-  local source_line="source \"$DOTFILES_DIR/bash/omb_config.sh\""
+  local source_line="source \"$DOTFILES_DIR/bash/bash_config.sh\""
 
   touch "$shell_rc"
   if grep -Fq "$source_line" "$shell_rc"; then
-    echo "bash common config already sourced, skipping."
+    echo "bash config already sourced, skipping."
   else
-    printf '\n# dotfiles bash common (oh-my-bash + PATH helpers)\n%s\n' "$source_line" >>"$shell_rc"
-    echo "Added bash common config source to $shell_rc"
+    printf '\n# dotfiles bash config (oh-my-bash + personal shared shell layer)\n%s\n' "$source_line" >>"$shell_rc"
+    echo "Added bash config source to $shell_rc"
   fi
   chown_target_path "$shell_rc"
 }
 
+ensure_shell_common() {
+  local target="$DOTFILES_DIR/shell_common.example.sh"
+  local dest="$HOME/.shell_common.sh"
+
+  if [ -e "$dest" ] || [ -L "$dest" ]; then
+    echo "shell common already exists at $dest, skipping."
+    return
+  fi
+
+  if [ ! -f "$target" ]; then
+    echo "shell common template not found at $target, skipping."
+    return
+  fi
+
+  cp "$target" "$dest"
+  echo "Created shell common from template at $dest"
+  chown_target_path "$dest"
+}
+
+link_p10k_config() {
+  local target="$DOTFILES_DIR/zsh/p10k.zsh"
+  local dest="$HOME/.p10k.zsh"
+
+  if [ ! -f "$target" ]; then
+    echo "p10k config not found at $target, skipping."
+    return
+  fi
+
+  if [ -e "$dest" ] || [ -L "$dest" ]; then
+    echo "p10k config already exists at $dest, skipping."
+    return
+  fi
+
+  ln -s "$target" "$dest"
+  echo "Created p10k config symlink."
+}
+
 configure_zsh_common() {
   local shell_rc
-  local source_line="source \"$DOTFILES_DIR/zsh/omz_config.sh\""
+  local source_line="source \"$DOTFILES_DIR/zsh/zsh_config.sh\""
 
   shell_rc="$(zsh_rc_path)"
   touch "$shell_rc"
   if grep -Fq "$source_line" "$shell_rc"; then
     echo "zsh common config already sourced, skipping."
   else
-    printf '\n# dotfiles zsh common (oh-my-zsh + PATH helpers)\n%s\n' "$source_line" >>"$shell_rc"
+    printf '\n# dotfiles zsh config (oh-my-zsh + Powerlevel10k + personal shared shell layer)\n%s\n' "$source_line" >>"$shell_rc"
     echo "Added zsh common config source to $shell_rc"
   fi
+  link_p10k_config
   chown_target_path "$shell_rc"
 }
 
@@ -379,6 +415,7 @@ install_shell() {
   local shell_name="${1:-$(default_shell_name)}"
 
   install_oh_my_for_shell "$shell_name"
+  ensure_shell_common
   case "$shell_name" in
   bash) configure_bash_common ;;
   zsh) configure_zsh_common ;;
