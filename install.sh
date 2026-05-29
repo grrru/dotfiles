@@ -32,7 +32,7 @@ Options:
 Targets:
   all      Install dependencies, shell setup, configs, and tpm (default)
   deps     Install CLI dependencies only
-  shell    Install oh-my shell setup for the default shell
+  shell    Install bash bridge and zsh setup
   bash     Install oh-my-bash setup only
   zsh      Install oh-my-zsh + Powerlevel10k setup only
   config   Link application configs only
@@ -180,13 +180,13 @@ install_oh_my_zsh() {
     return
   fi
 
-  if ! command_exists curl; then
-    echo "curl is not installed. Skipping oh-my-zsh."
+  if ! command_exists git; then
+    echo "git is not installed. Skipping oh-my-zsh."
     return
   fi
 
   echo "Installing oh-my-zsh..."
-  RUNZSH=no CHSH=no KEEP_ZSHRC=yes sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+  git clone --depth=1 https://github.com/ohmyzsh/ohmyzsh.git "$HOME/.oh-my-zsh"
   chown_target_path "$HOME/.oh-my-zsh"
 }
 
@@ -220,13 +220,13 @@ install_oh_my_bash() {
     return
   fi
 
-  if ! command_exists curl; then
-    echo "curl is not installed. Skipping oh-my-bash."
+  if ! command_exists git; then
+    echo "git is not installed. Skipping oh-my-bash."
     return
   fi
 
   echo "Installing oh-my-bash..."
-  curl -fsSL https://raw.githubusercontent.com/ohmybash/oh-my-bash/master/tools/install.sh | OSH="$HOME/.oh-my-bash" bash -s -- --unattended
+  git clone --depth=1 https://github.com/ohmybash/oh-my-bash.git "$HOME/.oh-my-bash"
   chown_target_path "$HOME/.oh-my-bash"
 }
 
@@ -252,9 +252,17 @@ link_config() {
   local name="$1"
   local target="$DOTFILES_DIR/$name"
   local dest="$CONFIG_DIR/$name"
+  local current_target
 
   if [ -L "$dest" ]; then
-    echo "Symlink for $name already exists, skipping."
+    current_target="$(readlink "$dest")"
+    if [ "$current_target" = "$target" ]; then
+      echo "Symlink for $name already points to dotfiles, skipping."
+    else
+      rm "$dest"
+      ln -s "$target" "$dest"
+      echo "Updated symlink for $name"
+    fi
   elif [ -d "$dest" ] || [ -f "$dest" ]; then
     echo "Existing config for $name found. Backing up to $dest.bak"
     mv "$dest" "$dest.bak"
@@ -326,32 +334,17 @@ link_p10k_config() {
 }
 
 configure_zsh_common() {
-  local backup shell_rc tmp
+  local shell_rc
   local source_line="source \"$DOTFILES_DIR/zsh/zsh_config.sh\""
 
   shell_rc="$(zsh_rc_path)"
-  tmp="$(mktemp)"
-  {
-    cat <<'EOF'
-# dotfiles zsh config (oh-my-zsh + Powerlevel10k + shared shell layer)
-EOF
-    printf '%s\n' "$source_line"
-  } >"$tmp"
 
-  if [ -f "$shell_rc" ] && cmp -s "$tmp" "$shell_rc"; then
-    echo "zsh config already clean at $shell_rc, skipping."
-    rm -f "$tmp"
+  touch "$shell_rc"
+  if grep -Fq "$source_line" "$shell_rc"; then
+    echo "zsh config already sourced, skipping."
   else
-    if [ -s "$shell_rc" ]; then
-      backup="$shell_rc.bak.$(date +%Y%m%d%H%M%S)"
-      mv "$shell_rc" "$backup"
-      echo "Backed up existing zsh config to $backup"
-    elif [ -e "$shell_rc" ] || [ -L "$shell_rc" ]; then
-      rm "$shell_rc"
-    fi
-
-    mv "$tmp" "$shell_rc"
-    echo "Wrote clean zsh config to $shell_rc"
+    printf '\n# dotfiles zsh config (oh-my-zsh + Powerlevel10k + shared shell layer)\n%s\n' "$source_line" >>"$shell_rc"
+    echo "Added zsh config source to $shell_rc"
   fi
 
   link_p10k_config
@@ -366,6 +359,11 @@ install_shell() {
   bash) configure_bash_common ;;
   zsh) configure_zsh_common ;;
   esac
+}
+
+install_shells() {
+  install_shell bash
+  install_shell zsh
 }
 
 install_configs() {
@@ -394,8 +392,7 @@ install_tpm() {
 
 install_all() {
   install_dependencies
-  install_shell bash
-  install_shell zsh
+  install_shells
   install_configs
   install_tpm
 
@@ -429,7 +426,7 @@ deps)
   install_dependencies
   ;;
 shell)
-  install_shell
+  install_shells
   ;;
 bash)
   install_shell bash

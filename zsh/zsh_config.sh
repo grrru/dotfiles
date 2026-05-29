@@ -15,10 +15,14 @@ ZSH_THEME="powerlevel10k/powerlevel10k"
 [[ -r "$HOME/.p10k.zsh" ]] && source "$HOME/.p10k.zsh"
 
 ## Shared shell layer
-_zsh_config_dir="$(cd -- "$(dirname -- "$0")" && pwd)"
+_zsh_config_file="${funcsourcetrace[1]%:*}"
+if [ -z "$_zsh_config_file" ] || [ "$_zsh_config_file" = "zsh" ]; then
+  _zsh_config_file="$0"
+fi
+_zsh_config_dir="$(cd -- "$(dirname -- "$_zsh_config_file")" && pwd)"
 _dotfiles_dir="$(cd -- "$_zsh_config_dir/.." && pwd)"
 source "$_dotfiles_dir/common.sh"
-unset _zsh_config_dir _dotfiles_dir
+unset _zsh_config_file _zsh_config_dir _dotfiles_dir
 
 ## Tools (installed by install.sh; guarded so a missing tool is a no-op)
 if command -v fzf >/dev/null 2>&1; then

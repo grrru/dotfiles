@@ -22,7 +22,6 @@ plugins=(
 _bash_config_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 _dotfiles_dir="$(cd -- "$_bash_config_dir/.." && pwd)"
 source "$_dotfiles_dir/common.sh"
-unset _bash_config_dir _dotfiles_dir
 
 ## nvm bash completion (when nvm is loaded by machine-local bash config)
 [ -n "${NVM_DIR:-}" ] && [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
@@ -40,7 +39,12 @@ export PATH
 ## Switch to zsh as the interactive shell (chsh needs root on this host).
 # Interactive-only guard so scp/sftp/non-interactive ssh stay on bash.
 # To stay in bash temporarily: `exec bash`. To disable: comment this block.
-if [[ $- == *i* ]] && command -v zsh >/dev/null 2>&1; then
+if [[ $- == *i* ]] &&
+  command -v zsh >/dev/null 2>&1 &&
+  [ -r "$HOME/.zshrc" ] &&
+  grep -Fq "$_dotfiles_dir/zsh/zsh_config.sh" "$HOME/.zshrc"; then
   export SHELL="$(command -v zsh)"
   exec zsh -l
 fi
+
+unset _bash_config_dir _dotfiles_dir

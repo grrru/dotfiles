@@ -60,7 +60,7 @@ You can also run a specific install target:
 
 ```sh
 ./install.sh deps
-./install.sh shell
+./install.sh shell  # bash bridge + zsh setup
 ./install.sh bash
 ./install.sh zsh
 ./install.sh config
@@ -79,7 +79,7 @@ The dotfiles checkout must be readable by `target_user` because configs are link
 Open Neovim after installation:
 
 ```sh
-NVIM_APPNAME=grrru/dotfiles/gruvim nvim
+nvim
 ```
 
 Install gruvim-managed Mason packages from Neovim:
