@@ -31,7 +31,10 @@ add_path_zsh() {
 ## oh-my-zsh
 export ZSH="$HOME/.oh-my-zsh"
 
-ZSH_THEME="robbyrussell"
+# powerlevel10k: install.sh clones it into $ZSH/custom/themes/powerlevel10k.
+# The prompt config ~/.p10k.zsh is NOT tracked in dotfiles — run `p10k configure`
+# on each machine to generate it (p10k also auto-runs the wizard on first launch).
+ZSH_THEME="powerlevel10k/powerlevel10k"
 
 plugins=(
   git

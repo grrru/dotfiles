@@ -201,6 +201,27 @@ install_oh_my_zsh() {
   chown_target_path "$HOME/.oh-my-zsh"
 }
 
+install_powerlevel10k() {
+  local dest="$HOME/.oh-my-zsh/custom/themes/powerlevel10k"
+
+  if [ ! -d "$HOME/.oh-my-zsh" ]; then
+    echo "oh-my-zsh not installed. Skipping powerlevel10k."
+    return
+  fi
+
+  if [ -d "$dest" ]; then
+    echo "powerlevel10k already installed, skipping."
+  else
+    echo "Installing powerlevel10k..."
+    git clone --depth=1 https://github.com/romkatv/powerlevel10k.git "$dest"
+  fi
+
+  # ~/.p10k.zsh (prompt style/colors) is intentionally NOT tracked in dotfiles.
+  # p10k auto-launches its configuration wizard on first run when no config
+  # exists; run `p10k configure` anytime to (re)generate it per machine.
+  chown_target_path "$dest"
+}
+
 install_oh_my_bash() {
   if [ -d "$HOME/.oh-my-bash" ]; then
     echo "oh-my-bash already installed, skipping."
@@ -228,6 +249,7 @@ install_oh_my_for_shell() {
   case "$shell_name" in
   zsh)
     install_oh_my_zsh
+    install_powerlevel10k
     ;;
   bash)
     install_oh_my_bash
