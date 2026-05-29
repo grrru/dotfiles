@@ -19,7 +19,6 @@ via `install.sh`. The plugin/Neovim sections below this point are auto-generated
 | `zsh/`, `bash/` | Shell framework config. Zsh uses oh-my-zsh + Powerlevel10k with `zsh/p10k.zsh` linked to `~/.p10k.zsh`; bash uses oh-my-bash. Both source `~/.shell_common.sh` when present. |
 | `shell_common.example.sh` | Template for the untracked personal shared shell layer at `~/.shell_common.sh`. |
 | `ghostty/` | Ghostty terminal config (linked to `~/.config/ghostty` when ghostty is present). |
-| `mise/` | Runtime version manager notes. Versions are intentionally local (`mise/config.toml` is git-ignored). |
 | `scripts/` | Helper scripts, e.g. `toggle-theme` (switches ghostty + tmux between light/dark). |
 
 Configs are applied as **symlinks** into `~/.config`, so edits in this repo take effect live.
@@ -37,7 +36,9 @@ cd ~/dotfiles
 ./install.sh
 ```
 
-The installer installs the basic CLI dependencies (`git`, `curl`, `tmux`, `neovim`, `lazygit`, `ripgrep`, `fd`, `gh`, `fzf`, `zoxide`, `make`, `tree-sitter-cli`) and mise, installs oh-my-zsh with Powerlevel10k or oh-my-bash based on your default shell, then links the selected Neovim config to `~/.config/nvim`.
+The installer installs the basic CLI dependencies (`git`, `curl`, `tmux`, `neovim`, `lazygit`, `ripgrep`, `fd`, `gh`, `fzf`, `zoxide`, `make`, `tree-sitter-cli`), installs oh-my-zsh with Powerlevel10k or oh-my-bash based on your default shell, then links the selected Neovim config to `~/.config/nvim`.
+
+Language runtimes are managed per-tool rather than by a version manager: go is installed under `~/sdk` (with a stable `~/sdk/go` symlink on `PATH`), node via nvm, python via the system/uv. `~/go/bin` and `~/sdk/go/bin` are added to `PATH` in `~/.shell_common.sh`.
 
 Optional personal shell settings can be kept outside git:
 

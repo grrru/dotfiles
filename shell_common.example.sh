@@ -39,10 +39,6 @@ ecph() {
 add_path --prepend "$HOME/bin"
 add_path --prepend "$HOME/.local/bin"
 
-# Workspace
-export WORKSPACE="$HOME/workspace"
-alias cdworkspace='cd "$WORKSPACE"'
-
 # Locale
 export LANG=en_US.UTF-8
 

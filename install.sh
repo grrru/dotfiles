@@ -32,9 +32,9 @@ Options:
 Targets:
   all      Install dependencies, shell setup, configs, and tpm (default)
   deps     Install CLI dependencies only
-  shell    Install oh-my and mise activation for the default shell
-  bash     Install oh-my-bash and bash mise activation only
-  zsh      Install oh-my-zsh and zsh mise activation only
+  shell    Install oh-my shell setup for the default shell
+  bash     Install oh-my-bash setup only
+  zsh      Install oh-my-zsh + Powerlevel10k setup only
   config   Link application configs only
   tpm      Install tmux plugin manager only
   help     Show this help
@@ -135,7 +135,7 @@ install_dependencies() {
   # TODO: 필요한 패키지 스캔 후 설치하는 방식으로 변경
   if command_exists brew; then
     echo "Using Homebrew to install dependencies..."
-    local deps=(git curl tmux neovim lazygit ripgrep fd gh fzf zoxide make mise tree-sitter-cli)
+    local deps=(git curl tmux neovim lazygit ripgrep fd gh fzf zoxide make tree-sitter-cli)
     for dep in "${deps[@]}"; do
       if ! brew list --formula "$dep" &>/dev/null; then
         brew install "$dep"
@@ -145,20 +145,9 @@ install_dependencies() {
     echo "Detected dnf (Fedora). Installing..."
     sudo dnf install -y git curl tmux neovim ripgrep fd-find fzf zoxide gh make
     install_lazygit_with_script
-    install_mise_with_script
   else
     echo "No supported package manager found (brew, pacman, dnf, apt-get). Please install dependencies manually."
   fi
-}
-
-install_mise_with_script() {
-  if command_exists mise; then
-    echo "mise already installed, skipping."
-    return
-  fi
-
-  curl https://mise.run | sh
-  export PATH="$HOME/.local/bin:$PATH"
 }
 
 install_lazygit_with_script() {
@@ -256,46 +245,6 @@ install_oh_my_for_shell() {
     echo "Default shell is not bash or zsh. Skipping oh-my shell setup."
     ;;
   esac
-}
-
-configure_mise_shell() {
-  local shell_name
-  local shell_rc
-  local shell_rc_dir
-  local activation
-
-  shell_name="${1:-$(default_shell_name)}"
-
-  if ! command_exists mise; then
-    echo "mise is not installed. Skipping shell activation."
-    return
-  fi
-
-  case "$shell_name" in
-  zsh)
-    shell_rc="$(zsh_rc_path)"
-    activation='eval "$(mise activate zsh)"'
-    ;;
-  bash)
-    shell_rc="$HOME/.bashrc"
-    activation='eval "$(mise activate bash)"'
-    ;;
-  *)
-    echo "Default shell is not bash or zsh. Skipping mise shell activation."
-    return
-    ;;
-  esac
-
-  shell_rc_dir="$(dirname "$shell_rc")"
-  mkdir -p "$shell_rc_dir"
-  touch "$shell_rc"
-  if grep -Fq "$activation" "$shell_rc"; then
-    echo "mise $shell_name activation already configured, skipping."
-  else
-    printf '\n# mise\n%s\n' "$activation" >>"$shell_rc"
-    echo "Configured mise activation in $shell_rc"
-  fi
-  chown_target_path "$shell_rc"
 }
 
 # Function to create symlinks
@@ -420,7 +369,6 @@ install_shell() {
   bash) configure_bash_common ;;
   zsh) configure_zsh_common ;;
   esac
-  configure_mise_shell "$shell_name"
 }
 
 install_configs() {

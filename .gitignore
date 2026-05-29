@@ -1,5 +1,4 @@
 tmux/plugins/
-mise/config.toml
 shell_common.sh
 
 .nvimlog
