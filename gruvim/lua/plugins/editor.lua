@@ -113,7 +113,12 @@ return {
           },
         },
       },
-      terminal = { enabled = true }, -- TODO: terminal 열 때, 파일 윈도우 스크롤이 올라가는 현상 해결
+      terminal = {
+        enabled = true,
+        win = {
+          height = 0.3,
+        },
+      },
       notifier = { enabled = true },
       scope = { enabled = true },
       indent = { enabled = true },

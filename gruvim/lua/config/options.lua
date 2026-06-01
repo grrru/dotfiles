@@ -16,6 +16,7 @@ opt.ignorecase = true
 opt.smartcase = true
 opt.splitbelow = true
 opt.splitright = true
+opt.splitkeep = "screen"
 opt.scrolloff = 5
 opt.sidescrolloff = 8
 opt.jumpoptions = { "view", "clean" }
