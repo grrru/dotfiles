@@ -2,12 +2,25 @@
 
 set -eu
 
-bottom_percent=${1:-30}
-case "$bottom_percent" in
-  ''|*[!0-9]*)
-    tmux display-message 'three-pane-layout bottom pane percent must be a number'
-    exit 0
-    ;;
+bottom_size=${1:-30}
+bottom_mode=percent
+bottom_value=$bottom_size
+
+case "$bottom_size" in
+*lines)
+  bottom_mode=lines
+  bottom_value=${bottom_size%lines}
+  ;;
+*%)
+  bottom_value=${bottom_size%\%}
+  ;;
+esac
+
+case "$bottom_value" in
+'' | *[!0-9]*)
+  tmux display-message 'three-pane-layout bottom pane size must be a number, percent, or line count like 2lines'
+  exit 0
+  ;;
 esac
 
 window_panes=$(tmux display-message -p '#{window_panes}')
@@ -33,7 +46,11 @@ trap cleanup EXIT INT TERM
 tmp_window=$(tmux new-window -d -P -F '#{window_id}' -t "$session_id:" -n "$tmp_name")
 tmp_first_pane=$(tmux list-panes -t "$tmp_window" -F '#{pane_id}')
 tmux split-window -d -h -p 32 -t "$tmp_first_pane" >/dev/null
-tmux split-window -d -v -p "$bottom_percent" -t "$tmp_first_pane" >/dev/null
+if [ "$bottom_mode" = lines ]; then
+  tmux split-window -d -v -l "$bottom_value" -t "$tmp_first_pane" >/dev/null
+else
+  tmux split-window -d -v -p "$bottom_value" -t "$tmp_first_pane" >/dev/null
+fi
 
 layout=$(tmux display-message -p -t "$tmp_window" '#{window_layout}')
 tmux select-layout -t "$window_id" "$layout" >/dev/null
