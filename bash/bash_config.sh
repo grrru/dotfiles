@@ -19,8 +19,8 @@ plugins=(
 [[ -s "$OSH/oh-my-bash.sh" ]] && source "$OSH/oh-my-bash.sh"
 
 ## Shared shell layer
-_bash_config_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-_dotfiles_dir="$(cd -- "$_bash_config_dir/.." && pwd)"
+_bash_config_dir="$(builtin cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+_dotfiles_dir="$(builtin cd -- "$_bash_config_dir/.." && pwd)"
 source "$_dotfiles_dir/common.sh"
 
 ## nvm bash completion (when nvm is loaded by machine-local bash config)
@@ -39,7 +39,9 @@ export PATH
 ## Switch to zsh as the interactive shell (chsh needs root on this host).
 # Interactive-only guard so scp/sftp/non-interactive ssh stay on bash.
 # To stay in bash temporarily: `exec bash`. To disable: comment this block.
+# During oh-my-bash post-upgrade reload, stay in bash so lock cleanup can finish.
 if [[ $- == *i* ]] &&
+  [[ -z ${_omb_upgrade_reload_bashrc:-} ]] &&
   command -v zsh >/dev/null 2>&1 &&
   [ -r "$HOME/.zshrc" ] &&
   grep -Fq "$_dotfiles_dir/zsh/zsh_config.sh" "$HOME/.zshrc"; then
