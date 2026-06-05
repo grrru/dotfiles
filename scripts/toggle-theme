@@ -6,16 +6,7 @@ STATE_FILE="$HOME/.theme_mode"
 DOTFILES="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." 2>/dev/null && pwd)"
 [ -d "$DOTFILES/ghostty" ] || DOTFILES="$HOME/dotfiles"
 LIGHT_THEME="Catppuccin Latte"
-DARK_THEME="TokyoNight Night"
-
-# Portable in-place sed: GNU sed (Linux) takes `-i`, BSD sed (macOS) needs `-i ''`.
-sed_inplace() {
-  if sed --version >/dev/null 2>&1; then
-    sed -i "$@"
-  else
-    sed -i '' "$@"
-  fi
-}
+DARK_THEME="TokyoNight Moon"
 
 # Determine new mode
 if [ -f "$STATE_FILE" ] && [ "$(cat "$STATE_FILE")" = "dark" ]; then
@@ -27,13 +18,19 @@ echo "$NEW_MODE" >"$STATE_FILE"
 
 # === Ghostty ===
 GHOSTTY_CONFIG="$DOTFILES/ghostty/config"
+GHOSTTY_LOCAL_CONFIG="$DOTFILES/ghostty/theme.local"
 if [ "$NEW_MODE" = "dark" ]; then
-  sed_inplace "s/^theme = .*/theme = $DARK_THEME/" "$GHOSTTY_CONFIG"
-  sed_inplace 's/^font-thicken = true/font-thicken = false/' "$GHOSTTY_CONFIG"
+  {
+    printf 'theme = %s\n' "$DARK_THEME"
+    printf 'font-thicken = false\n'
+  } >"$GHOSTTY_LOCAL_CONFIG"
 else
-  sed_inplace "s/^theme = .*/theme = $LIGHT_THEME/" "$GHOSTTY_CONFIG"
-  sed_inplace 's/^font-thicken = false/font-thicken = true/' "$GHOSTTY_CONFIG"
+  {
+    printf 'theme = %s\n' "$LIGHT_THEME"
+    printf 'font-thicken = true\n'
+  } >"$GHOSTTY_LOCAL_CONFIG"
 fi
+touch "$GHOSTTY_CONFIG"
 
 # === Tmux ===
 if [ "$NEW_MODE" = "dark" ]; then

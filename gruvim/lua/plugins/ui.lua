@@ -77,7 +77,7 @@ return {
     lazy = false,
     priority = 999,
     opts = {
-      style = "night",
+      style = "moon",
     },
   },
 

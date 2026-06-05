@@ -4,3 +4,4 @@ shell_common.sh
 .nvimlog
 nvim.log
 .DS_Store
+ghostty/theme.local
