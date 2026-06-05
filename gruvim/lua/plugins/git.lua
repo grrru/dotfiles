@@ -70,7 +70,7 @@ return {
     },
     opts = {
       diff = {
-        layout = "side-by-side", -- side-by-side, inline
+        layout = "inline", -- side-by-side, inline
       },
       explorer = {
         width = 30,
