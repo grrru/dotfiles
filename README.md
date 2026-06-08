@@ -104,6 +104,7 @@ The installer links `gruvim` as the default Neovim config.
 ### colorscheme
 
 + [catppuccin/nvim](https://dotfyle.com/plugins/catppuccin/nvim)
++ [sainnhe/everforest](https://dotfyle.com/plugins/sainnhe/everforest)
 + [folke/tokyonight.nvim](https://dotfyle.com/plugins/folke/tokyonight.nvim)
 ### comment
 

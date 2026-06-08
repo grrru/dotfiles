@@ -6,7 +6,7 @@ STATE_FILE="$HOME/.theme_mode"
 DOTFILES="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." 2>/dev/null && pwd)"
 [ -d "$DOTFILES/ghostty" ] || DOTFILES="$HOME/dotfiles"
 LIGHT_THEME="Catppuccin Latte"
-DARK_THEME="TokyoNight Night"
+DARK_THEME="Everforest Dark Hard"
 
 # Determine new mode
 if [ -f "$STATE_FILE" ] && [ "$(cat "$STATE_FILE")" = "dark" ]; then
@@ -34,10 +34,10 @@ touch "$GHOSTTY_CONFIG"
 
 # === Tmux ===
 if [ "$NEW_MODE" = "dark" ]; then
-  tmux set-option -g status-bg "#1e1e2e"
-  tmux set-option -g status-fg "#cdd6f4"
-  tmux set-option -g pane-border-style "fg=#585b70"
-  tmux set-option -g pane-active-border-style "fg=#89b4fa"
+  tmux set-option -g status-bg "#2b3339"
+  tmux set-option -g status-fg "#d3c6aa"
+  tmux set-option -g pane-border-style "fg=#859289"
+  tmux set-option -g pane-active-border-style "fg=#a7c080"
 else
   tmux set-option -g status-bg "#d5d6db"
   tmux set-option -g status-fg "#343b58"

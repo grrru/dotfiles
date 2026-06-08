@@ -1,6 +1,6 @@
 return {
 
-  -- Colorscheme: catppuccin (light) / tokyonight (dark)
+  -- Colorscheme: light / dark
   {
     "catppuccin/nvim",
     name = "catppuccin",
@@ -49,7 +49,7 @@ return {
           vim.cmd.colorscheme("catppuccin")
         else
           vim.o.background = "dark"
-          vim.cmd.colorscheme("tokyonight")
+          vim.cmd.colorscheme("everforest")
         end
       end
 
@@ -73,9 +73,19 @@ return {
   },
 
   {
-    "folke/tokyonight.nvim",
+    "sainnhe/everforest",
     lazy = false,
     priority = 999,
+    init = function()
+      vim.g.everforest_background = "hard"
+      vim.g.everforest_enable_italic = 1
+      vim.g.everforest_better_performance = 1
+    end,
+  },
+
+  {
+    "folke/tokyonight.nvim",
+    lazy = true,
     opts = {
       style = "night",
     },
