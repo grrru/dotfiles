@@ -87,10 +87,12 @@ return {
         settings = {
           basedpyright = {
             analysis = {
-              typeCheckingMode = "on",
+              typeCheckingMode = "off",
               autoSearchPaths = true,
               useLibraryCodeForTypes = true,
               autoImportCompletions = true,
+              -- diagnosticSeverityOverrides = {
+              -- },
             },
           },
         },
