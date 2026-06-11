@@ -1,3 +1,44 @@
+local function bufferline_highlights()
+  if not (vim.g.colors_name or ""):find("^catppuccin") then
+    return {}
+  end
+
+  local ok, bufferline_theme = pcall(require, "catppuccin.special.bufferline")
+  if not ok then
+    return {}
+  end
+
+  return bufferline_theme.get_theme()
+end
+
+local function bufferline_opts()
+  return {
+    highlights = bufferline_highlights(),
+    options = {
+      indicator = { style = "none" },
+      diagnostics = "nvim_lsp",
+      diagnostics_indicator = function(_, _, diag)
+        local ret = (diag.error and " " .. diag.error .. " " or "")
+        return vim.trim(ret)
+      end,
+      always_show_bufferline = true,
+      show_close_icon = false,
+      max_name_length = 30,
+      offsets = {
+        { filetype = "snacks_layout_box" },
+      },
+    },
+  }
+end
+
+local function refresh_bufferline()
+  if not package.loaded["bufferline"] then
+    return
+  end
+
+  require("bufferline").setup(bufferline_opts())
+end
+
 return {
 
   -- Colorscheme: light / dark
@@ -73,6 +114,8 @@ return {
           vim.o.background = "dark"
           vim.cmd.colorscheme("onedark")
         end
+
+        refresh_bufferline()
       end
 
       local function load_mode()
@@ -178,27 +221,7 @@ return {
       { "<leader>bL", "<cmd>BufferLineCloseRight<cr>", desc = "Delete Buffers to the Right" },
     },
     dependencies = { "catppuccin/nvim" },
-    opts = function()
-      return {
-        highlights = (vim.g.colors_name or ""):find("^catppuccin")
-            and require("catppuccin.special.bufferline").get_theme()
-          or {},
-        options = {
-          indicator = { style = "none" },
-          diagnostics = "nvim_lsp",
-          diagnostics_indicator = function(_, _, diag)
-            local ret = (diag.error and " " .. diag.error .. " " or "")
-            return vim.trim(ret)
-          end,
-          always_show_bufferline = true,
-          show_close_icon = false,
-          max_name_length = 30,
-          offsets = {
-            { filetype = "snacks_layout_box" },
-          },
-        },
-      }
-    end,
+    opts = bufferline_opts,
   },
 
   -- Noice (UI for messages, cmdline, popupmenu)
