@@ -2,6 +2,28 @@ return {
 
   -- Colorscheme: light / dark
   {
+    "olimorris/onedarkpro.nvim",
+    lazy = false,
+    priority = 1001,
+    opts = {
+      styles = {
+        comments = "NONE",
+        functions = "italic",
+        keywords = "NONE",
+        types = "italic",
+      },
+      plugins = {
+        blink_cmp = true,
+        gitsigns = true,
+        nvim_lsp = true,
+        snacks = true,
+        treesitter = true,
+        which_key = true,
+      },
+    },
+  },
+
+  {
     "catppuccin/nvim",
     name = "catppuccin",
     lazy = false,
@@ -49,7 +71,7 @@ return {
           vim.cmd.colorscheme("catppuccin")
         else
           vim.o.background = "dark"
-          vim.cmd.colorscheme("everforest")
+          vim.cmd.colorscheme("onedark")
         end
       end
 
@@ -69,17 +91,6 @@ return {
           vim.schedule(load_mode)
         end)
       end
-    end,
-  },
-
-  {
-    "sainnhe/everforest",
-    lazy = false,
-    priority = 999,
-    init = function()
-      vim.g.everforest_background = "hard"
-      vim.g.everforest_enable_italic = 1
-      vim.g.everforest_better_performance = 1
     end,
   },
 

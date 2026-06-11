@@ -6,7 +6,7 @@ STATE_FILE="$HOME/.theme_mode"
 DOTFILES="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." 2>/dev/null && pwd)"
 [ -d "$DOTFILES/ghostty" ] || DOTFILES="$HOME/dotfiles"
 LIGHT_THEME="Catppuccin Latte"
-DARK_THEME="Everforest Dark Hard"
+DARK_THEME="Atom One Dark"
 
 # Determine new mode
 if [ -f "$STATE_FILE" ] && [ "$(cat "$STATE_FILE")" = "dark" ]; then
@@ -34,17 +34,21 @@ touch "$GHOSTTY_CONFIG"
 
 # === Tmux ===
 if [ "$NEW_MODE" = "dark" ]; then
-  tmux set-option -g status-bg "#2b3339"
-  tmux set-option -g status-fg "#d3c6aa"
-  tmux set-option -g message-style "bg=black,fg=brightwhite"
-  tmux set-option -g message-command-style "bg=brightwhite,fg=black,bold"
-  tmux set-option -g pane-border-style "fg=#859289"
-  tmux set-option -g pane-active-border-style "fg=#a7c080"
-else
-  tmux set-option -g status-bg "#d5d6db"
-  tmux set-option -g status-fg "#343b58"
+  tmux set-option -g status-fg "#d5d6db"
+  tmux set-option -g status-bg "#282C33"
+
   tmux set-option -g message-style "bg=brightyellow,fg=black"
   tmux set-option -g message-command-style "bg=black,fg=brightyellow"
+
+  tmux set-option -g pane-border-style "fg=#585b70"
+  tmux set-option -g pane-active-border-style "fg=#89b4fa"
+else
+  tmux set-option -g status-bg "#d5d6db"
+  tmux set-option -g status-fg "#282C33"
+
+  tmux set-option -g message-style "bg=brightyellow,fg=black"
+  tmux set-option -g message-command-style "bg=black,fg=brightyellow"
+
   tmux set-option -g pane-border-style "fg=#585b70"
   tmux set-option -g pane-active-border-style "fg=#89b4fa"
 fi
