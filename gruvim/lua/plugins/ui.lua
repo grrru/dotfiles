@@ -164,7 +164,11 @@ return {
             symbols = { error = " ", warn = " ", info = " ", hint = " " },
           },
           { "filetype", icon_only = true, separator = "", padding = { left = 1, right = 0 } },
-          { "filename", file_status = true, path = 0 },
+          {
+            function()
+              return vim.fn.fnamemodify(vim.fn.getcwd(), ":t")
+            end,
+          },
         },
         lualine_x = {
           {
