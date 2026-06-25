@@ -11,6 +11,7 @@ plugins=(
 ## powerlevel10k
 # Theme selection must happen before oh-my-zsh is sourced.
 ZSH_THEME="powerlevel10k/powerlevel10k"
+ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=246'
 
 [[ -s "$ZSH/oh-my-zsh.sh" ]] && source "$ZSH/oh-my-zsh.sh"
 [[ -r "$HOME/.p10k.zsh" ]] && source "$HOME/.p10k.zsh"
