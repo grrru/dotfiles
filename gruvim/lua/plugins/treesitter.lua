@@ -70,10 +70,10 @@ return {
     "nvim-treesitter/nvim-treesitter-textobjects",
     event = "VeryLazy",
     keys = {
-      { "]m", desc = "Next function start" },
-      { "]M", desc = "Next function end" },
-      { "[m", desc = "Prev function start" },
-      { "[M", desc = "Prev function end" },
+      { "]f", desc = "Next function start" },
+      { "]F", desc = "Next function end" },
+      { "[f", desc = "Prev function start" },
+      { "[F", desc = "Prev function end" },
     },
     config = function()
       local move = require("nvim-treesitter-textobjects.move")
@@ -82,16 +82,16 @@ return {
         vim.keymap.set(modes or { "n", "x", "o" }, lhs, fn, { silent = true })
       end
 
-      map("]m", function()
+      map("]f", function()
         move.goto_next_start("@function.outer")
       end)
-      map("]M", function()
+      map("]F", function()
         move.goto_next_end("@function.outer")
       end)
-      map("[m", function()
+      map("[f", function()
         move.goto_previous_start("@function.outer")
       end)
-      map("[M", function()
+      map("[F", function()
         move.goto_previous_end("@function.outer")
       end)
     end,
