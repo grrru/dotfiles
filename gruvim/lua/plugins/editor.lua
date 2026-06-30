@@ -425,6 +425,13 @@ return {
       },
       -- UI toggles
       {
+        "<leader>ud",
+        function()
+          Snacks.toggle.diagnostics():toggle()
+        end,
+        desc = "Toggle Diagnostics",
+      },
+      {
         "<leader>uD",
         function()
           Snacks.toggle.dim():toggle()
