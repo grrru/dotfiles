@@ -40,30 +40,7 @@ local function refresh_bufferline()
 end
 
 return {
-
   -- Colorscheme: light / dark
-  {
-    "olimorris/onedarkpro.nvim",
-    lazy = false,
-    priority = 1001,
-    opts = {
-      styles = {
-        comments = "NONE",
-        functions = "italic",
-        keywords = "NONE",
-        types = "italic",
-      },
-      plugins = {
-        blink_cmp = true,
-        gitsigns = true,
-        nvim_lsp = true,
-        snacks = true,
-        treesitter = true,
-        which_key = true,
-      },
-    },
-  },
-
   {
     "catppuccin/nvim",
     name = "catppuccin",
@@ -109,10 +86,10 @@ return {
       local function apply_mode(mode)
         if mode == "light" then
           vim.o.background = "light"
-          vim.cmd.colorscheme("catppuccin")
+          vim.cmd.colorscheme("catppuccin-latte")
         else
           vim.o.background = "dark"
-          vim.cmd.colorscheme("onedark")
+          vim.cmd.colorscheme("catppuccin-frappe")
         end
 
         refresh_bufferline()
