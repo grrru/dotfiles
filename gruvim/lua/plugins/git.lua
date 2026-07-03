@@ -1,3 +1,8 @@
+local function origin_main_or_master()
+  vim.fn.system({ "git", "show-ref", "--verify", "--quiet", "refs/remotes/origin/main" })
+  return vim.v.shell_error == 0 and "origin/main" or "origin/master"
+end
+
 return {
 
   -- Gitsigns
@@ -66,7 +71,13 @@ return {
     keys = {
       { "<leader>gv", "<cmd>CodeDiff<cr>", desc = "CodeDiff Explorer" },
       { "<leader>gV", "<cmd>CodeDiff history<cr>", desc = "CodeDiff History" },
-      { "<leader>gm", "<cmd>CodeDiff origin/main...<cr>", desc = "CodeDiff main" },
+      {
+        "<leader>gm",
+        function()
+          vim.cmd.CodeDiff(origin_main_or_master() .. "...")
+        end,
+        desc = "CodeDiff main/master",
+      },
     },
     opts = {
       diff = {
