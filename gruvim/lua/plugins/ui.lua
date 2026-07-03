@@ -138,7 +138,6 @@ return {
         lualine_c = {
           {
             "diagnostics",
-            symbols = { error = " ", warn = " ", info = " ", hint = " " },
           },
           { "filetype", icon_only = true, separator = "", padding = { left = 1, right = 0 } },
           {
@@ -162,7 +161,6 @@ return {
           },
           {
             "diff",
-            symbols = { added = " ", modified = " ", removed = " " },
           },
         },
         lualine_y = {
