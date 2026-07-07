@@ -40,3 +40,10 @@ add_path --prepend "$HOME/.local/bin"
 
 # Locale
 export LANG=en_US.UTF-8
+
+# Dotfiles scripts
+if [ -n "${_dotfiles_dir:-}" ] &&
+  [ -x "$_dotfiles_dir/scripts/toggle-theme" ] &&
+  ! alias toggletheme >/dev/null 2>&1; then
+  alias toggletheme="\"$_dotfiles_dir/scripts/toggle-theme\""
+fi
