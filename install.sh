@@ -145,6 +145,23 @@ install_dependencies() {
     echo "Detected dnf (Fedora). Installing..."
     sudo dnf install -y git curl zsh tmux neovim ripgrep fd-find fzf zoxide gh make
     install_lazygit_with_script
+  elif command_exists apt-get; then
+    echo "Detected apt-get (Debian/Ubuntu). Installing..."
+    local core_deps=(git curl zsh tmux neovim ripgrep fd-find fzf make)
+    local optional_deps=(zoxide gh tree-sitter-cli)
+
+    sudo apt-get update
+    sudo apt-get install -y "${core_deps[@]}"
+
+    for dep in "${optional_deps[@]}"; do
+      if dpkg -s "$dep" >/dev/null 2>&1; then
+        continue
+      fi
+
+      sudo apt-get install -y "$dep" || echo "Could not install $dep with apt-get, skipping."
+    done
+
+    install_lazygit_with_script
   else
     echo "No supported package manager found (brew, pacman, dnf, apt-get). Please install dependencies manually."
   fi
