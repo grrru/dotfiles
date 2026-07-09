@@ -37,6 +37,7 @@ ecph() {
 # User bin
 add_path --prepend "$HOME/bin"
 add_path --prepend "$HOME/.local/bin"
+add_path --prepend "$HOME/.local/share/nvim/mason/bin"
 
 # Locale
 export LANG=en_US.UTF-8
