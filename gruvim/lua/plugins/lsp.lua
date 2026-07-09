@@ -121,18 +121,7 @@ return {
     keys = {
       { "<leader>cm", "<cmd>Mason<cr>", desc = "Mason" },
     },
-    opts = {
-      ensure_installed = {
-        "basedpyright",
-        "gdscript-formatter",
-        "gdtoolkit",
-        "goimports",
-        "gopls",
-        "ruff",
-        "shfmt",
-        "stylua",
-      },
-    },
+    opts = require("config.mason"),
     config = function(_, opts)
       require("mason").setup(opts)
 
