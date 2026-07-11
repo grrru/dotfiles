@@ -28,6 +28,9 @@ copy-on-select = true
 clipboard-read = allow
 clipboard-write = allow
 
+# nvim maps Ctrl-/ as <C-_>; send the matching control byte outside tmux too.
+keybind = ctrl+slash=text:\x1f
+
 # real color
 term = xterm-256color
 
