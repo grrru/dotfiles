@@ -8,8 +8,8 @@ local function nvim_meta_section()
         "\n────────────────────────────────────────────",
         hl = "nontext",
       },
-      { "\nNvim is open source and freely distributable", hl = "comment" },
-      { "\nhttps://neovim.io/#chat", hl = "comment" },
+      { "\nNvim is open source and freely distributable",                             hl = "comment" },
+      { "\nhttps://neovim.io/#chat",                                                  hl = "comment" },
       {
         "\n────────────────────────────────────────────",
         hl = "nontext",
@@ -95,7 +95,7 @@ return {
         sections = {
           nvim_logo_section(),
           nvim_meta_section(),
-          { section = "keys", gap = 1, padding = 1 },
+          { section = "keys",   gap = 1, padding = 1 },
           { section = "startup" },
         },
         preset = {
