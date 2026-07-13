@@ -7,6 +7,8 @@ DOTFILES="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." 2>/dev/null && pwd)"
 [ -d "$DOTFILES/ghostty" ] || DOTFILES="$HOME/dotfiles"
 LIGHT_THEME="Catppuccin Latte"
 DARK_THEME="TokyoNight Night"
+LIGHT_FONT_THICKEN_STRENGTH=70
+DARK_FONT_THICKEN_STRENGTH=0
 
 # Determine new mode
 if [ -f "$STATE_FILE" ] && [ "$(cat "$STATE_FILE")" = "dark" ]; then
@@ -22,12 +24,14 @@ GHOSTTY_LOCAL_CONFIG="$DOTFILES/ghostty/theme.local"
 if [ "$NEW_MODE" = "dark" ]; then
   {
     printf 'theme = %s\n' "$DARK_THEME"
-    printf 'font-thicken = false\n'
+    printf 'font-thicken = true\n'
+    printf 'font-thicken-strength = %s\n' "$DARK_FONT_THICKEN_STRENGTH"
   } >"$GHOSTTY_LOCAL_CONFIG"
 else
   {
     printf 'theme = %s\n' "$LIGHT_THEME"
     printf 'font-thicken = true\n'
+    printf 'font-thicken-strength = %s\n' "$LIGHT_FONT_THICKEN_STRENGTH"
   } >"$GHOSTTY_LOCAL_CONFIG"
 fi
 touch "$GHOSTTY_CONFIG"
