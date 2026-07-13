@@ -14,7 +14,6 @@ return {
         underline = { severity = { min = vim.diagnostic.severity.ERROR } },
         virtual_text = { severity = { min = vim.diagnostic.severity.ERROR } },
         signs = { severity = { min = vim.diagnostic.severity.ERROR } },
-        update_in_insert = false,
         severity_sort = true,
       })
 
@@ -48,7 +47,6 @@ return {
             Snacks.picker.lsp_type_definitions()
           end, "Goto Type Definition")
           map("gD", vim.lsp.buf.declaration, "Goto Declaration")
-          map("K", vim.lsp.buf.hover, "Hover")
           map("<leader>cR", function()
             Snacks.rename.rename_file()
           end, "Rename File")
@@ -71,24 +69,11 @@ return {
       })
 
       -- Servers
-      vim.lsp.config("gopls", {
-        settings = {
-          gopls = {
-            gofumpt = false,
-          },
-        },
-      })
-
       vim.lsp.config("basedpyright", {
         settings = {
           basedpyright = {
             analysis = {
               typeCheckingMode = "off",
-              autoSearchPaths = true,
-              useLibraryCodeForTypes = true,
-              autoImportCompletions = true,
-              -- diagnosticSeverityOverrides = {
-              -- },
             },
           },
         },
@@ -103,7 +88,6 @@ return {
         },
       })
 
-      vim.lsp.config("clangd", {})
       vim.lsp.enable("clangd")
 
       vim.lsp.config("gdscript", {
@@ -169,43 +153,6 @@ return {
     opts = {
       library = {
         { path = "${3rd}/luv/library", words = { "vim%.uv" } },
-      },
-    },
-  },
-
-  -- Trouble (diagnostics list)
-  {
-    "folke/trouble.nvim",
-    cmd = "Trouble",
-    opts = {
-      modes = {
-        lsp = { win = { position = "right" } },
-      },
-    },
-    keys = {
-      { "<leader>xx", "<cmd>Trouble diagnostics toggle<cr>", desc = "Diagnostics (Trouble)" },
-      { "<leader>xX", "<cmd>Trouble diagnostics toggle filter.buf=0<cr>", desc = "Buffer Diagnostics (Trouble)" },
-      {
-        "[q",
-        function()
-          if require("trouble").is_open() then
-            require("trouble").prev({ skip_groups = true, jump = true })
-          else
-            pcall(vim.cmd.cprev)
-          end
-        end,
-        desc = "Previous Trouble/Quickfix Item",
-      },
-      {
-        "]q",
-        function()
-          if require("trouble").is_open() then
-            require("trouble").next({ skip_groups = true, jump = true })
-          else
-            pcall(vim.cmd.cnext)
-          end
-        end,
-        desc = "Next Trouble/Quickfix Item",
       },
     },
   },

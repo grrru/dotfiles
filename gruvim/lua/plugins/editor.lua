@@ -145,13 +145,6 @@ return {
         desc = "Find Files (root)",
       },
       {
-        "<leader>fF",
-        function()
-          Snacks.picker.files({ root = false })
-        end,
-        desc = "Find Files (cwd)",
-      },
-      {
         "<leader>fc",
         function()
           Snacks.picker.files({ cwd = vim.fn.stdpath("config") })
@@ -451,20 +444,6 @@ return {
           Snacks.toggle.scroll():toggle()
         end,
         desc = "Toggle Smooth Scroll",
-      },
-      {
-        "<leader>uZ",
-        function()
-          Snacks.zen.zoom()
-        end,
-        desc = "Toggle Zoom",
-      },
-      {
-        "<leader>wm",
-        function()
-          Snacks.zen.zoom()
-        end,
-        desc = "Toggle Zoom",
       },
       {
         "<leader>uz",

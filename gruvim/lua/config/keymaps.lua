@@ -60,7 +60,7 @@ end, { desc = "Prev Warning" })
 
 -- Format
 map({ "n", "x" }, "<leader>cf", function()
-  require("conform").format({ force = true })
+  require("conform").format()
 end, { desc = "Format" })
 
 -- Windows

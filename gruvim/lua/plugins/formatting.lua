@@ -18,14 +18,12 @@ return {
     opts = {
       default_format_opts = {
         timeout_ms = 3000,
-        async = false,
-        quiet = false,
         lsp_format = "fallback",
       },
       formatters_by_ft = {
         gdscript = { "gdscript-formatter" },
         lua = { "stylua", lsp_format = "never" },
-        go = { "goimports", "gofmt" },
+        go = { "goimports" },
         sh = { "shfmt" },
         python = { "ruff_format" },
       },
@@ -51,7 +49,7 @@ return {
         group = vim.api.nvim_create_augroup("gruvim_conform", { clear = true }),
         callback = function(event)
           if format_enabled(event.buf) then
-            require("conform").format({ bufnr = event.buf, lsp_format = "fallback" })
+            require("conform").format({ bufnr = event.buf })
           end
         end,
       })
@@ -67,59 +65,6 @@ return {
         vim.b.autoformat = not format_enabled(vim.api.nvim_get_current_buf())
         vim.notify("Auto Format (Buffer): " .. (vim.b.autoformat and "ON" or "OFF"), vim.log.levels.INFO)
       end, { desc = "Toggle Auto Format (Buffer)" })
-    end,
-  },
-
-  -- nvim-lint (linter)
-  {
-    "mfussenegger/nvim-lint",
-    event = { "BufWritePost", "BufReadPost", "InsertLeave" },
-    opts = {
-      linters_by_ft = {
-        go = { "golangcilint" },
-        python = { "ruff" },
-      },
-    },
-    config = function(_, opts)
-      local lint = require("lint")
-      lint.linters_by_ft = opts.linters_by_ft
-      lint.linters.golangcilint = vim.tbl_extend("force", lint.linters.golangcilint, {
-        ignore_exitcode = true,
-      })
-
-      local timer = vim.uv.new_timer()
-      local function debounce(ms, fn)
-        return function(...)
-          local argv = { ... }
-          timer:start(ms, 0, function()
-            timer:stop()
-            vim.schedule_wrap(fn)(unpack(argv))
-          end)
-        end
-      end
-
-      local function try_lint()
-        local names = lint._resolve_linter_by_ft(vim.bo.filetype)
-        names = vim.list_extend({}, names)
-        if #names == 0 then
-          vim.list_extend(names, lint.linters_by_ft["_"] or {})
-        end
-        vim.list_extend(names, lint.linters_by_ft["*"] or {})
-        local ctx = { filename = vim.api.nvim_buf_get_name(0) }
-        ctx.dirname = vim.fn.fnamemodify(ctx.filename, ":h")
-        names = vim.tbl_filter(function(name)
-          local linter = lint.linters[name]
-          return linter and not (type(linter) == "table" and linter.condition and not linter.condition(ctx))
-        end, names)
-        if #names > 0 then
-          lint.try_lint(names)
-        end
-      end
-
-      vim.api.nvim_create_autocmd({ "BufWritePost", "BufReadPost", "InsertLeave" }, {
-        group = vim.api.nvim_create_augroup("gruvim_lint", { clear = true }),
-        callback = debounce(100, try_lint),
-      })
     end,
   },
 }

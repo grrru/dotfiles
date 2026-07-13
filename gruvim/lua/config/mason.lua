@@ -4,7 +4,6 @@ return {
     "ansible-language-server",
     "bash-language-server",
     "basedpyright",
-    "clangd",
     "docker-compose-language-service",
     "dockerfile-language-server",
     "gopls",
@@ -18,18 +17,10 @@ return {
     -- Formatters
     "gdscript-formatter",
     "goimports",
-    "gofumpt",
     "shfmt",
     "stylua",
 
     -- Linters / tools
-    "delve",
-    "gdtoolkit",
-    "gitui",
-    "golangci-lint",
-    "hadolint",
-    "markdown-toc",
-    "markdownlint-cli2",
     "shellcheck",
     "tree-sitter-cli",
   },

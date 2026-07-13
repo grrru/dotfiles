@@ -117,9 +117,6 @@ return {
   {
     "folke/tokyonight.nvim",
     lazy = true,
-    opts = {
-      style = "moon",
-    },
   },
 
   -- Statusline
@@ -184,12 +181,6 @@ return {
     "akinsho/bufferline.nvim",
     event = "VeryLazy",
     keys = {
-      { "H", "<cmd>BufferLineCyclePrev<cr>", desc = "Prev Buffer" },
-      { "L", "<cmd>BufferLineCycleNext<cr>", desc = "Next Buffer" },
-      { "[b", "<cmd>BufferLineCyclePrev<cr>", desc = "Prev Buffer" },
-      { "]b", "<cmd>BufferLineCycleNext<cr>", desc = "Next Buffer" },
-      { "[B", "<cmd>BufferLineMovePrev<cr>", desc = "Move Buffer Prev" },
-      { "]B", "<cmd>BufferLineMoveNext<cr>", desc = "Move Buffer Next" },
       { "<leader>bh", "<cmd>BufferLineMovePrev<cr>", desc = "Move Buffer Left" },
       { "<leader>bl", "<cmd>BufferLineMoveNext<cr>", desc = "Move Buffer Right" },
       { "<leader>bj", "<cmd>BufferLinePick<cr>", desc = "Pick Buffer" },
@@ -229,18 +220,12 @@ return {
         },
       },
       presets = {
-        bottom_search = false,
         command_palette = true,
         long_message_to_split = true,
         lsp_doc_border = true,
       },
     },
     keys = {
-      {
-        "<leader>sn",
-        "",
-        desc = "+noice",
-      },
       {
         "<leader>snl",
         function()
@@ -317,7 +302,6 @@ return {
           { "<leader>sn", group = "noice" },
           { "<leader>u", group = "ui" },
           { "<leader>w", group = "windows" },
-          { "<leader>x", group = "diagnostics/quickfix" },
           { "[", group = "prev" },
           { "]", group = "next" },
           { "g", group = "goto" },

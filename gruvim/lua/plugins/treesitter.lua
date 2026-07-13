@@ -1,3 +1,29 @@
+local parsers = {
+  "bash",
+  "c",
+  "diff",
+  "gdscript",
+  "go",
+  "gomod",
+  "gosum",
+  "html",
+  "javascript",
+  "json",
+  "lua",
+  "luadoc",
+  "markdown",
+  "markdown_inline",
+  "python",
+  "query",
+  "regex",
+  "toml",
+  "tsx",
+  "typescript",
+  "vim",
+  "vimdoc",
+  "yaml",
+}
+
 return {
 
   -- Treesitter
@@ -5,39 +31,11 @@ return {
     "nvim-treesitter/nvim-treesitter",
     branch = "main",
     version = false,
+    lazy = false,
     build = ":TSUpdate",
-    event = { "BufReadPost", "BufNewFile", "VeryLazy" },
-    cmd = { "TSUpdate", "TSInstall", "TSLog", "TSUninstall" },
-    opts = {
-      ensure_installed = {
-        "bash",
-        "c",
-        "diff",
-        "gdscript",
-        "go",
-        "gomod",
-        "gosum",
-        "html",
-        "javascript",
-        "json",
-        "jsonc",
-        "lua",
-        "luadoc",
-        "markdown",
-        "markdown_inline",
-        "python",
-        "query",
-        "regex",
-        "toml",
-        "tsx",
-        "typescript",
-        "vim",
-        "vimdoc",
-        "yaml",
-      },
-    },
-    config = function(_, opts)
-      require("nvim-treesitter").setup(opts)
+    config = function()
+      local treesitter = require("nvim-treesitter")
+      treesitter.install(parsers)
 
       -- Enable Tree-sitter highlighting on FileType events
       vim.api.nvim_create_autocmd("FileType", {
