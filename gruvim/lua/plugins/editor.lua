@@ -236,13 +236,6 @@ return {
       },
       -- Search
       {
-        "<leader>n",
-        function()
-          Snacks.picker.notifications()
-        end,
-        desc = "Notification History",
-      },
-      {
         '<leader>s"',
         function()
           Snacks.picker.registers()

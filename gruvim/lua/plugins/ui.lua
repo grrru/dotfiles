@@ -256,11 +256,11 @@ return {
         desc = "Noice History",
       },
       {
-        "<leader>sna",
+        "<leader>n",
         function()
-          require("noice").cmd("all")
+          require("noice").cmd("pick")
         end,
-        desc = "Noice All",
+        desc = "Noice Picker",
       },
       {
         "<leader>snd",
@@ -268,13 +268,6 @@ return {
           require("noice").cmd("dismiss")
         end,
         desc = "Dismiss All",
-      },
-      {
-        "<leader>snt",
-        function()
-          require("noice").cmd("pick")
-        end,
-        desc = "Noice Picker",
       },
       {
         "<c-n>",
