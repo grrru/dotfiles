@@ -24,7 +24,7 @@ return {
       },
       formatters_by_ft = {
         gdscript = { "gdscript-formatter" },
-        lua = { "stylua" },
+        lua = { "stylua", lsp_format = "never" },
         go = { "goimports", "gofmt" },
         sh = { "shfmt" },
         python = { "ruff_format" },
