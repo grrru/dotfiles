@@ -232,7 +232,7 @@ return {
         bottom_search = false,
         command_palette = true,
         long_message_to_split = true,
-        inc_rename = true,
+        lsp_doc_border = true,
       },
     },
     keys = {
@@ -277,17 +277,10 @@ return {
         desc = "Noice Picker",
       },
       {
-        "<leader>un",
-        function()
-          require("noice").cmd("dismiss")
-        end,
-        desc = "Dismiss All Notifications",
-      },
-      {
-        "<c-f>",
+        "<c-n>",
         function()
           if not require("noice.lsp").scroll(4) then
-            return "<c-f>"
+            return "<c-n>"
           end
         end,
         silent = true,
@@ -296,10 +289,10 @@ return {
         mode = { "i", "n", "s" },
       },
       {
-        "<c-b>",
+        "<c-p>",
         function()
           if not require("noice.lsp").scroll(-4) then
-            return "<c-b>"
+            return "<c-p>"
           end
         end,
         silent = true,
