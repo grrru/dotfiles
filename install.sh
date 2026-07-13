@@ -132,10 +132,9 @@ ensure_gruvim_source() {
 install_dependencies() {
   echo "Checking for dependencies..."
 
-  # TODO: 필요한 패키지 스캔 후 설치하는 방식으로 변경
   if command_exists brew; then
     echo "Using Homebrew to install dependencies..."
-    local deps=(git curl zsh tmux neovim lazygit ripgrep fd gh fzf zoxide make tree-sitter-cli)
+    local deps=(git curl zsh tmux neovim lazygit ripgrep fd gh fzf zoxide make tree-sitter-cli python)
     for dep in "${deps[@]}"; do
       if ! brew list --formula "$dep" &>/dev/null; then
         brew install "$dep"
@@ -143,11 +142,11 @@ install_dependencies() {
     done
   elif command_exists dnf; then
     echo "Detected dnf (Fedora). Installing..."
-    sudo dnf install -y git curl zsh tmux neovim ripgrep fd-find fzf zoxide gh make
+    sudo dnf install -y git curl zsh tmux neovim ripgrep fd-find fzf zoxide gh make unzip python3 python3-pip
     install_lazygit_with_script
   elif command_exists apt-get; then
     echo "Detected apt-get (Debian/Ubuntu). Installing..."
-    local core_deps=(git curl zsh tmux neovim ripgrep fd-find fzf make)
+    local core_deps=(git curl zsh tmux neovim ripgrep fd-find fzf make unzip python3 python3-pip python3-venv)
     local optional_deps=(zoxide gh tree-sitter-cli)
 
     sudo apt-get update
