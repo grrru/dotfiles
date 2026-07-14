@@ -1,8 +1,6 @@
 # font settings
 font-family = D2CodingLigature Nerd Font
 font-size = 16
-font-thicken = true
-font-thicken-strength = 50
 font-feature = -calt
 
 # themes

@@ -24,8 +24,7 @@ GHOSTTY_LOCAL_CONFIG="$DOTFILES/ghostty/theme.local"
 if [ "$NEW_MODE" = "dark" ]; then
   {
     printf 'theme = %s\n' "$DARK_THEME"
-    printf 'font-thicken = true\n'
-    printf 'font-thicken-strength = %s\n' "$DARK_FONT_THICKEN_STRENGTH"
+    printf 'font-thicken = false\n'
   } >"$GHOSTTY_LOCAL_CONFIG"
 else
   {
