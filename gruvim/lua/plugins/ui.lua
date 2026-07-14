@@ -89,7 +89,7 @@ return {
           vim.cmd.colorscheme("catppuccin-latte")
         else
           vim.o.background = "dark"
-          vim.cmd.colorscheme("tokyonight-night")
+          vim.cmd.colorscheme("tokyonight-moon")
         end
 
         refresh_bufferline()
@@ -118,7 +118,7 @@ return {
     "folke/tokyonight.nvim",
     lazy = true,
     opts = {
-      style = "night",
+      style = "moon",
     },
   },
 

@@ -6,7 +6,7 @@ STATE_FILE="$HOME/.theme_mode"
 DOTFILES="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." 2>/dev/null && pwd)"
 [ -d "$DOTFILES/ghostty" ] || DOTFILES="$HOME/dotfiles"
 LIGHT_THEME="Catppuccin Latte"
-DARK_THEME="TokyoNight Night"
+DARK_THEME="TokyoNight Moon"
 LIGHT_FONT_THICKEN_STRENGTH=70
 DARK_FONT_THICKEN_STRENGTH=0
 
