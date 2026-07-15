@@ -23,3 +23,4 @@ opt.jumpoptions = { "view", "clean" }
 opt.cursorline = true
 opt.guicursor:append("t:blinkon0")
 opt.sessionoptions:remove("blank") -- Avoid restoring empty special windows such as Snacks explorer.
+opt.winborder = "rounded"
