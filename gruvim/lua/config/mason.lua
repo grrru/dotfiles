@@ -1,4 +1,5 @@
 return {
+  PATH = "append",
   ensure_installed = {
     -- LSP
     "ansible-language-server",
@@ -22,6 +23,5 @@ return {
 
     -- Linters / tools
     "shellcheck",
-    "tree-sitter-cli",
   },
 }

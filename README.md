@@ -20,14 +20,31 @@ the target user's home directory.
 
 Requirements:
 
-- macOS with Homebrew, or Linux with `dnf` or `apt-get`
+- macOS with Homebrew, or x86_64/arm64 Linux with `dnf` or `apt-get`
 - Git and permission to install system packages
-- Neovim 0.11 or newer for Gruvim
+- tmux 3.2 or newer
+- Neovim 0.12 or newer for Gruvim
+- Tree-sitter CLI 0.26.1 or newer
 - A Nerd Font for the configured icons; Ghostty defaults to D2CodingLigature Nerd Font
 
-The installer attempts to install the appropriate CLI dependencies for the detected
-package manager. Distribution repositories do not always provide a recent enough
-Neovim, so verify its version separately.
+The installer uses the platform package manager for foundational CLI tools. On Linux,
+it installs GitHub CLI from GitHub's official package repository and installs Neovim,
+Tree-sitter CLI, Lazygit, zoxide on Debian/Ubuntu, and any required fzf fallback from
+verified upstream release assets. Release downloads must include a matching SHA-256
+digest before installation.
+
+| Tool | Homebrew | Fedora (`dnf`) | Debian/Ubuntu (`apt-get`) |
+| --- | --- | --- | --- |
+| Base CLI tools | Homebrew formulas | Distribution packages | Distribution packages |
+| tmux | Formula with version check | Package with version check | Package with version check |
+| fd | `fd` formula | `fd-find` package | `fd-find` plus `~/.local/bin/fd` alias |
+| fzf | Formula | Package, then release fallback | Package, then release fallback |
+| zoxide | Formula | Distribution package | Verified upstream release |
+| Neovim / Tree-sitter CLI / Lazygit | Formulas | Verified upstream releases | Verified upstream releases |
+| GitHub CLI | Formula | Official GitHub RPM repository | Official GitHub APT repository |
+
+Standalone release binaries are installed in `~/.local/bin`. Neovim's complete
+runtime tree is stored under `/opt` and exposed through a user-local symlink.
 
 ```sh
 git clone https://github.com/grrru/dotfiles.git ~/dotfiles
@@ -120,9 +137,12 @@ Run `:GruvimMasonInstall` after changing the managed list in
   `docker-compose-language-service`, `dockerfile-language-server`, `gopls`, `json-lsp`,
   `lua-language-server`, `marksman`, `ruff`, `vtsls`, and `yaml-language-server`
 - Formatters: `gdscript-formatter`, `goimports`, `shfmt`, `stylua`, and Ruff's formatter
-- Supporting tools: `shellcheck` and `tree-sitter-cli`
+- Supporting tool: `shellcheck`
 - External servers: `clangd` must be available on `PATH`; GDScript connects to Godot at
   `127.0.0.1:6005`
+
+Mason's bin directory is appended to `PATH`, so tools explicitly installed by
+`install.sh` take precedence and Mason fills only missing commands.
 
 Diagnostics come from language servers. Bash language server uses ShellCheck for shell
 diagnostics; there is no separate general-purpose lint runner in Gruvim.
