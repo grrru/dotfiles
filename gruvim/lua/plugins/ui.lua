@@ -300,6 +300,7 @@ return {
           { "<leader>q", group = "quit/session" },
           { "<leader>s", group = "search" },
           { "<leader>sn", group = "noice" },
+          { "<leader>t", group = "translate" },
           { "<leader>u", group = "ui" },
           { "<leader>w", group = "windows" },
           { "[", group = "prev" },

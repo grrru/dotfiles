@@ -113,6 +113,21 @@ return {
     opts = {},
   },
 
+  -- Vim Translator
+  {
+    "voldikss/vim-translator",
+    cmd = { "Translate", "TranslateW", "TranslateR", "TranslateL" },
+    init = function()
+      vim.g.translator_source_lang = "auto"
+      vim.g.translator_target_lang = "ko"
+      vim.g.translator_default_engines = { "google" }
+    end,
+    keys = {
+      { "<leader>tw", "<Plug>TranslateW", desc = "Translate Word" },
+      { "<leader>tw", "<Plug>TranslateWV", mode = "x", desc = "Translate Selection" },
+    },
+  },
+
   -- Yanky (yank history)
   {
     "gbprod/yanky.nvim",
