@@ -47,7 +47,7 @@ return {
             Snacks.picker.lsp_type_definitions()
           end, "Goto Type Definition")
           map("gD", vim.lsp.buf.declaration, "Goto Declaration")
-          map("<leader>cR", function()
+          map("<leader>cr", function()
             Snacks.rename.rename_file()
           end, "Rename File")
 
