@@ -10,11 +10,11 @@ return {
     "lewis6991/gitsigns.nvim",
     event = "VeryLazy",
     opts = {
-      on_attach = function(buffer)
-        local gs = package.loaded.gitsigns
+      on_attach = function(bufnr)
+        local gs = require("gitsigns")
 
         local function map(mode, l, r, desc)
-          vim.keymap.set(mode, l, r, { buffer = buffer, desc = desc, silent = true })
+          vim.keymap.set(mode, l, r, { buffer = bufnr, desc = desc, silent = true })
         end
 
         -- Navigation
@@ -32,34 +32,20 @@ return {
         end, "First Hunk")
 
         -- Actions
-        map({ "n", "x" }, "<leader>ghs", ":Gitsigns stage_hunk<CR>", "Stage Hunk")
-        map({ "n", "x" }, "<leader>ghr", ":Gitsigns reset_hunk<CR>", "Reset Hunk")
+        map("n", "<leader>ghs", gs.stage_hunk, "Stage Hunk")
+        map("x", "<leader>ghs", function()
+          gs.stage_hunk({ vim.fn.line("."), vim.fn.line("v") })
+        end, "Stage Hunk")
+        map("n", "<leader>ghr", gs.reset_hunk, "Reset Hunk")
+        map("x", "<leader>ghr", function()
+          gs.reset_hunk({ vim.fn.line("."), vim.fn.line("v") })
+        end, "Reset Hunk")
         map("n", "<leader>ghS", gs.stage_buffer, "Stage Buffer")
-        map("n", "<leader>ghu", gs.undo_stage_hunk, "Undo Stage Hunk")
         map("n", "<leader>ghR", gs.reset_buffer, "Reset Buffer")
-        map("n", "<leader>ghp", gs.preview_hunk_inline, "Preview Hunk Inline")
         map("n", "<leader>ghb", function()
           gs.blame_line({ full = true })
         end, "Blame Line")
-        map("n", "<leader>ghB", function()
-          gs.blame()
-        end, "Blame Buffer")
-        map("n", "<leader>ghd", gs.diffthis, "Diff This")
-        map("n", "<leader>ghD", function()
-          gs.diffthis("~")
-        end, "Diff This ~")
-
-        -- Text object
-        map({ "o", "x" }, "ih", ":<C-U>Gitsigns select_hunk<CR>", "GitSigns Select Hunk")
-
-        -- Toggle
-        map("n", "<leader>uG", function()
-          gs.toggle_signs()
-          vim.notify(
-            "Git Signs: " .. (require("gitsigns.config").config.signcolumn and "ON" or "OFF"),
-            vim.log.levels.INFO
-          )
-        end, "Toggle Git Signs")
+        map("n", "<leader>ghB", gs.blame, "Blame Buffer")
       end,
     },
   },
