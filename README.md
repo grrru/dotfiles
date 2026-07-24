@@ -123,7 +123,7 @@ stable feature boundaries instead of duplicating every dependency.
 | Language support | Native Neovim LSP, nvim-lspconfig, Mason, SchemaStore, LazyDev |
 | Syntax | Treesitter highlighting, context, textobjects, and autotagging |
 | Formatting | Conform with format-on-save enabled by default |
-| Git | Gitsigns, CodeDiff, Snacks Lazygit and Git pickers |
+| Git | Gitsigns, Diffview+, Snacks Lazygit and Git pickers |
 | UI | Catppuccin Latte, TokyoNight Moon, lualine, bufferline, Noice, which-key |
 | Markdown | In-buffer rendering and browser preview |
 | Sessions and AI | persistence.nvim and Sidekick |
@@ -175,7 +175,7 @@ local to the current buffer or `<leader>sk` to search all mappings.
 | `<leader>cf` | Format the current buffer or selection |
 | `<leader>uf` / `<leader>uF` | Toggle format-on-save globally / for the current buffer |
 | `<leader>gg` | Open Lazygit at the Git root |
-| `<leader>gv` / `<leader>gV` | Open CodeDiff explorer / history |
+| `<leader>gv` / `<leader>gV` / `<leader>gm` | Open working-tree diff / history / main-branch review |
 | `Ctrl-/` | Toggle the terminal |
 | `<leader>cp` / `<leader>um` | Toggle Markdown preview / in-buffer rendering |
 | `<leader>cv` | Select a Python virtual environment |

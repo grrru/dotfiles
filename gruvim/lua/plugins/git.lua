@@ -50,36 +50,52 @@ return {
     },
   },
 
-  -- Codediff
+  -- Diffview
   {
-    "esmuellert/codediff.nvim",
-    cmd = { "CodeDiff" },
+    "dlyongemallo/diffview-plus.nvim",
+    version = "*",
+    cmd = {
+      "DiffviewOpen",
+      "DiffviewFileHistory",
+      "DiffviewClose",
+      "DiffviewToggleFiles",
+      "DiffviewFocusFiles",
+    },
     keys = {
-      { "<leader>gv", "<cmd>CodeDiff<cr>", desc = "CodeDiff Explorer" },
-      { "<leader>gV", "<cmd>CodeDiff history<cr>", desc = "CodeDiff History" },
+      { "<leader>gv", "<cmd>DiffviewOpen<cr>", desc = "Diffview Open" },
+      { "<leader>gV", "<cmd>DiffviewFileHistory<cr>", desc = "Diffview File History" },
       {
         "<leader>gm",
         function()
-          vim.cmd.CodeDiff(origin_main_or_master() .. "...")
+          vim.cmd.DiffviewOpen(origin_main_or_master() .. "...HEAD --imply-local")
         end,
-        desc = "CodeDiff main/master",
+        desc = "Diffview main/master",
       },
     },
-    opts = {
-      diff = {
-        layout = "inline", -- side-by-side, inline
-      },
-      explorer = {
-        width = 30,
-        view_mode = "tree",
-        focus_on_select = true,
-      },
-      keymaps = {
+    opts = function()
+      local actions = require("diffview.actions")
+
+      return {
         view = {
-          toggle_explorer = "<leader>E",
-          focus_explorer = "<leader>e",
+          default = { layout = "diff2_horizontal" },
+          merge_tool = { layout = "diff3_horizontal" },
         },
-      },
-    },
+        file_panel = {
+          listing_style = "tree",
+          win_config = { position = "left", width = 30 },
+        },
+        keymaps = {
+          view = {
+            { "n", "<leader>e", actions.toggle_files, { desc = "Toggle File Panel" } },
+          },
+          file_panel = {
+            { "n", "<leader>e", actions.toggle_files, { desc = "Toggle File Panel" } },
+          },
+          file_history_panel = {
+            { "n", "<leader>e", actions.toggle_files, { desc = "Toggle File Panel" } },
+          },
+        },
+      }
+    end,
   },
 }
