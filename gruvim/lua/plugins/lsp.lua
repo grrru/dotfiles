@@ -79,6 +79,10 @@ return {
         },
       })
 
+      vim.lsp.config("kotlin_lsp", {
+        single_file_support = false,
+      })
+
       vim.lsp.config("lua_ls", {
         settings = {
           Lua = {

@@ -14,6 +14,7 @@ return {
     "ruff",
     "vtsls",
     "yaml-language-server",
+    "kotlin-lsp",
 
     -- Formatters
     "gdscript-formatter",

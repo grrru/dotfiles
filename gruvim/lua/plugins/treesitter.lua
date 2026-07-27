@@ -22,6 +22,7 @@ local parsers = {
   "vim",
   "vimdoc",
   "yaml",
+  "kotlin",
 }
 
 return {
