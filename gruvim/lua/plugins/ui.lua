@@ -293,6 +293,7 @@ return {
           { "<leader><tab>", group = "tabs" },
           { "<leader>b", group = "buffer" },
           { "<leader>c", group = "code" },
+          { "<leader>d", group = "debug" },
           { "<leader>f", group = "file/find" },
           { "<leader>g", group = "git" },
           { "<leader>gh", group = "hunks" },
