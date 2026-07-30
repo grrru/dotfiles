@@ -42,6 +42,26 @@ end
 return {
   -- Colorscheme: light / dark
   {
+    "olimorris/onedarkpro.nvim",
+    lazy = false,
+    priority = 1001,
+    opts = {
+      colors = {
+        onedark = {
+          bg = "#21252b",
+          black = "#21252b",
+        },
+      },
+      styles = {
+        comments = "NONE",
+        functions = "italic",
+        keywords = "NONE",
+        types = "italic",
+      },
+    },
+  },
+
+  {
     "catppuccin/nvim",
     name = "catppuccin",
     lazy = false,
@@ -89,7 +109,7 @@ return {
           vim.cmd.colorscheme("catppuccin-latte")
         else
           vim.o.background = "dark"
-          vim.cmd.colorscheme("tokyonight-moon")
+          vim.cmd.colorscheme("onedark")
         end
 
         refresh_bufferline()
@@ -112,11 +132,6 @@ return {
         end)
       end
     end,
-  },
-
-  {
-    "folke/tokyonight.nvim",
-    lazy = true,
   },
 
   -- Statusline

@@ -124,7 +124,7 @@ stable feature boundaries instead of duplicating every dependency.
 | Syntax | Treesitter highlighting, context, textobjects, and autotagging |
 | Formatting | Conform with format-on-save enabled by default |
 | Git | Gitsigns, Diffview+, Snacks Lazygit and Git pickers |
-| UI | Catppuccin Latte, TokyoNight Moon, lualine, bufferline, Noice, which-key |
+| UI | Catppuccin Latte, OneDarkPro, lualine, bufferline, Noice, which-key |
 | Markdown | In-buffer rendering and browser preview |
 | Sessions and AI | persistence.nvim and Sidekick |
 
@@ -208,7 +208,8 @@ Run the script from Bash or Zsh:
 toggle-theme
 ```
 
-It switches between Catppuccin Latte and TokyoNight Moon, updating `~/.theme_mode`,
+Light mode uses Catppuccin Latte in Ghostty and Neovim. Dark mode pairs Ghostty's
+Atom One Dark theme with OneDarkPro in Neovim. The script updates `~/.theme_mode`,
 Ghostty's ignored `ghostty/theme.local`, tmux colors, and the running Neovim colorscheme.
 
 ## Git issue worktrees
