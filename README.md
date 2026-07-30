@@ -14,7 +14,7 @@ the target user's home directory.
 | `zsh/`, `bash/` | Tracked shell framework configuration |
 | `common.sh` | Portable PATH helpers, aliases, and defaults shared by Bash and Zsh |
 | `ghostty/` | Ghostty configuration, linked when Ghostty is installed |
-| `scripts/` | Utilities shared by the configured applications |
+| `scripts/` | Standalone commands, added to `PATH` by `common.sh` |
 
 ## Installation
 
@@ -104,7 +104,7 @@ files:
 
 Keep machine-specific settings in the local rc files: Go and Android SDK paths, nvm,
 private aliases, company hosts, and secrets. `common.sh` owns shared user-bin paths, the
-Mason bin path, locale defaults, `add_path`, `ecph`, and the `toggletheme` alias.
+Mason bin path, locale defaults, `add_path`, `ecph`, and the `scripts/` directory on `PATH`.
 
 When both tracked shell configs are installed, interactive Bash sessions hand off to
 Zsh. Run `exec bash` for a temporary Bash session.
@@ -202,11 +202,37 @@ Ghostty configures the matching font, terminal colors, clipboard access, and the
 
 ## Theme switching
 
-Run the shared alias from Bash or Zsh:
+Run the script from Bash or Zsh:
 
 ```sh
-toggletheme
+toggle-theme
 ```
 
 It switches between Catppuccin Latte and TokyoNight Moon, updating `~/.theme_mode`,
 Ghostty's ignored `ghostty/theme.local`, tmux colors, and the running Neovim colorscheme.
+
+## Git issue worktrees
+
+`scripts/git-issue-worktree` sets up an issue branch plus a worktree across several
+repositories at once, and tears them down again. `common.sh` puts `scripts/` on `PATH`, so
+Git resolves it as a subcommand with no install step:
+
+```sh
+export WORKSPACE="$HOME/projects"   # where the repositories live
+export WORKTREE="$HOME/worktrees"   # where worktrees are created
+git issue-worktree setup 42
+git issue-worktree clean 42
+```
+
+Both variables are required, so keep them in the machine-local rc file. `setup` asks for an
+optional tag, which produces branch names such as `issue/42-auth-refactor`, then opens a
+repository picker. Type a repository name to narrow the candidates by fuzzy match
+(`bkapi` matches `backend-api`), `Space` or `Tab` to select, `Enter` to confirm, `Esc` to
+cancel. The picker uses fzf when it is installed and a built-in one otherwise; set
+`GIW_PICKER` to `fzf` or `builtin` to choose explicitly.
+
+Repositories are discovered up to two directories below `WORKSPACE`, and the selection is
+recorded in an `.issue-tracker` file inside the worktree base directory. `clean` reads that
+file to remove the worktrees and branches, and asks before deleting the remote branch.
+
+Requires Bash 4.3 or newer for the picker.

@@ -60,8 +60,8 @@ add_path --append "$HOME/.local/share/nvim/mason/bin"
 export LANG=en_US.UTF-8
 
 # Dotfiles scripts
-if [ -n "${_dotfiles_dir:-}" ] &&
-  [ -x "$_dotfiles_dir/scripts/toggle-theme" ] &&
-  ! alias toggletheme >/dev/null 2>&1; then
-  alias toggletheme="\"$_dotfiles_dir/scripts/toggle-theme\""
+# Prepended so the tracked script wins over an ad-hoc copy in ~/bin, and so Git
+# resolves the git-* names here as subcommands (git issue-worktree).
+if [ -n "${_dotfiles_dir:-}" ]; then
+  add_path --prepend "$_dotfiles_dir/scripts"
 fi
