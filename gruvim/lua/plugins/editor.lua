@@ -34,9 +34,29 @@ local function nvim_logo_section()
   }
 end
 
+local function toggle_explorer(path)
+  local tree = require("nvim-tree.api").tree
+  local current_root = require("nvim-tree.core").get_cwd()
+  local target_root = vim.uv.fs_realpath(path) or path
+  if current_root == target_root then
+    tree.toggle()
+  else
+    tree.toggle({ path = path })
+  end
+end
+
+local function set_nvim_tree_cursorline()
+  local visual = vim.api.nvim_get_hl(0, { name = "Visual" })
+  if visual.bg then
+    vim.api.nvim_set_hl(0, "NvimTreeCursorLine", { bg = visual.bg })
+  else
+    vim.api.nvim_set_hl(0, "NvimTreeCursorLine", { link = "CursorLine" })
+  end
+end
+
 return {
 
-  -- Snacks (picker, explorer, dashboard, image, scratch, etc.)
+  -- Snacks (picker, dashboard, image, scratch, etc.)
   {
     "grrru/snacks.nvim",
     priority = 1000,
@@ -52,18 +72,6 @@ return {
           },
         },
         sources = {
-          explorer = {
-            hidden = true,
-            ignored = true,
-            follow_file = false,
-            layout = { layout = { width = 30 } },
-            format = function(item, picker)
-              if item.severity and item.severity > vim.diagnostic.severity.ERROR then
-                item.severity = nil
-              end
-              return Snacks.picker.format.file(item, picker)
-            end,
-          },
           files = {
             hidden = true,
             ignored = true,
@@ -157,38 +165,6 @@ return {
           Snacks.picker.buffers()
         end,
         desc = "Buffers",
-      },
-      -- Explorer
-      {
-        "<leader>e",
-        function()
-          Snacks.picker.explorer({
-            cwd = vim.uv.cwd(),
-            on_show = _G._explorer_pos and function(p)
-              p.list:set_target(_G._explorer_pos.cursor, _G._explorer_pos.top, { force = true })
-            end or nil,
-            on_close = function(p)
-              _G._explorer_pos = { cursor = p.list.cursor, top = p.list.top }
-            end,
-          })
-        end,
-        desc = "Explorer (cwd)",
-      },
-      {
-        "<leader>E",
-        function()
-          local root = vim.fs.root(0, { ".git" })
-          Snacks.picker.explorer({
-            cwd = root or vim.uv.cwd(),
-            on_show = _G._explorer_pos and function(p)
-              p.list:set_target(_G._explorer_pos.cursor, _G._explorer_pos.top, { force = true })
-            end or nil,
-            on_close = function(p)
-              _G._explorer_pos = { cursor = p.list.cursor, top = p.list.top }
-            end,
-          })
-        end,
-        desc = "Explorer (git root)",
       },
       -- Grep
       {
@@ -451,6 +427,58 @@ return {
           Snacks.zen()
         end,
         desc = "Toggle Zen Mode",
+      },
+    },
+  },
+
+  -- Nvim-tree
+  {
+    "nvim-tree/nvim-tree.lua",
+    lazy = false,
+    dependencies = { "echasnovski/mini.icons" },
+    init = function()
+      vim.g.loaded_netrw = 1
+      vim.g.loaded_netrwPlugin = 1
+      vim.api.nvim_create_autocmd("ColorScheme", {
+        group = vim.api.nvim_create_augroup("gruvim_nvim_tree_cursorline", { clear = true }),
+        callback = set_nvim_tree_cursorline,
+      })
+      set_nvim_tree_cursorline()
+    end,
+    opts = {
+      view = {
+        signcolumn = "no",
+      },
+      renderer = {
+        group_empty = function(path)
+          return path:gsub("/", ".")
+        end,
+      },
+      diagnostics = {
+        enable = true,
+        severity = {
+          min = vim.diagnostic.severity.ERROR,
+        },
+      },
+      filters = {
+        git_ignored = true,
+      },
+    },
+    keys = {
+      {
+        "<leader>e",
+        function()
+          toggle_explorer(vim.uv.cwd())
+        end,
+        desc = "Explorer (cwd)",
+      },
+      {
+        "<leader>E",
+        function()
+          local root = vim.fs.root(0, { ".git" })
+          toggle_explorer(root or vim.uv.cwd())
+        end,
+        desc = "Explorer (git root)",
       },
     },
   },

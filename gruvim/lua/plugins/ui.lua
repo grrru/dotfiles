@@ -25,6 +25,7 @@ local function bufferline_opts()
       show_close_icon = false,
       max_name_length = 30,
       offsets = {
+        { filetype = "NvimTree" },
         { filetype = "snacks_layout_box" },
       },
     },
