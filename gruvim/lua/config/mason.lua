@@ -15,6 +15,7 @@ return {
     "vtsls",
     "yaml-language-server",
     "kotlin-lsp",
+    "gradle-language-server",
 
     -- Formatters
     "gdscript-formatter",
