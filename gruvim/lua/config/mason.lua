@@ -16,6 +16,7 @@ return {
     "yaml-language-server",
     "kotlin-lsp",
     "gradle-language-server",
+    "terraform-ls",
 
     -- Formatters
     "gdscript-formatter",
