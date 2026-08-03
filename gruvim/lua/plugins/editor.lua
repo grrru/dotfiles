@@ -450,6 +450,9 @@ return {
         signcolumn = "no",
       },
       renderer = {
+        root_folder_label = function(path)
+          return vim.fn.fnamemodify(path, ":t")
+        end,
         group_empty = function(path)
           return path:gsub("/", ".")
         end,
