@@ -86,8 +86,9 @@ return {
       },
       lazygit = {
         win = {
-          width = 0.95,
-          height = 0.9,
+          width = 0,
+          height = 0,
+          border = "none",
         },
       },
       image = {
