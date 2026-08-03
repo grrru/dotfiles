@@ -190,6 +190,25 @@ return {
     "tiagovla/scope.nvim",
     event = "VeryLazy",
     opts = {},
+    config = function(_, opts)
+      local core = require("scope.core")
+
+      -- scope lists the current buffer on TabNewEntered. When a new tab is
+      -- opened while the dashboard is showing (e.g. DiffviewOpen), that lists
+      -- the dashboard buffer, and the next TabLeave unlists it again -- which
+      -- fires BufDelete. The dashboard's own BufDelete/BufWipeout handler
+      -- deletes its augroup unconditionally, so the later real BufWipeout
+      -- raises E367. Never let the dashboard buffer become listed.
+      local on_tab_new_entered = core.on_tab_new_entered
+      core.on_tab_new_entered = function(...)
+        if vim.bo.filetype == "snacks_dashboard" then
+          return
+        end
+        return on_tab_new_entered(...)
+      end
+
+      require("scope").setup(opts)
+    end,
   },
 
   -- Bufferline
