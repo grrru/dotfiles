@@ -45,6 +45,21 @@ local function toggle_explorer(path)
   end
 end
 
+-- Called by lazygit (see the lazygit os.edit config below) over --remote-expr,
+-- which blocks until nvim answers. That gives the shell a barrier: once it
+-- returns, the lazygit window is gone and the following --remote edit lands in
+-- the window that had focus before lazygit opened. hide() keeps the buffer, so
+-- the pty stays open and the lazygit session resumes on the next toggle.
+function _G.snacks_lazygit_hide()
+  for _, term in ipairs(Snacks.terminal.list()) do
+    local cmd = type(term.cmd) == "table" and term.cmd[1] or term.cmd
+    if cmd == "lazygit" and term:valid() then
+      term:hide()
+    end
+  end
+  return 1
+end
+
 local function set_nvim_tree_cursorline()
   local visual = vim.api.nvim_get_hl(0, { name = "Visual" })
   if visual.bg then
@@ -89,6 +104,17 @@ return {
           width = 0,
           height = 0,
           border = "none",
+        },
+        -- The built-in nvim-remote preset hardcodes --remote-tab, so editing a
+        -- file always lands in a new tab. Hide the lazygit window first (a
+        -- blocking --remote-expr, so no race), then --remote edits in the window
+        -- that had focus before. --remote takes the filename as an argument, so
+        -- lazygit's own quoting keeps working.
+        config = {
+          os = {
+            edit = 'nvim --server "$NVIM" --remote-expr "v:lua.snacks_lazygit_hide()" && nvim --server "$NVIM" --remote {{filename}}',
+            editAtLine = 'nvim --server "$NVIM" --remote-expr "v:lua.snacks_lazygit_hide()" && nvim --server "$NVIM" --remote {{filename}} && nvim --server "$NVIM" --remote-send ":{{line}}<CR>"',
+          },
         },
       },
       image = {
