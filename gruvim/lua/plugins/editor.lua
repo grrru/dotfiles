@@ -60,15 +60,6 @@ function _G.snacks_lazygit_hide()
   return 1
 end
 
-local function set_nvim_tree_cursorline()
-  local visual = vim.api.nvim_get_hl(0, { name = "Visual" })
-  if visual.bg then
-    vim.api.nvim_set_hl(0, "NvimTreeCursorLine", { bg = visual.bg })
-  else
-    vim.api.nvim_set_hl(0, "NvimTreeCursorLine", { link = "CursorLine" })
-  end
-end
-
 return {
 
   -- Snacks (picker, dashboard, image, scratch, etc.)
@@ -466,11 +457,6 @@ return {
     init = function()
       vim.g.loaded_netrw = 1
       vim.g.loaded_netrwPlugin = 1
-      vim.api.nvim_create_autocmd("ColorScheme", {
-        group = vim.api.nvim_create_augroup("gruvim_nvim_tree_cursorline", { clear = true }),
-        callback = set_nvim_tree_cursorline,
-      })
-      set_nvim_tree_cursorline()
     end,
     opts = {
       view = {

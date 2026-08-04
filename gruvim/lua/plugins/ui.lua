@@ -72,6 +72,7 @@ return {
         blink_cmp = true,
         gitsigns = true,
         noice = true,
+        nvimtree = false,
         snacks = true,
         treesitter = true,
         which_key = true,
