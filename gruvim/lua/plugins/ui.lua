@@ -43,21 +43,18 @@ end
 return {
   -- Colorscheme: light / dark
   {
-    "olimorris/onedarkpro.nvim",
+    "EdenEast/nightfox.nvim",
     lazy = false,
     priority = 1001,
     opts = {
-      colors = {
-        onedark = {
-          bg = "#21252b",
-          black = "#21252b",
+      options = {
+        styles = {
+          comments = "NONE",
+          functions = "italic",
+          keywords = "NONE",
+          types = "italic",
+          booleans = "italic",
         },
-      },
-      styles = {
-        comments = "NONE",
-        functions = "italic",
-        keywords = "NONE",
-        types = "italic",
       },
     },
   },
@@ -111,7 +108,7 @@ return {
           vim.cmd.colorscheme("catppuccin-latte")
         else
           vim.o.background = "dark"
-          vim.cmd.colorscheme("onedark")
+          vim.cmd.colorscheme("nightfox")
         end
 
         refresh_bufferline()
