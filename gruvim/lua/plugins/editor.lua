@@ -459,6 +459,12 @@ return {
       vim.g.loaded_netrwPlugin = 1
     end,
     opts = {
+      -- Worktree layout: the root holds several repos and each tab :tcd's into
+      -- one of them. Neovim fires DirChanged (scope=tabpage) both on :tcd and
+      -- on entering a tab with a different local cwd, so this keeps the tree
+      -- root following the active tab instead of freezing at the first cwd.
+      sync_root_with_cwd = true,
+      respect_buf_cwd = true,
       view = {
         signcolumn = "no",
       },
