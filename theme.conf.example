@@ -1,0 +1,41 @@
+# Machine-local theme selection. This file is only the tracked sample -- editing it
+# changes nothing. Copy it to theme.conf next to this file (git-ignored) and edit
+# that, then run `toggle-theme --apply`.
+#
+# Lookup order: $DOTFILES_THEME_CONF, <dotfiles>/theme.conf,
+# ~/.config/dotfiles/theme.conf. First existing file wins.
+#
+# Read by both scripts/toggle-theme (sourced as shell) and Neovim
+# (gruvim/lua/config/theme.lua, parsed as KEY="value" lines), so keep the
+# syntax to plain KEY="value" assignments -- no command substitution, no
+# variable expansion.
+#
+# Every key is optional; anything left out falls back to the default shown here.
+
+# === Ghostty ===
+# Theme names as listed by `ghostty +list-themes`.
+GHOSTTY_LIGHT_THEME="Catppuccin Latte"
+GHOSTTY_DARK_THEME="Catppuccin Frappe"
+
+# font-thicken strength per mode. 0 disables thickening for that mode.
+LIGHT_FONT_THICKEN_STRENGTH="70"
+DARK_FONT_THICKEN_STRENGTH="0"
+
+# === Neovim ===
+# Colorscheme names, as passed to :colorscheme. The colorscheme must be
+# provided by a plugin Neovim actually loads: the repo ships catppuccin and
+# nightfox, and machine-local plugin specs can be dropped into
+# gruvim/lua/local/plugins/ (git-ignored) to add more.
+NVIM_LIGHT_COLORSCHEME="catppuccin-latte"
+NVIM_DARK_COLORSCHEME="catppuccin-frappe"
+
+# === tmux ===
+TMUX_LIGHT_STATUS_FG="#282C33"
+TMUX_LIGHT_STATUS_BG="#d5d6db"
+TMUX_LIGHT_PANE_BORDER_FG="#d5d6db"
+TMUX_LIGHT_PANE_ACTIVE_BORDER_FG="#1D66F5"
+
+TMUX_DARK_STATUS_FG="#d5d6db"
+TMUX_DARK_STATUS_BG="#282C33"
+TMUX_DARK_PANE_BORDER_FG="#3D4350"
+TMUX_DARK_PANE_ACTIVE_BORDER_FG="#89b4fa"

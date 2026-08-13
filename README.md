@@ -205,12 +205,46 @@ Ghostty configures the matching font, terminal colors, clipboard access, and the
 Run the script from Bash or Zsh:
 
 ```sh
-toggle-theme
+toggle-theme            # flip light <-> dark
+toggle-theme light      # force a mode
+toggle-theme --apply    # re-apply the current mode (use after editing theme.conf)
 ```
 
-Light mode uses Catppuccin Latte in Ghostty and Neovim. Dark mode pairs Ghostty's
-Atom One Dark theme with OneDarkPro in Neovim. The script updates `~/.theme_mode`,
-Ghostty's ignored `ghostty/theme.local`, tmux colors, and the running Neovim colorscheme.
+The script writes the mode to `~/.theme_mode`, regenerates Ghostty's ignored
+`ghostty/theme.local`, sets tmux colors, and the running Neovim picks the change up
+through a file watcher.
+
+### Per-machine themes
+
+Which themes each mode uses is **not** tracked by git. It lives in `theme.conf` in the
+dotfiles root, which is git-ignored like `ghostty/theme.local`; `install.sh` seeds it from
+`theme.conf.example` and never overwrites an existing one. Editing
+`theme.conf.example` itself has no effect -- it is only the tracked sample.
+
+```sh
+cp theme.conf.example theme.conf   # then edit and:
+toggle-theme --apply
+```
+
+The file sets Ghostty themes, Neovim colorschemes, and tmux status colors per mode; keys
+left out fall back to the defaults documented in the sample (Catppuccin Latte for light,
+Catppuccin Frappe / Nightfox for dark). Both the script and Neovim look for, in order,
+`$DOTFILES_THEME_CONF`, `<dotfiles>/theme.conf`, and `~/.config/dotfiles/theme.conf` --
+the first existing file wins.
+
+Neovim colorschemes must come from a plugin it actually loads. This repo ships
+catppuccin and nightfox; to use anything else on one machine, drop a lazy.nvim spec into
+the git-ignored `gruvim/lua/local/plugins/`, which `init.lua` imports when present:
+
+```lua
+-- gruvim/lua/local/plugins/colorscheme.lua
+return {
+  { "folke/tokyonight.nvim", lazy = false, priority = 1000 },
+}
+```
+
+then set `NVIM_DARK_COLORSCHEME="tokyonight"` in `theme.conf`. If a configured
+colorscheme cannot be loaded, Neovim warns and falls back to Catppuccin.
 
 ## Git issue worktrees
 

@@ -16,10 +16,17 @@ if not (vim.uv or vim.loop).fs_stat(lazypath) then
 end
 vim.opt.rtp:prepend(lazypath)
 
+-- Machine-local plugin specs (git-ignored), e.g. extra colorschemes referenced
+-- from theme.conf. Imported only when the directory exists.
+local spec = {
+  { import = "plugins" },
+}
+if vim.fn.isdirectory(vim.fn.stdpath("config") .. "/lua/local/plugins") == 1 then
+  table.insert(spec, { import = "local.plugins" })
+end
+
 require("lazy").setup({
-  spec = {
-    { import = "plugins" },
-  },
+  spec = spec,
   defaults = {
     lazy = true,
     version = false,
@@ -41,3 +48,7 @@ require("lazy").setup({
     },
   },
 })
+
+-- Colorschemes are loaded by now (lazy = false), so pick the one this machine
+-- wants for the current light/dark mode.
+require("config.theme").setup()

@@ -1260,6 +1260,27 @@ install_shells() {
   install_shell zsh
 }
 
+setup_theme_config() {
+  local dest="$DOTFILES_DIR/theme.conf"
+  local sample="$DOTFILES_DIR/theme.conf.example"
+
+  # Machine-local on purpose: never overwrite an existing selection.
+  if [ -f "$dest" ]; then
+    echo "Theme config already present at $dest, skipping."
+  elif [ -f "$sample" ]; then
+    cp "$sample" "$dest"
+    chown_target_path "$dest"
+    echo "Created theme config at $dest"
+  fi
+
+  # Generate ghostty/theme.local and the ~/.theme_mode state for the current mode.
+  if [ -x "$DOTFILES_DIR/scripts/toggle-theme" ]; then
+    "$DOTFILES_DIR/scripts/toggle-theme" --apply >/dev/null
+    chown_target_path "$HOME/.theme_mode"
+    chown_target_path "$DOTFILES_DIR/ghostty/theme.local"
+  fi
+}
+
 install_configs() {
   mkdir -p "$CONFIG_DIR"
   chown_target_path "$CONFIG_DIR"
@@ -1271,6 +1292,8 @@ install_configs() {
   if command_exists ghostty; then
     link_config "ghostty"
   fi
+
+  setup_theme_config
 }
 
 install_tpm() {

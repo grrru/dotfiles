@@ -97,40 +97,6 @@ return {
         operators = {},
       },
     },
-    config = function(_, opts)
-      require("catppuccin").setup(opts)
-
-      local mode_file = vim.fn.expand("~/.theme_mode")
-
-      local function apply_mode(mode)
-        if mode == "light" then
-          vim.o.background = "light"
-          vim.cmd.colorscheme("catppuccin-latte")
-        else
-          vim.o.background = "dark"
-          vim.cmd.colorscheme("nightfox")
-        end
-
-        refresh_bufferline()
-      end
-
-      local function load_mode()
-        local mode = "dark"
-        if vim.fn.filereadable(mode_file) == 1 then
-          mode = (vim.fn.readfile(mode_file, "", 1)[1] or "dark"):lower()
-        end
-        apply_mode(mode)
-      end
-
-      load_mode()
-
-      local watcher = vim.uv.new_fs_event()
-      if watcher then
-        watcher:start(mode_file, {}, function()
-          vim.schedule(load_mode)
-        end)
-      end
-    end,
   },
 
   -- Statusline
@@ -225,6 +191,16 @@ return {
     },
     dependencies = { "catppuccin/nvim" },
     opts = bufferline_opts,
+    config = function(_, opts)
+      require("bufferline").setup(opts)
+
+      -- Highlights are baked in at setup time, so rebuild them whenever
+      -- config.theme swaps the colorscheme.
+      vim.api.nvim_create_autocmd("User", {
+        pattern = "ThemeChanged",
+        callback = refresh_bufferline,
+      })
+    end,
   },
 
   -- Noice (UI for messages, cmdline, popupmenu)

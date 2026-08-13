@@ -4,9 +4,9 @@ font-size = 16
 font-feature = -calt
 
 # themes
-theme = Catppuccin Latte
-
-# runtime theme overrides written by scripts/toggle-theme
+# The active theme is machine-local: scripts/toggle-theme writes theme.local
+# (git-ignored) from the dotfiles root's theme.conf. Run `toggle-theme --apply`
+# once on a fresh checkout to generate it.
 config-file = ?theme.local
 
 # macos settings

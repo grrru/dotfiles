@@ -1,59 +1,123 @@
 #!/bin/bash
+#
+# Switch light/dark mode across Ghostty, tmux and Neovim.
+#
+#   toggle-theme            flip the current mode
+#   toggle-theme light      force light mode
+#   toggle-theme dark       force dark mode
+#   toggle-theme --apply    re-apply the current mode without flipping it
+#
+# Which themes each mode uses is machine-local. Copy theme.conf.example to
+# theme.conf in the dotfiles root (git-ignored) and edit it there.
 
 STATE_FILE="$HOME/.theme_mode"
 # Resolve the dotfiles root from this script's location (scripts/ -> repo root),
 # falling back to ~/dotfiles when invoked through a copied path.
 DOTFILES="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." 2>/dev/null && pwd)"
 [ -d "$DOTFILES/ghostty" ] || DOTFILES="$HOME/dotfiles"
-LIGHT_THEME="Catppuccin Latte"
-DARK_THEME="Nightfox"
+
+# === Defaults (overridable from theme.conf) ===
+GHOSTTY_LIGHT_THEME="Catppuccin Latte"
+GHOSTTY_DARK_THEME="Catppuccin Frappe"
 LIGHT_FONT_THICKEN_STRENGTH=70
 DARK_FONT_THICKEN_STRENGTH=0
 
-# Determine new mode
-if [ -f "$STATE_FILE" ] && [ "$(cat "$STATE_FILE")" = "dark" ]; then
-  NEW_MODE="light"
+TMUX_LIGHT_STATUS_FG="#282C33"
+TMUX_LIGHT_STATUS_BG="#d5d6db"
+TMUX_LIGHT_PANE_BORDER_FG="#d5d6db"
+TMUX_LIGHT_PANE_ACTIVE_BORDER_FG="#1D66F5"
+
+TMUX_DARK_STATUS_FG="#d5d6db"
+TMUX_DARK_STATUS_BG="#282C33"
+TMUX_DARK_PANE_BORDER_FG="#3D4350"
+TMUX_DARK_PANE_ACTIVE_BORDER_FG="#89b4fa"
+
+# First existing file wins. Keep this list in sync with the candidates in
+# gruvim/lua/config/theme.lua.
+for THEME_CONF in \
+  ${DOTFILES_THEME_CONF:+"$DOTFILES_THEME_CONF"} \
+  "$DOTFILES/theme.conf" \
+  "${XDG_CONFIG_HOME:-$HOME/.config}/dotfiles/theme.conf"; do
+  if [ -f "$THEME_CONF" ]; then
+    # shellcheck source=/dev/null
+    . "$THEME_CONF"
+    break
+  fi
+done
+
+read_mode() {
+  if [ -f "$STATE_FILE" ] && [ "$(cat "$STATE_FILE")" = "light" ]; then
+    echo "light"
+  else
+    echo "dark"
+  fi
+}
+
+# === Determine the target mode ===
+case "${1-}" in
+"")
+  if [ "$(read_mode)" = "dark" ]; then NEW_MODE="light"; else NEW_MODE="dark"; fi
+  ;;
+light | dark) NEW_MODE="$1" ;;
+--apply) NEW_MODE="$(read_mode)" ;;
+-h | --help)
+  sed -n '3,11p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+  exit 0
+  ;;
+*)
+  echo "toggle-theme: unknown argument '$1' (expected light, dark, --apply)" >&2
+  exit 1
+  ;;
+esac
+
+if [ "$NEW_MODE" = "light" ]; then
+  GHOSTTY_THEME="$GHOSTTY_LIGHT_THEME"
+  FONT_THICKEN_STRENGTH="$LIGHT_FONT_THICKEN_STRENGTH"
+  TMUX_STATUS_FG="$TMUX_LIGHT_STATUS_FG"
+  TMUX_STATUS_BG="$TMUX_LIGHT_STATUS_BG"
+  TMUX_PANE_BORDER_FG="$TMUX_LIGHT_PANE_BORDER_FG"
+  TMUX_PANE_ACTIVE_BORDER_FG="$TMUX_LIGHT_PANE_ACTIVE_BORDER_FG"
 else
-  NEW_MODE="dark"
+  GHOSTTY_THEME="$GHOSTTY_DARK_THEME"
+  FONT_THICKEN_STRENGTH="$DARK_FONT_THICKEN_STRENGTH"
+  TMUX_STATUS_FG="$TMUX_DARK_STATUS_FG"
+  TMUX_STATUS_BG="$TMUX_DARK_STATUS_BG"
+  TMUX_PANE_BORDER_FG="$TMUX_DARK_PANE_BORDER_FG"
+  TMUX_PANE_ACTIVE_BORDER_FG="$TMUX_DARK_PANE_ACTIVE_BORDER_FG"
 fi
+
+# Neovim watches this file and picks its own colorscheme from theme.conf.
 echo "$NEW_MODE" >"$STATE_FILE"
 
 # === Ghostty ===
 GHOSTTY_CONFIG="$DOTFILES/ghostty/config"
 GHOSTTY_LOCAL_CONFIG="$DOTFILES/ghostty/theme.local"
-if [ "$NEW_MODE" = "dark" ]; then
+if [ -d "$(dirname "$GHOSTTY_LOCAL_CONFIG")" ]; then
   {
-    printf 'theme = %s\n' "$DARK_THEME"
-    printf 'font-thicken = false\n'
+    printf 'theme = %s\n' "$GHOSTTY_THEME"
+    if [ "${FONT_THICKEN_STRENGTH:-0}" -gt 0 ] 2>/dev/null; then
+      printf 'font-thicken = true\n'
+      printf 'font-thicken-strength = %s\n' "$FONT_THICKEN_STRENGTH"
+    else
+      printf 'font-thicken = false\n'
+    fi
   } >"$GHOSTTY_LOCAL_CONFIG"
-else
-  {
-    printf 'theme = %s\n' "$LIGHT_THEME"
-    printf 'font-thicken = true\n'
-    printf 'font-thicken-strength = %s\n' "$LIGHT_FONT_THICKEN_STRENGTH"
-  } >"$GHOSTTY_LOCAL_CONFIG"
+  # Ghostty reloads when the main config file's mtime changes.
+  touch "$GHOSTTY_CONFIG"
 fi
-touch "$GHOSTTY_CONFIG"
 
 # === Tmux ===
-if [ "$NEW_MODE" = "dark" ]; then
-  tmux set-option -g status-fg "#d5d6db"
-  tmux set-option -g status-bg "#282C33"
+if command -v tmux >/dev/null 2>&1 && tmux info >/dev/null 2>&1; then
+  tmux set-option -g status-fg "$TMUX_STATUS_FG"
+  tmux set-option -g status-bg "$TMUX_STATUS_BG"
 
   tmux set-option -g message-style "bg=brightyellow,fg=black"
   tmux set-option -g message-command-style "bg=black,fg=brightyellow"
 
-  tmux set-option -g pane-border-style "fg=#3D4350"
-  tmux set-option -g pane-active-border-style "fg=#89b4fa"
+  tmux set-option -g pane-border-style "fg=$TMUX_PANE_BORDER_FG"
+  tmux set-option -g pane-active-border-style "fg=$TMUX_PANE_ACTIVE_BORDER_FG"
+
+  tmux display-message "Theme: $NEW_MODE"
 else
-  tmux set-option -g status-bg "#d5d6db"
-  tmux set-option -g status-fg "#282C33"
-
-  tmux set-option -g message-style "bg=brightyellow,fg=black"
-  tmux set-option -g message-command-style "bg=black,fg=brightyellow"
-
-  tmux set-option -g pane-border-style "fg=#d5d6db"
-  tmux set-option -g pane-active-border-style "fg=#1D66F5"
+  echo "Theme: $NEW_MODE"
 fi
-
-tmux display-message "Theme: $NEW_MODE"
