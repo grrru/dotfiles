@@ -137,6 +137,14 @@ return {
             cond = require("lazy.status").has_updates,
           },
           {
+            function()
+              return "󰦒 " .. vim.g.gitsigns_review_base
+            end,
+            cond = function()
+              return vim.g.gitsigns_review_base ~= nil
+            end,
+          },
+          {
             "diff",
           },
         },

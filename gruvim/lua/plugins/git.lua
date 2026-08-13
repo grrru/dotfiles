@@ -3,12 +3,65 @@ local function origin_main_or_master()
   return vim.v.shell_error == 0 and "origin/main" or "origin/master"
 end
 
+-- Review mode: change the gitsigns diff base to an arbitrary revision, so the
+-- commits after it show up as ordinary working-tree changes (inline signs,
+-- ]h/[h, preview_hunk) without a `git reset`. The picked revision plays the
+-- role of the reset target: base HEAD~2 == `git reset HEAD~2`.
+-- `vim.g.gitsigns_review_base` is what lualine shows.
+local function set_review_base(base)
+  local gs = require("gitsigns")
+  gs.change_base(base, true, function(err)
+    if err then
+      vim.notify("gitsigns: " .. err, vim.log.levels.ERROR)
+      return
+    end
+    vim.g.gitsigns_review_base = base
+    if base then
+      -- Hunks of every changed file vs. the base, across the whole repo.
+      gs.setqflist("all")
+    else
+      vim.notify("Review mode off (base: index)")
+    end
+  end)
+end
+
 return {
 
   -- Gitsigns
   {
     "lewis6991/gitsigns.nvim",
     event = "VeryLazy",
+    keys = {
+      {
+        "<leader>gR",
+        function()
+          set_review_base(nil)
+        end,
+        desc = "Review Mode Off",
+      },
+      {
+        "<leader>gr",
+        function()
+          Snacks.picker.git_log({
+            confirm = function(picker, item)
+              picker:close()
+              local sha = item and (item.commit or item.text:match("%x%x%x%x%x%x%x+"))
+              if sha then
+                set_review_base(sha)
+              end
+            end,
+          })
+        end,
+        desc = "Review Mode (pick base commit)",
+      },
+      {
+        "<leader>gq",
+        function()
+          require("gitsigns").setqflist("all")
+        end,
+        desc = "Hunks to Quickfix",
+      },
+    },
     opts = {
       on_attach = function(bufnr)
         local gs = require("gitsigns")
