@@ -1,13 +1,35 @@
-local function origin_main_or_master()
-  vim.fn.system({ "git", "show-ref", "--verify", "--quiet", "refs/remotes/origin/main" })
-  return vim.v.shell_error == 0 and "origin/main" or "origin/master"
-end
-
 -- Review mode: change the gitsigns diff base to an arbitrary revision, so the
 -- commits after it show up as ordinary working-tree changes (inline signs,
 -- ]h/[h, preview_hunk) without a `git reset`. The picked revision plays the
 -- role of the reset target: base HEAD~2 == `git reset HEAD~2`.
 -- `vim.g.gitsigns_review_base` is what lualine shows.
+-- Quickfix jumps skip any window whose buffer has a 'buftype' (the dashboard is
+-- "nofile"), so from the dashboard every file opens in a new split instead of
+-- reusing the window. Put an empty normal buffer there instead.
+local function leave_dashboard()
+  for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+    if vim.bo[vim.api.nvim_win_get_buf(win)].filetype == "snacks_dashboard" then
+      vim.api.nvim_win_call(win, function()
+        vim.cmd.enew()
+        -- Keep it out of the bufferline and let it go away once the first
+        -- quickfix entry takes over the window. 'buftype' stays empty, which is
+        -- what makes the window a usable jump target in the first place.
+        vim.bo.buflisted = false
+        vim.bo.bufhidden = "wipe"
+      end)
+    end
+  end
+end
+
+local function fill_qflist()
+  -- Hunks of every changed file vs. the base, across the whole repo. Only swap
+  -- the dashboard out once the list is up: a picker restores the buffer of the
+  -- window it was opened from as it closes, which would undo an earlier swap.
+  require("gitsigns").setqflist("all", {}, function()
+    vim.schedule(leave_dashboard)
+  end)
+end
+
 local function set_review_base(base)
   local gs = require("gitsigns")
   gs.change_base(base, true, function(err)
@@ -17,8 +39,7 @@ local function set_review_base(base)
     end
     vim.g.gitsigns_review_base = base
     if base then
-      -- Hunks of every changed file vs. the base, across the whole repo.
-      gs.setqflist("all")
+      fill_qflist()
     else
       vim.notify("Review mode off (base: index)")
     end
@@ -57,7 +78,7 @@ return {
       {
         "<leader>gq",
         function()
-          require("gitsigns").setqflist("all")
+          fill_qflist()
         end,
         desc = "Hunks to Quickfix",
       },
@@ -118,13 +139,6 @@ return {
     keys = {
       { "<leader>gv", "<cmd>DiffviewOpen<cr>", desc = "Diffview Open" },
       { "<leader>gV", "<cmd>DiffviewFileHistory<cr>", desc = "Diffview File History" },
-      {
-        "<leader>gm",
-        function()
-          vim.cmd.DiffviewOpen(origin_main_or_master() .. "...HEAD --imply-local")
-        end,
-        desc = "Diffview main/master",
-      },
     },
     opts = function()
       local actions = require("diffview.actions")
