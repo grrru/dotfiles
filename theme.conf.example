@@ -29,6 +29,23 @@ DARK_FONT_THICKEN_STRENGTH="0"
 NVIM_LIGHT_COLORSCHEME="catppuccin-latte"
 NVIM_DARK_COLORSCHEME="catppuccin-frappe"
 
+# === Claude Code ===
+# Written into ~/.claude/settings.json (or $CLAUDE_CONFIG_DIR) with jq, so the
+# integration is skipped when jq or that file is missing. Valid names: light,
+# dark, light-daltonized, dark-daltonized, light-ansi, dark-ansi. Set either
+# key to "" to leave Claude Code's theme alone.
+CLAUDE_LIGHT_THEME="light"
+CLAUDE_DARK_THEME="dark"
+
+# Claude Code reads that setting only at startup. With this set to 1, running
+# sessions are switched too, by driving their `/theme` picker: toggle-theme
+# types into the tmux panes running claude, and Neovim does the same through
+# the job channel for the ones in its terminal buffers. A half-typed message
+# in the prompt is cleared before that and pasted back after, and sessions
+# that are busy or sitting on a dialog are left alone -- those keep the old
+# theme until the next toggle.
+CLAUDE_LIVE_THEME="0"
+
 # === tmux ===
 TMUX_LIGHT_STATUS_FG="#282C33"
 TMUX_LIGHT_STATUS_BG="#d5d6db"

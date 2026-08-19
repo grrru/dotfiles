@@ -32,6 +32,12 @@ TMUX_DARK_STATUS_BG="#282C33"
 TMUX_DARK_PANE_BORDER_FG="#3D4350"
 TMUX_DARK_PANE_ACTIVE_BORDER_FG="#89b4fa"
 
+# Theme names accepted by Claude Code's `theme` setting: light, dark,
+# light-daltonized, dark-daltonized, light-ansi, dark-ansi. Empty disables the
+# Claude Code integration.
+CLAUDE_LIGHT_THEME="light"
+CLAUDE_DARK_THEME="dark"
+
 # First existing file wins. Keep this list in sync with the candidates in
 # gruvim/lua/config/theme.lua.
 for THEME_CONF in \
@@ -77,6 +83,7 @@ if [ "$NEW_MODE" = "light" ]; then
   TMUX_STATUS_BG="$TMUX_LIGHT_STATUS_BG"
   TMUX_PANE_BORDER_FG="$TMUX_LIGHT_PANE_BORDER_FG"
   TMUX_PANE_ACTIVE_BORDER_FG="$TMUX_LIGHT_PANE_ACTIVE_BORDER_FG"
+  CLAUDE_THEME="$CLAUDE_LIGHT_THEME"
 else
   GHOSTTY_THEME="$GHOSTTY_DARK_THEME"
   FONT_THICKEN_STRENGTH="$DARK_FONT_THICKEN_STRENGTH"
@@ -84,6 +91,7 @@ else
   TMUX_STATUS_BG="$TMUX_DARK_STATUS_BG"
   TMUX_PANE_BORDER_FG="$TMUX_DARK_PANE_BORDER_FG"
   TMUX_PANE_ACTIVE_BORDER_FG="$TMUX_DARK_PANE_ACTIVE_BORDER_FG"
+  CLAUDE_THEME="$CLAUDE_DARK_THEME"
 fi
 
 # Neovim watches this file and picks its own colorscheme from theme.conf.
@@ -104,6 +112,124 @@ if [ -d "$(dirname "$GHOSTTY_LOCAL_CONFIG")" ]; then
   } >"$GHOSTTY_LOCAL_CONFIG"
   # Ghostty reloads when the main config file's mtime changes.
   touch "$GHOSTTY_CONFIG"
+fi
+
+# === Claude Code ===
+# Claude Code keeps its theme in settings.json and reads it at startup only,
+# so this rewrite covers new sessions. Already-running ones have to be driven
+# through their own `/theme` picker, which CLAUDE_LIVE_THEME=1 turns on: this
+# script types into the tmux panes running claude, and Neovim does the same
+# through the job channel for the ones in its terminal buffers.
+CLAUDE_SETTINGS="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/settings.json"
+if [ -n "$CLAUDE_THEME" ] && [ -f "$CLAUDE_SETTINGS" ] && command -v jq >/dev/null 2>&1; then
+  CLAUDE_TMP="$(mktemp "${TMPDIR:-/tmp}/toggle-theme.XXXXXX")"
+  if jq --arg theme "$CLAUDE_THEME" '.theme = $theme' "$CLAUDE_SETTINGS" >"$CLAUDE_TMP"; then
+    # Write through the existing file rather than renaming over it: keeping the
+    # inode keeps any watcher Claude Code has on the path attached.
+    cat "$CLAUDE_TMP" >"$CLAUDE_SETTINGS"
+  fi
+  rm -f "$CLAUDE_TMP"
+fi
+
+# Position of each theme in the `/theme` picker, which applies a choice as
+# soon as its digit is typed -- so a running session is "/theme<CR>" plus one
+# key. Keep in sync with CLAUDE_THEME_KEY in gruvim/lua/config/theme.lua.
+case "$CLAUDE_THEME" in
+auto) CLAUDE_KEY=1 ;;
+dark) CLAUDE_KEY=2 ;;
+light) CLAUDE_KEY=3 ;;
+dark-daltonized) CLAUDE_KEY=4 ;;
+light-daltonized) CLAUDE_KEY=5 ;;
+dark-ansi) CLAUDE_KEY=6 ;;
+light-ansi) CLAUDE_KEY=7 ;;
+*) CLAUDE_KEY="" ;;
+esac
+
+# claude is a child of the pane's shell, and the executable it runs is the
+# version number (.../claude/versions/2.1.228), so neither the pane's pid nor
+# `#{pane_current_command}` names it. Walk the pane's process tree instead.
+pane_runs_claude() {
+  ps -Ao pid=,ppid=,comm= | awk -v root="$1" '
+    { ppid[$1] = $2; comm[$1] = $3 }
+    END {
+      for (pid in comm) {
+        if (comm[pid] !~ /(^|\/)claude$/ && comm[pid] !~ /\/claude\/versions\//) continue
+        cur = pid
+        for (hop = 0; hop < 8 && cur != ""; hop++) {
+          if (cur == root) { exit 0 }
+          cur = ppid[cur]
+        }
+      }
+      exit 1
+    }'
+}
+
+CLAUDE_EDITOR_MODE=""
+if [ -f "$CLAUDE_SETTINGS" ] && command -v jq >/dev/null 2>&1; then
+  CLAUDE_EDITOR_MODE="$(jq -r '.editorMode // ""' "$CLAUDE_SETTINGS" 2>/dev/null)"
+fi
+
+# Drives one pane's `/theme` picker, putting back whatever was in its prompt.
+switch_pane_theme() {
+  pane="$1"
+  # The bottom of the screen: the prompt, its footer, and any open dialog.
+  screen="$(tmux capture-pane -p -t "$pane" | tail -8)"
+
+  # Typing into a busy session or an open dialog is not just lost -- a digit
+  # answers a permission prompt. Only type at an idle prompt.
+  case "$screen" in
+  *"esc to interrupt"* | *"to confirm"* | *"❯ 1."*) return ;;
+  esac
+
+  # In vim mode the prompt can sit in normal mode, where C-u only kills back
+  # to the cursor. `A` is a no-op keystroke there that returns to insert at
+  # the end of the line; in insert mode it would type a literal A instead.
+  if [ "$CLAUDE_EDITOR_MODE" = "vim" ]; then
+    case "$screen" in
+    *"-- INSERT --"*) ;;
+    *)
+      tmux send-keys -t "$pane" "A"
+      sleep 0.2
+      ;;
+    esac
+  fi
+
+  # C-u kills one line, so a multi-line draft needs several -- and overshooting
+  # is free, because the kills accumulate into one C-y. Only restore when the
+  # prompt actually held something: with an empty prompt C-u kills nothing and
+  # C-y would paste back a draft killed by an earlier run.
+  draft="$(printf '%s\n' "$screen" | grep '^❯' | tail -1 | sed 's/^❯[[:space:]]*//' | tr -d '[:space:]')"
+
+  i=0
+  while [ "$i" -lt 8 ]; do
+    tmux send-keys -t "$pane" C-u
+    i=$((i + 1))
+  done
+
+  tmux send-keys -t "$pane" "/theme" Enter
+  sleep 0.6
+  tmux send-keys -t "$pane" "$CLAUDE_KEY"
+
+  if [ -n "$draft" ]; then
+    sleep 0.6
+    tmux send-keys -t "$pane" C-y
+  fi
+}
+
+if [ "${CLAUDE_LIVE_THEME:-0}" = "1" ] && [ -n "$CLAUDE_KEY" ] &&
+  command -v tmux >/dev/null 2>&1 && tmux info >/dev/null 2>&1; then
+  tmux list-panes -a -F '#{pane_id} #{pane_pid} #{pane_current_command}' |
+    while read -r pane pane_pid pane_cmd; do
+      # Panes running an editor host claude in a terminal buffer, where these
+      # keys would land in the editor instead. Neovim switches those itself.
+      case "$pane_cmd" in
+      nvim | vim) continue ;;
+      esac
+
+      pane_runs_claude "$pane_pid" || continue
+
+      switch_pane_theme "$pane"
+    done
 fi
 
 # === Tmux ===
