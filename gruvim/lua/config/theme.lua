@@ -218,16 +218,17 @@ local function switch_claude_theme(conf, mode)
         pcall(vim.fn.chansend, target.channel, keys)
       end
 
-      -- In vim mode the prompt can sit in normal mode, where C-u only kills
-      -- back to the cursor. `A` is a no-op keystroke there that returns to
+      -- A prompt sitting in vim normal mode reads "/theme" as normal-mode
+      -- commands instead of text, so the picker never opens. `A` returns to
       -- insert at the end of the line; in insert mode it would type a literal.
       if editor_mode == "vim" and not screen:find("-- INSERT --", 1, true) then
         send("A")
       end
 
-      -- C-u kills one line, so a multi-line draft needs several -- and
-      -- overshooting is free, because the kills accumulate into one C-y.
-      send(("\21"):rep(8))
+      -- C-u kills back to the cursor and C-k forward from it, so the pair
+      -- clears a line wherever the cursor sits. One pair per line,
+      -- overshooting is free, and the kills accumulate into a single C-y.
+      send(("\21\11"):rep(8))
       send("/theme\r")
 
       -- Only restore when the prompt actually held something: with an empty

@@ -172,8 +172,7 @@ fi
 # Drives one pane's `/theme` picker, putting back whatever was in its prompt.
 switch_pane_theme() {
   pane="$1"
-  # The bottom of the screen: the prompt, its footer, and any open dialog.
-  screen="$(tmux capture-pane -p -t "$pane" | tail -8)"
+  screen="$2"
 
   # Typing into a busy session or an open dialog is not just lost -- a digit
   # answers a permission prompt. Only type at an idle prompt.
@@ -181,9 +180,10 @@ switch_pane_theme() {
   *"esc to interrupt"* | *"to confirm"* | *"❯ 1."*) return ;;
   esac
 
-  # In vim mode the prompt can sit in normal mode, where C-u only kills back
-  # to the cursor. `A` is a no-op keystroke there that returns to insert at
-  # the end of the line; in insert mode it would type a literal A instead.
+  # A prompt sitting in vim normal mode reads "/theme" as normal-mode commands
+  # instead of text, so the picker never opens. `A` returns to insert at the
+  # end of the line; in insert mode it would type a literal A instead, hence
+  # the check for the mode indicator.
   if [ "$CLAUDE_EDITOR_MODE" = "vim" ]; then
     case "$screen" in
     *"-- INSERT --"*) ;;
@@ -194,15 +194,17 @@ switch_pane_theme() {
     esac
   fi
 
-  # C-u kills one line, so a multi-line draft needs several -- and overshooting
-  # is free, because the kills accumulate into one C-y. Only restore when the
-  # prompt actually held something: with an empty prompt C-u kills nothing and
-  # C-y would paste back a draft killed by an earlier run.
+  # Only restore when the prompt actually held something: with an empty prompt
+  # the kills below take nothing and C-y would paste back an older draft.
   draft="$(printf '%s\n' "$screen" | grep '^❯' | tail -1 | sed 's/^❯[[:space:]]*//' | tr -d '[:space:]')"
 
+  # C-u kills back to the cursor and C-k forward from it, so the pair clears a
+  # line wherever the cursor sits. One pair per line, overshooting is free, and
+  # the kills accumulate into a single C-y.
   i=0
   while [ "$i" -lt 8 ]; do
     tmux send-keys -t "$pane" C-u
+    tmux send-keys -t "$pane" C-k
     i=$((i + 1))
   done
 
@@ -226,9 +228,14 @@ if [ "${CLAUDE_LIVE_THEME:-0}" = "1" ] && [ -n "$CLAUDE_KEY" ] &&
       nvim | vim) continue ;;
       esac
 
+      # The bottom of the screen: the prompt, its footer, and any open dialog.
+      pane_screen="$(tmux capture-pane -p -t "$pane" | tail -8)"
+
+      # A claude on the far end of an ssh session is not in this tree; run
+      # toggle-theme on that machine instead.
       pane_runs_claude "$pane_pid" || continue
 
-      switch_pane_theme "$pane"
+      switch_pane_theme "$pane" "$pane_screen"
     done
 fi
 
