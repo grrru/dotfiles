@@ -56,6 +56,11 @@ return {
           booleans = "italic",
         },
       },
+      groups = {
+        all = {
+          FlashLabel = { bg = "bg0", fg = "palette.yellow.bright", style = "bold" },
+        },
+      },
     },
   },
 
