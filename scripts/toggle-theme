@@ -169,6 +169,13 @@ if [ -f "$CLAUDE_SETTINGS" ] && command -v jq >/dev/null 2>&1; then
   CLAUDE_EDITOR_MODE="$(jq -r '.editorMode // ""' "$CLAUDE_SETTINGS" 2>/dev/null)"
 fi
 
+# Whatever sits after the last prompt marker on screen. The marker is not
+# anchored to the start of the line: depending on the version the input box
+# draws a border or an indent in front of it.
+prompt_text() {
+  printf '%s\n' "$1" | grep '❯' | tail -1 | sed 's/.*❯[[:space:]]*//' | tr -d '[:space:]'
+}
+
 # Drives one pane's `/theme` picker, putting back whatever was in its prompt.
 switch_pane_theme() {
   pane="$1"
@@ -194,9 +201,7 @@ switch_pane_theme() {
     esac
   fi
 
-  # Only restore when the prompt actually held something: with an empty prompt
-  # the kills below take nothing and C-y would paste back an older draft.
-  draft="$(printf '%s\n' "$screen" | grep '^❯' | tail -1 | sed 's/^❯[[:space:]]*//' | tr -d '[:space:]')"
+  before="$(prompt_text "$screen")"
 
   # C-u kills back to the cursor and C-k forward from it, so the pair clears a
   # line wherever the cursor sits. One pair per line, overshooting is free, and
@@ -208,11 +213,18 @@ switch_pane_theme() {
     i=$((i + 1))
   done
 
+  # Only restore when those kills actually took something. Asking the screen
+  # rather than trusting the earlier read keeps this working whatever the input
+  # box looks like: an empty prompt is unchanged by the kills, and C-y would
+  # then paste back a draft killed by an earlier run.
+  sleep 0.3
+  after="$(prompt_text "$(tmux capture-pane -p -t "$pane" | tail -8)")"
+
   tmux send-keys -t "$pane" "/theme" Enter
   sleep 0.6
   tmux send-keys -t "$pane" "$CLAUDE_KEY"
 
-  if [ -n "$draft" ]; then
+  if [ "$before" != "$after" ]; then
     sleep 0.6
     tmux send-keys -t "$pane" C-y
   fi

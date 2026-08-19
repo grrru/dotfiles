@@ -186,6 +186,19 @@ local function claude_editor_mode()
   return decoded.editorMode or ""
 end
 
+-- Whatever sits after the last prompt marker on screen. The marker is not
+-- anchored to the start of the line: depending on the version the input box
+-- draws a border or an indent in front of it.
+local function prompt_text(lines)
+  for i = #lines, 1, -1 do
+    local rest = lines[i]:match(".*❯%s*(.*)$")
+    if rest then
+      return vim.trim(rest)
+    end
+  end
+  return nil
+end
+
 -- Types "/theme" plus the picker's digit into every running claude session,
 -- putting back whatever was in the prompt. Opt-in through CLAUDE_LIVE_THEME.
 local function switch_claude_theme(conf, mode)
@@ -225,32 +238,31 @@ local function switch_claude_theme(conf, mode)
         send("A")
       end
 
+      local before = prompt_text(lines)
+
       -- C-u kills back to the cursor and C-k forward from it, so the pair
       -- clears a line wherever the cursor sits. One pair per line,
       -- overshooting is free, and the kills accumulate into a single C-y.
       send(("\21\11"):rep(8))
-      send("/theme\r")
 
-      -- Only restore when the prompt actually held something: with an empty
-      -- prompt C-u kills nothing and C-y would paste back an older draft.
-      local draft
-      for i = #lines, 1, -1 do
-        local rest = lines[i]:match("^❯%s*(.*)$")
-        if rest then
-          draft = vim.trim(rest)
-          break
-        end
-      end
-
-      -- The picker needs a frame to open before it accepts the digit.
+      -- Only restore when those kills actually took something. Reading the
+      -- screen again rather than trusting the first read keeps this working
+      -- whatever the input box looks like: an empty prompt is unchanged by the
+      -- kills, and C-y would then paste back a draft from an earlier run.
       vim.defer_fn(function()
-        send(key)
-        if draft and draft ~= "" then
-          vim.defer_fn(function()
-            send("\25")
-          end, 400)
-        end
-      end, 400)
+        local after = prompt_text(vim.api.nvim_buf_get_lines(target.buf, -9, -1, false))
+        send("/theme\r")
+
+        -- The picker needs a frame to open before it accepts the digit.
+        vim.defer_fn(function()
+          send(key)
+          if before ~= after then
+            vim.defer_fn(function()
+              send("\25")
+            end, 400)
+          end
+        end, 400)
+      end, 300)
     end
   end
 end
