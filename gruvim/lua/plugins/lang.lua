@@ -122,6 +122,22 @@ return {
     keys = {
       { "<leader>cv", "<cmd>VenvSelect<cr>", ft = "python", desc = "Select VirtualEnv" },
     },
+    config = function(_, opts)
+      require("venv-selector").setup(opts)
+
+      -- The snacks picker only opens once a first result streams in, so a search
+      -- that finds nothing leaves VenvSelect looking like a dead keymap. Say so.
+      local snacks_gui = require("venv-selector.gui.snacks")
+      local search_done = snacks_gui.search_done
+      snacks_gui.search_done = function(self)
+        search_done(self)
+        -- Results stay empty only when nothing was found: the picker appears on
+        -- the first result, and closing it early leaves the results behind.
+        if vim.tbl_isempty(self.results) then
+          vim.notify("VenvSelect: no virtual environment found", vim.log.levels.WARN)
+        end
+      end
+    end,
   },
 
   -- Ansible
