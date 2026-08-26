@@ -1,3 +1,11 @@
+-- Drive Pantran's operator with a fixed mode and, in normal mode, a motion
+local function translate(mode, motion)
+  return function()
+    local keys = require("pantran").motion_translate({ mode = mode }) .. (motion or "")
+    vim.api.nvim_feedkeys(keys, "n", false)
+  end
+end
+
 return {
 
   -- blink.cmp
@@ -113,18 +121,30 @@ return {
     opts = {},
   },
 
-  -- Vim Translator
+  -- Pantran (translation)
   {
-    "voldikss/vim-translator",
-    cmd = { "Translate", "TranslateW", "TranslateR", "TranslateL" },
-    init = function()
-      vim.g.translator_source_lang = "auto"
-      vim.g.translator_target_lang = "ko"
-      vim.g.translator_default_engines = { "google" }
-    end,
+    "potamides/pantran.nvim",
+    cmd = "Pantran",
+    opts = {
+      -- Without an API key the google engine falls back to the free web
+      -- endpoints, trying clients5.google.com when translate.googleapis.com
+      -- rate limits the request
+      default_engine = "google",
+      engines = {
+        google = {
+          fallback = {
+            default_source = "auto",
+            default_target = "ko",
+          },
+        },
+      },
+    },
     keys = {
-      { "<leader>tw", "<Plug>TranslateW", desc = "Translate Word" },
-      { "<leader>tw", "<Plug>TranslateWV", mode = "x", desc = "Translate Selection" },
+      { "<leader>tw", translate("hover", "iw"), desc = "Translate Word" },
+      { "<leader>tw", translate("hover"), mode = "x", desc = "Translate Selection" },
+      { "<leader>tl", translate("hover", "_"), desc = "Translate Line" },
+      { "<leader>tr", translate("replace"), mode = "x", desc = "Translate and Replace Selection" },
+      { "<leader>tt", "<Cmd>Pantran<CR>", desc = "Translate Interactively" },
     },
   },
 
