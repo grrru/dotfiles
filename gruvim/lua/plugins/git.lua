@@ -21,12 +21,55 @@ local function leave_dashboard()
   end
 end
 
+-- Marks the quickfix list as ours, so review mode only closes a window it put
+-- there and leaves an unrelated list (grep results, diagnostics) alone.
+local QF_TITLE = "Changed Files"
+
+-- setqflist() emits one entry per hunk and has no option to group them
+-- (Gitsigns.SetqflistOpts is only use_location_list/nr/open), so collapse the
+-- list ourselves: one entry per file, pointing at its first hunk. ]h/[h still
+-- walk the hunks once the file is open.
+local function collapse_to_files()
+  local items = {} --- @type table[]
+  local seen = {} --- @type table<integer, integer> bufnr -> index into items
+  for _, item in ipairs(vim.fn.getqflist()) do
+    local idx = seen[item.bufnr]
+    if idx then
+      items[idx].hunks = items[idx].hunks + 1
+    else
+      seen[item.bufnr] = #items + 1
+      items[#items + 1] = { bufnr = item.bufnr, lnum = item.lnum, hunks = 1 }
+    end
+  end
+  for _, item in ipairs(items) do
+    item.text = ("%d hunk%s"):format(item.hunks, item.hunks > 1 and "s" or "")
+    item.hunks = nil
+  end
+  vim.fn.setqflist({}, "r", { items = items, title = QF_TITLE })
+end
+
+-- Tear down what fill_qflist() put up. gitsigns opens the list with `copen`
+-- (the `trouble` branch of its setqflist needs config.trouble, which is off),
+-- so `cclose` is the matching undo. Scheduled because change_base() resumes its
+-- callback wherever the async task landed, and `:cclose` in a fast event
+-- context is an E5560.
+local function close_qflist()
+  vim.schedule(function()
+    if vim.fn.getqflist({ title = 0 }).title == QF_TITLE then
+      vim.cmd.cclose()
+    end
+  end)
+end
+
 local function fill_qflist()
   -- Hunks of every changed file vs. the base, across the whole repo. Only swap
   -- the dashboard out once the list is up: a picker restores the buffer of the
   -- window it was opened from as it closes, which would undo an earlier swap.
   require("gitsigns").setqflist("all", {}, function()
-    vim.schedule(leave_dashboard)
+    vim.schedule(function()
+      collapse_to_files()
+      leave_dashboard()
+    end)
   end)
 end
 
@@ -41,6 +84,7 @@ local function set_review_base(base)
     if base then
       fill_qflist()
     else
+      close_qflist()
       vim.notify("Review mode off (base: index)")
     end
   end)
@@ -80,7 +124,7 @@ return {
         function()
           fill_qflist()
         end,
-        desc = "Hunks to Quickfix",
+        desc = "Changed Files to Quickfix",
       },
     },
     opts = {
