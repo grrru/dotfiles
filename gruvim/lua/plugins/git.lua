@@ -1,7 +1,9 @@
 -- Review mode: change the gitsigns diff base to an arbitrary revision, so the
 -- commits after it show up as ordinary working-tree changes (inline signs,
 -- ]h/[h, preview_hunk) without a `git reset`. The picked revision plays the
--- role of the reset target: base HEAD~2 == `git reset HEAD~2`.
+-- role of the reset target: base HEAD~2 == `git reset HEAD~2`. For a whole
+-- branch, prefer the merge base with its upstream (<leader>grb) over counting
+-- commits back by hand: it is the same range a PR shows.
 -- `vim.g.gitsigns_review_base` is what lualine shows.
 -- Quickfix jumps skip any window whose buffer has a 'buftype' (the dashboard is
 -- "nofile"), so from the dashboard every file opens in a new split instead of
@@ -73,14 +75,39 @@ local function fill_qflist()
   end)
 end
 
-local function set_review_base(base)
+-- `git` in the repo of the current buffer, returning trimmed stdout or nil.
+local function git(...)
+  local out = vim.system({ "git", ... }, { text = true, cwd = vim.fn.getcwd() }):wait()
+  if out.code ~= 0 then
+    return nil
+  end
+  local stdout = vim.trim(out.stdout)
+  return stdout ~= "" and stdout or nil
+end
+
+-- The branch a PR from here would target. `origin/HEAD` is what the remote
+-- calls its default branch; the rest are fallbacks for repos where it was never
+-- fetched (`git remote set-head origin -a` creates it).
+local function upstream_branch()
+  local head = git("symbolic-ref", "--short", "refs/remotes/origin/HEAD")
+  if head then
+    return head
+  end
+  for _, ref in ipairs({ "origin/main", "origin/master", "main", "master" }) do
+    if git("rev-parse", "--verify", "--quiet", ref) then
+      return ref
+    end
+  end
+end
+
+local function set_review_base(base, label)
   local gs = require("gitsigns")
   gs.change_base(base, true, function(err)
     if err then
       vim.notify("gitsigns: " .. err, vim.log.levels.ERROR)
       return
     end
-    vim.g.gitsigns_review_base = base
+    vim.g.gitsigns_review_base = base and (label or base)
     if base then
       fill_qflist()
     else
@@ -98,14 +125,14 @@ return {
     event = "VeryLazy",
     keys = {
       {
-        "<leader>gR",
+        "<leader>grd",
         function()
           set_review_base(nil)
         end,
         desc = "Review Mode Off",
       },
       {
-        "<leader>gr",
+        "<leader>grr",
         function()
           Snacks.picker.git_log({
             confirm = function(picker, item)
@@ -118,6 +145,29 @@ return {
           })
         end,
         desc = "Review Mode (pick base commit)",
+      },
+      {
+        "<leader>grb",
+        function()
+          local branch = upstream_branch()
+          if not branch then
+            vim.notify("No upstream branch to compare against", vim.log.levels.ERROR)
+            return
+          end
+          -- What a PR shows: the three-dot diff `branch...HEAD`, which is the
+          -- diff against the point the branch forked from. Merging the upstream
+          -- back in ("Update branch") moves that point forward, so the review
+          -- stays scoped to this branch's own commits instead of picking up
+          -- everything the merge brought along -- which is what a hand-picked
+          -- HEAD~N base would do.
+          local sha = git("merge-base", branch, "HEAD")
+          if not sha then
+            vim.notify("No merge base with " .. branch, vim.log.levels.ERROR)
+            return
+          end
+          set_review_base(sha, branch .. "...")
+        end,
+        desc = "Review Mode (branch vs. upstream)",
       },
       {
         "<leader>gq",

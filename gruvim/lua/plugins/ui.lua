@@ -319,6 +319,7 @@ return {
           { "<leader>f", group = "file/find" },
           { "<leader>g", group = "git" },
           { "<leader>gh", group = "hunks" },
+          { "<leader>gr", group = "review" },
           { "<leader>m", group = "marks" },
           { "<leader>q", group = "quit/session" },
           { "<leader>s", group = "search" },
