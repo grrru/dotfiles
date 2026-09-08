@@ -171,7 +171,7 @@ local to the current buffer or `<leader>sk` to search all mappings.
 | `<S-h>` / `<S-l>` | Move to the previous / next buffer |
 | `<leader>bd` | Delete the current buffer |
 | `gd` / `grr` / `gri` / `grt` | LSP definition / references / implementation / type definition |
-| `<leader>co` / `<leader>cd` | LSP code action / line diagnostics |
+| `gra` / `<leader>cd` | LSP code action / line diagnostics |
 | `<leader>cf` | Format the current buffer or selection |
 | `<leader>uf` / `<leader>uF` | Toggle format-on-save globally / for the current buffer |
 | `<leader>gg` | Open Lazygit at the Git root |

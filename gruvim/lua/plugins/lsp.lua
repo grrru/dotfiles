@@ -61,7 +61,7 @@ return {
             Snacks.picker.lsp_workspace_symbols()
           end, "LSP Workspace Symbols")
 
-          map("<leader>co", vim.lsp.buf.code_action, "Code Action")
+          map("gra", vim.lsp.buf.code_action, "Code Action")
 
           map("gK", vim.lsp.buf.signature_help, "Signature Help")
           vim.keymap.set("i", "<C-k>", vim.lsp.buf.signature_help, { buffer = event.buf, desc = "Signature Help" })
