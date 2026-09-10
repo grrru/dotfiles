@@ -123,7 +123,7 @@ do_unhide() {
   if [ -n "$layout" ]; then
     restore_layout "$layout" || true
   fi
-  tmux select-pane -t "$pane"
+  tmux select-pane -t "$hidden"
 }
 
 case "$action" in
