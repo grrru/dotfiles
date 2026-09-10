@@ -1273,11 +1273,13 @@ setup_theme_config() {
     echo "Created theme config at $dest"
   fi
 
-  # Generate ghostty/theme.local and the ~/.theme_mode state for the current mode.
+  # Generate ghostty/theme.local, tmux/theme.local and the ~/.theme_mode state for
+  # the current mode.
   if [ -x "$DOTFILES_DIR/scripts/toggle-theme" ]; then
     "$DOTFILES_DIR/scripts/toggle-theme" --apply >/dev/null
     chown_target_path "$HOME/.theme_mode"
     chown_target_path "$DOTFILES_DIR/ghostty/theme.local"
+    chown_target_path "$DOTFILES_DIR/tmux/theme.local"
   fi
 }
 

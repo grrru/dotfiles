@@ -210,14 +210,15 @@ toggle-theme light      # force a mode
 toggle-theme --apply    # re-apply the current mode (use after editing theme.conf)
 ```
 
-The script writes the mode to `~/.theme_mode`, regenerates Ghostty's ignored
-`ghostty/theme.local`, sets tmux colors, and the running Neovim picks the change up
-through a file watcher.
+The script writes the mode to `~/.theme_mode`, regenerates the ignored
+`ghostty/theme.local` and `tmux/theme.local`, applies the tmux colors to the running
+server, and the running Neovim picks the change up through a file watcher. `tmux.conf`
+sources `theme.local` last, so `C-a r` and new tmux servers keep the current mode.
 
 ### Per-machine themes
 
 Which themes each mode uses is **not** tracked by git. It lives in `theme.conf` in the
-dotfiles root, which is git-ignored like `ghostty/theme.local`; `install.sh` seeds it from
+dotfiles root, which is git-ignored like the generated `theme.local` files; `install.sh` seeds it from
 `theme.conf.example` and never overwrites an existing one. Editing
 `theme.conf.example` itself has no effect -- it is only the tracked sample.
 
