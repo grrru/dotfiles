@@ -1,4 +1,11 @@
 #!/bin/sh
+# Three-pane layout: two panes stacked on the left, one tall pane on the right.
+#
+#   three-pane-layout.sh [size] [pane]   size is the bottom-left pane height as a
+#                                        percent (default 30) or "Nlines"
+#
+# pane identifies the window to act on (default: active pane); pass "#{pane_id}" from
+# a key binding so run-shell children resolve the right window.
 
 set -eu
 
@@ -23,15 +30,15 @@ case "$bottom_value" in
   ;;
 esac
 
-window_panes=$(tmux display-message -p '#{window_panes}')
+active_pane=${2:-$(tmux display-message -p '#{pane_id}')}
+window_panes=$(tmux display-message -p -t "$active_pane" '#{window_panes}')
 if [ "$window_panes" -ne 3 ]; then
   tmux display-message 'M-3 layout requires exactly 3 panes'
   exit 0
 fi
 
-session_id=$(tmux display-message -p '#{session_id}')
-window_id=$(tmux display-message -p '#{window_id}')
-active_pane=$(tmux display-message -p '#{pane_id}')
+session_id=$(tmux display-message -p -t "$active_pane" '#{session_id}')
+window_id=$(tmux display-message -p -t "$active_pane" '#{window_id}')
 tmp_name="__three_pane_layout__"
 tmp_window=
 

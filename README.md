@@ -195,7 +195,9 @@ prefix bindings include:
 | `H` / `J` / `K` / `L` | Resize panes |
 | `r` | Reload `tmux.conf` |
 | `M-2` | Apply the two-pane layout |
-| `M-3` / `M-#` | Apply the regular / compact three-pane layout |
+| `M-3` | Apply the three-pane layout |
+| `g` | Hide the current pane, or restore the last hidden pane to where it was |
+| `G` | Hide the current pane even when another pane is already hidden |
 
 Ghostty configures the matching font, terminal colors, clipboard access, and the
 `Ctrl-/` control sequence used by Neovim.
