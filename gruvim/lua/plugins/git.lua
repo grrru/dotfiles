@@ -2,7 +2,7 @@
 -- commits after it show up as ordinary working-tree changes (inline signs,
 -- ]h/[h, preview_hunk) without a `git reset`. The picked revision plays the
 -- role of the reset target: base HEAD~2 == `git reset HEAD~2`. For a whole
--- branch, prefer the merge base with its upstream (<leader>grb) over counting
+-- branch, prefer the merge base with its upstream (<leader>gru) over counting
 -- commits back by hand: it is the same range a PR shows.
 -- `vim.g.gitsigns_review_base` is what lualine shows.
 -- Quickfix jumps skip any window whose buffer has a 'buftype' (the dashboard is
@@ -125,14 +125,14 @@ return {
     event = "VeryLazy",
     keys = {
       {
-        "<leader>grd",
+        "<leader>gro",
         function()
           set_review_base(nil)
         end,
         desc = "Review Mode Off",
       },
       {
-        "<leader>grr",
+        "<leader>grc",
         function()
           Snacks.picker.git_log({
             confirm = function(picker, item)
@@ -147,7 +147,7 @@ return {
         desc = "Review Mode (pick base commit)",
       },
       {
-        "<leader>grb",
+        "<leader>gru",
         function()
           local branch = upstream_branch()
           if not branch then
