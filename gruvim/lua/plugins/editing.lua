@@ -87,6 +87,29 @@ return {
     opts = {},
   },
 
+  -- Matchup (replaces the bundled matchparen, whose Tree-sitter branch never
+  -- unsets its skip expression, so pairs inside strings never match)
+  {
+    "andymass/vim-matchup",
+    -- Loaded eagerly: it only wires up buffers on BufEnter, so a file opened
+    -- from the command line would stay unmatched until re-entered
+    lazy = false,
+    init = function()
+      -- treesitter-context already shows the enclosing scope
+      vim.g.matchup_matchparen_offscreen = {}
+      -- Blocks that end by dedent have no closing token to highlight, so the
+      -- end is drawn as "<- func" virtual text. The keyword matching is worth
+      -- keeping, the marker is not
+      vim.g.matchup_treesitter_disable_virtual_text = 1
+
+      -- Swap the line above for this one to drop the keyword matching too.
+      -- Mids are return, continue, break, else and case; without them only
+      -- pairs that really open and close a block match, and the virtual text
+      -- goes away on its own since it only shows on blocks reached by a mid
+      -- vim.g.matchup_delim_nomids = 1
+    end,
+  },
+
   -- Mini.icons
   {
     "echasnovski/mini.icons",
