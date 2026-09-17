@@ -69,6 +69,10 @@ return {
       })
 
       -- Servers
+      vim.lsp.config("bashls", {
+        filetypes = { "bash", "sh", "zsh" },
+      })
+
       vim.lsp.config("basedpyright", {
         settings = {
           basedpyright = {
