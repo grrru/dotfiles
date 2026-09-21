@@ -216,6 +216,8 @@ The script writes the mode to `~/.theme_mode`, regenerates the ignored
 `ghostty/theme.local` and `tmux/theme.local`, applies the tmux colors to the running
 server, and the running Neovim picks the change up through a file watcher. `tmux.conf`
 sources `theme.local` last, so `C-a r` and new tmux servers keep the current mode.
+Both `theme.local` files are regenerated from scratch on every run, so hand-edits to them
+do not survive.
 
 ### Per-machine themes
 
@@ -248,6 +250,20 @@ return {
 
 then set `NVIM_DARK_COLORSCHEME="tokyonight"` in `theme.conf`. If a configured
 colorscheme cannot be loaded, Neovim warns and falls back to Catppuccin.
+
+### Per-machine Ghostty settings
+
+`ghostty/config` reads two optional files after itself: the generated `theme.local`, and
+`local.conf` for everything else that differs per machine. `local.conf` is git-ignored,
+hand-written, has no seed file, and is read last, so it overrides both:
+
+```sh
+# ~/dotfiles/ghostty/local.conf
+font-size = 15
+```
+
+Ghostty picks it up on the next config reload (`Cmd-Shift-,`, or any `toggle-theme` run,
+which touches `ghostty/config`).
 
 ## Git issue worktrees
 
