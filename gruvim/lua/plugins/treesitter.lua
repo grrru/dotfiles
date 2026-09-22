@@ -59,8 +59,22 @@ return {
     },
     config = function(_, opts)
       require("treesitter-context").setup(opts)
-      vim.api.nvim_set_hl(0, "TreesitterContextBottom", { underline = false })
-      vim.api.nvim_set_hl(0, "TreesitterContextLineNumberBottom", { underline = false })
+
+      -- catppuccin's treesitter_context integration underlines the last
+      -- context line, which reads as a dark rule under the context on latte.
+      -- Clearing the group is undone by every `:colorscheme`, and config.theme
+      -- runs one on each toggle, so re-apply after every colorscheme change.
+      local function clear_context_underline()
+        vim.api.nvim_set_hl(0, "TreesitterContextBottom", { underline = false })
+        vim.api.nvim_set_hl(0, "TreesitterContextLineNumberBottom", { underline = false })
+      end
+
+      vim.api.nvim_create_autocmd("ColorScheme", {
+        group = vim.api.nvim_create_augroup("gruvim_treesitter_context_hl", { clear = true }),
+        callback = clear_context_underline,
+      })
+
+      clear_context_underline()
     end,
   },
 
