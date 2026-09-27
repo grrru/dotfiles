@@ -9,6 +9,12 @@ font-feature = -calt
 # once on a fresh checkout to generate it.
 config-file = ?theme.local
 
+# machine-local overrides
+# local.conf (git-ignored, hand-written, optional) is read last, so anything in
+# it wins over the settings above -- a different font-size on one machine, say.
+# Do not put those in theme.local: toggle-theme rewrites that file on every run.
+config-file = ?local.conf
+
 # macos settings
 macos-titlebar-style = tabs
 macos-option-as-alt = true

@@ -19,6 +19,7 @@ return {
     "terraform-ls",
 
     -- Formatters
+    "biome",
     "gdscript-formatter",
     "goimports",
     "shfmt",

@@ -61,22 +61,6 @@ return {
     end,
   },
 
-  -- Markdown preview
-  {
-    "iamcco/markdown-preview.nvim",
-    cmd = { "MarkdownPreviewToggle", "MarkdownPreview", "MarkdownPreviewStop" },
-    build = function()
-      require("lazy").load({ plugins = { "markdown-preview.nvim" } })
-      vim.fn["mkdp#util#install"]()
-    end,
-    keys = {
-      { "<leader>cp", "<cmd>MarkdownPreviewToggle<cr>", ft = "markdown", desc = "Markdown Preview" },
-    },
-    config = function()
-      vim.cmd([[do FileType]])
-    end,
-  },
-
   -- Render markdown
   {
     "MeanderingProgrammer/render-markdown.nvim",

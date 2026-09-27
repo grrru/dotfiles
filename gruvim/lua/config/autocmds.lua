@@ -61,6 +61,7 @@ vim.api.nvim_create_autocmd("FileType", {
     "typescriptreact",
     "javascriptreact",
     "json",
+    "jsonc",
     "yaml",
     "html",
     "css",

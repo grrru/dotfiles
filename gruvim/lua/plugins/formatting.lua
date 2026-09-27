@@ -22,6 +22,8 @@ return {
       },
       formatters_by_ft = {
         gdscript = { "gdscript-formatter" },
+        json = { "biome" },
+        jsonc = { "biome" },
         lua = { "stylua", lsp_format = "never" },
         go = { "goimports" },
         sh = { "shfmt" },
@@ -37,9 +39,24 @@ return {
       -- 전역/버퍼 포맷 토글 상태
       vim.g.autoformat = true
 
+      -- 저장 시 자동 포맷을 기본으로 끄는 파일타입 (<leader>cf 로 수동 포맷)
+      local autoformat_disabled_ft = {
+        json = true,
+        jsonc = true,
+        yaml = true,
+        sh = true,
+        bash = true,
+        zsh = true,
+      }
+
       local function format_enabled(buf)
         if vim.b[buf].autoformat ~= nil then
           return vim.b[buf].autoformat
+        end
+        -- yaml.ansible 같은 복합 파일타입은 앞부분으로 판단
+        local ft = vim.bo[buf].filetype:gsub("%..*$", "")
+        if autoformat_disabled_ft[ft] then
+          return false
         end
         return vim.g.autoformat
       end
