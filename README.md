@@ -14,6 +14,7 @@ the target user's home directory.
 | `zsh/`, `bash/` | Tracked shell framework configuration |
 | `common.sh` | Portable PATH helpers, aliases, and defaults shared by Bash and Zsh |
 | `ghostty/` | Ghostty configuration, linked when Ghostty is installed |
+| `macos/` | macOS LaunchAgents, copied into `~/Library/LaunchAgents` on macOS |
 | `scripts/` | Standalone commands, added to `PATH` by `common.sh` |
 
 ## Installation
@@ -201,6 +202,18 @@ prefix bindings include:
 
 Ghostty configures the matching font, terminal colors, clipboard access, and the
 `Ctrl-/` control sequence used by Neovim.
+
+## Korean input on macOS
+
+The macOS 27 built-in 2-Set Korean input source re-inserts the last jamo on backspace
+in Ghostty and kitty, so use [Gureum](https://github.com/gureum/gureum)
+(`brew install --cask gureumkim`) instead.
+
+On macOS, `./install.sh config` installs a LaunchAgent that remaps right Command to F19
+with `hidutil` at login. Set Gureum's Korean/English toggle shortcut to F19. Because the
+key is no longer a modifier, typing quickly after toggling can't trigger Command
+shortcuts such as `Cmd-D`. To undo the mapping for the current session, run
+`hidutil property --set '{"UserKeyMapping":[]}'`.
 
 ## Theme switching
 

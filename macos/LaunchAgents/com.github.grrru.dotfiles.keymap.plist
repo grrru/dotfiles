@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Remap right Command (0x7000000E7) to F19 (0x70000006E) at login.
+  Gureum binds F19 to Korean/English toggle; as F19 the key is no longer a
+  modifier, so a quick "toggle then type" can't fire Cmd shortcuts (Cmd+D).
+  hidutil mappings reset on reboot, hence the LaunchAgent.
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.github.grrru.dotfiles.keymap</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/hidutil</string>
+    <string>property</string>
+    <string>--set</string>
+    <string>{"UserKeyMapping":[{"HIDKeyboardModifierMappingSrc":0x7000000E7,"HIDKeyboardModifierMappingDst":0x70000006E}]}</string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+</dict>
+</plist>

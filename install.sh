@@ -1283,6 +1283,43 @@ setup_theme_config() {
   fi
 }
 
+install_macos_keymap() {
+  local label="com.github.grrru.dotfiles.keymap"
+  local source="$DOTFILES_DIR/macos/LaunchAgents/$label.plist"
+  local agents_dir="$HOME/Library/LaunchAgents"
+  local dest="$agents_dir/$label.plist"
+  local uid
+
+  if [ "$(uname -s)" != "Darwin" ]; then
+    return
+  fi
+
+  # Copied rather than symlinked: launchd skips agents it can't verify as
+  # regular files owned by the user.
+  mkdir -p "$agents_dir"
+  if cmp -s "$source" "$dest"; then
+    echo "Keymap LaunchAgent already up to date, skipping."
+  elif [ -w "$agents_dir" ] && [ "$(id -un)" = "$TARGET_USER" ]; then
+    install -m 644 "$source" "$dest"
+    echo "Installed keymap LaunchAgent (right Command -> F19)"
+  else
+    # Some VPN/MDM installers leave this directory owned by root. Only the
+    # agent itself is written as the user; the directory's owner is left as is.
+    sudo install -o "$TARGET_USER" -m 644 "$source" "$dest"
+    echo "Installed keymap LaunchAgent (right Command -> F19)"
+  fi
+
+  # Another user's GUI domain only exists while they're logged in; the agent
+  # loads on their next login instead.
+  if [ "$(id -un)" != "$TARGET_USER" ]; then
+    return
+  fi
+
+  uid="$(id -u)"
+  launchctl bootout "gui/$uid/$label" 2>/dev/null || true
+  launchctl bootstrap "gui/$uid" "$dest"
+}
+
 install_configs() {
   mkdir -p "$CONFIG_DIR"
   chown_target_path "$CONFIG_DIR"
@@ -1295,6 +1332,7 @@ install_configs() {
     link_config "ghostty"
   fi
 
+  install_macos_keymap
   setup_theme_config
 }
 
