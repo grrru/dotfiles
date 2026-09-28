@@ -58,7 +58,7 @@ return {
       },
       groups = {
         all = {
-          FlashLabel = { bg = "bg0", fg = "palette.yellow.bright", style = "bold" },
+          FlashLabel = { bg = "bg0", fg = "palette.cyan", style = "bold" },
         },
       },
     },
