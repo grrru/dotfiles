@@ -46,4 +46,6 @@ opt.jumpoptions = { "view", "clean" }
 opt.cursorline = true
 opt.guicursor:append("t:blinkon0")
 opt.sessionoptions:remove("blank")
+-- plugins/session.lua stores the per-tab buffer lists in a global
+opt.sessionoptions:append("globals")
 opt.winborder = "rounded"

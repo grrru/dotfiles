@@ -465,6 +465,14 @@ return {
       -- root following the active tab instead of freezing at the first cwd.
       sync_root_with_cwd = true,
       respect_buf_cwd = true,
+      -- The tree follows the tab's cwd, never the other way around. When its
+      -- root changed (a hijacked directory buffer, respect_buf_cwd, <C-]>) it
+      -- ran :lcd, a new tab inherited that window-local cwd, and the tab no
+      -- longer matched the root it was :tcd'd into -- which also scrambled the
+      -- per-root buffer lists that plugins/session.lua restores.
+      actions = {
+        change_dir = { enable = false },
+      },
       view = {
         signcolumn = "no",
       },
