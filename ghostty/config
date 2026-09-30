@@ -4,9 +4,9 @@ font-size = 16
 font-feature = -calt
 
 # themes
-# The active theme is machine-local: scripts/toggle-theme writes theme.local
-# (git-ignored) from the dotfiles root's theme.conf. Run `toggle-theme --apply`
-# once on a fresh checkout to generate it.
+# The active theme lives in theme.local, which scripts/toggle-theme generates
+# (git-ignored) from theme.defaults.conf and theme.conf in the dotfiles root.
+# Run `toggle-theme --apply` once on a fresh checkout to generate it.
 config-file = ?theme.local
 
 # machine-local overrides

@@ -225,30 +225,45 @@ toggle-theme light      # force a mode
 toggle-theme --apply    # re-apply the current mode (use after editing theme.conf)
 ```
 
-The script writes the mode to `~/.theme_mode`, regenerates the ignored
-`ghostty/theme.local` and `tmux/theme.local`, applies the tmux colors to the running
-server, and the running Neovim picks the change up through a file watcher. `tmux.conf`
-sources `theme.local` last, so `C-a r` and new tmux servers keep the current mode.
-Both `theme.local` files are regenerated from scratch on every run, so hand-edits to them
-do not survive.
+Every theme setting lives in two files in the dotfiles root, and `toggle-theme` is the
+only thing that reads them:
+
+| File | Tracked | Holds |
+| --- | --- | --- |
+| `theme.defaults.conf` | yes | every key with its default (Catppuccin Latte / Frappe) |
+| `theme.conf` | no (git-ignored) | only the keys that differ on this machine |
+
+From those the script generates one file per tool and never reads them back, apart from
+the mode:
+
+| Generated | Read by |
+| --- | --- |
+| `ghostty/theme.local` | Ghostty (`config-file`); the script touches `ghostty/config` to reload it |
+| `tmux/theme.local` | `tmux.conf`, which sources it, so `C-a r` and new servers keep the mode; also sourced into the running server |
+| `~/.theme_mode` | Neovim, through a file watcher: the mode, the colorscheme, and the `/theme` picker digit for live Claude Code switching |
+| `theme` in `~/.claude/settings.json` | Claude Code, at startup |
+
+All of them are rewritten from scratch on every run, so hand-edits do not survive.
 
 ### Per-machine themes
 
-Which themes each mode uses is **not** tracked by git. It lives in `theme.conf` in the
-dotfiles root, which is git-ignored like the generated `theme.local` files; `install.sh` seeds it from
-`theme.conf.example` and never overwrites an existing one. Editing
-`theme.conf.example` itself has no effect -- it is only the tracked sample.
+Put only what differs into `theme.conf`, then apply it:
 
 ```sh
-cp theme.conf.example theme.conf   # then edit and:
+# ~/dotfiles/theme.conf
+GHOSTTY_DARK_THEME="NightFox"
+NVIM_DARK_COLORSCHEME="nightfox"
+```
+
+```sh
 toggle-theme --apply
 ```
 
-The file sets Ghostty themes, Neovim colorschemes, and tmux status colors per mode; keys
-left out fall back to the defaults documented in the sample (Catppuccin Latte for light,
-Catppuccin Frappe / Nightfox for dark). Both the script and Neovim look for, in order,
-`$DOTFILES_THEME_CONF`, `<dotfiles>/theme.conf`, and `~/.config/dotfiles/theme.conf` --
-the first existing file wins.
+`theme.defaults.conf` documents every key. Changing a value there changes the default on
+every machine. The script looks for the override in `$DOTFILES_THEME_CONF`,
+`<dotfiles>/theme.conf`, and `~/.config/dotfiles/theme.conf`, in that order; the first
+existing file wins. A `theme.conf` copied whole from the old `theme.conf.example` still
+works, it just repeats the defaults.
 
 Neovim colorschemes must come from a plugin it actually loads. This repo ships
 catppuccin and nightfox; to use anything else on one machine, drop a lazy.nvim spec into

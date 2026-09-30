@@ -1,14 +1,15 @@
 #!/bin/bash
 #
-# Switch light/dark mode across Ghostty, tmux and Neovim.
+# Switch light/dark mode across Ghostty, tmux, Neovim and Claude Code.
 #
 #   toggle-theme            flip the current mode
 #   toggle-theme light      force light mode
 #   toggle-theme dark       force dark mode
 #   toggle-theme --apply    re-apply the current mode without flipping it
 #
-# Which themes each mode uses is machine-local. Copy theme.conf.example to
-# theme.conf in the dotfiles root (git-ignored) and edit it there.
+# Themes come from theme.defaults.conf in the dotfiles root, overridden by the
+# git-ignored theme.conf next to it. Put only the keys that differ on this
+# machine into theme.conf.
 
 STATE_FILE="$HOME/.theme_mode"
 # Resolve the dotfiles root from this script's location (scripts/ -> repo root),
@@ -16,30 +17,16 @@ STATE_FILE="$HOME/.theme_mode"
 DOTFILES="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." 2>/dev/null && pwd)"
 [ -d "$DOTFILES/ghostty" ] || DOTFILES="$HOME/dotfiles"
 
-# === Defaults (overridable from theme.conf) ===
-GHOSTTY_LIGHT_THEME="Catppuccin Latte"
-GHOSTTY_DARK_THEME="Catppuccin Frappe"
-LIGHT_FONT_THICKEN_STRENGTH=70
-DARK_FONT_THICKEN_STRENGTH=0
+# This script is the only reader of the theme config: tracked defaults first,
+# then the first existing machine-local override on top of them. Every tool
+# gets a generated file from here instead.
+if [ ! -f "$DOTFILES/theme.defaults.conf" ]; then
+  echo "toggle-theme: $DOTFILES/theme.defaults.conf not found" >&2
+  exit 1
+fi
+# shellcheck source=SCRIPTDIR/../theme.defaults.conf
+. "$DOTFILES/theme.defaults.conf"
 
-TMUX_LIGHT_STATUS_FG="#282C33"
-TMUX_LIGHT_STATUS_BG="#d5d6db"
-TMUX_LIGHT_PANE_BORDER_FG="#d5d6db"
-TMUX_LIGHT_PANE_ACTIVE_BORDER_FG="#1D66F5"
-
-TMUX_DARK_STATUS_FG="#d5d6db"
-TMUX_DARK_STATUS_BG="#282C33"
-TMUX_DARK_PANE_BORDER_FG="#3D4350"
-TMUX_DARK_PANE_ACTIVE_BORDER_FG="#89b4fa"
-
-# Theme names accepted by Claude Code's `theme` setting: light, dark,
-# light-daltonized, dark-daltonized, light-ansi, dark-ansi. Empty disables the
-# Claude Code integration.
-CLAUDE_LIGHT_THEME="light"
-CLAUDE_DARK_THEME="dark"
-
-# First existing file wins. Keep this list in sync with the candidates in
-# gruvim/lua/config/theme.lua.
 for THEME_CONF in \
   ${DOTFILES_THEME_CONF:+"$DOTFILES_THEME_CONF"} \
   "$DOTFILES/theme.conf" \
@@ -51,12 +38,12 @@ for THEME_CONF in \
   fi
 done
 
+# The mode applied last. Older versions wrote just the bare word.
 read_mode() {
-  if [ -f "$STATE_FILE" ] && [ "$(cat "$STATE_FILE")" = "light" ]; then
-    echo "light"
-  else
-    echo "dark"
-  fi
+  case "$(sed -n 1p "$STATE_FILE" 2>/dev/null)" in
+  'MODE="light"' | light) echo "light" ;;
+  *) echo "dark" ;;
+  esac
 }
 
 # === Determine the target mode ===
@@ -67,7 +54,7 @@ case "${1-}" in
 light | dark) NEW_MODE="$1" ;;
 --apply) NEW_MODE="$(read_mode)" ;;
 -h | --help)
-  sed -n '3,11p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+  sed -n '3,12p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
   exit 0
   ;;
 *)
@@ -79,6 +66,7 @@ esac
 if [ "$NEW_MODE" = "light" ]; then
   GHOSTTY_THEME="$GHOSTTY_LIGHT_THEME"
   FONT_THICKEN_STRENGTH="$LIGHT_FONT_THICKEN_STRENGTH"
+  NVIM_COLORSCHEME="$NVIM_LIGHT_COLORSCHEME"
   TMUX_STATUS_FG="$TMUX_LIGHT_STATUS_FG"
   TMUX_STATUS_BG="$TMUX_LIGHT_STATUS_BG"
   TMUX_PANE_BORDER_FG="$TMUX_LIGHT_PANE_BORDER_FG"
@@ -87,6 +75,7 @@ if [ "$NEW_MODE" = "light" ]; then
 else
   GHOSTTY_THEME="$GHOSTTY_DARK_THEME"
   FONT_THICKEN_STRENGTH="$DARK_FONT_THICKEN_STRENGTH"
+  NVIM_COLORSCHEME="$NVIM_DARK_COLORSCHEME"
   TMUX_STATUS_FG="$TMUX_DARK_STATUS_FG"
   TMUX_STATUS_BG="$TMUX_DARK_STATUS_BG"
   TMUX_PANE_BORDER_FG="$TMUX_DARK_PANE_BORDER_FG"
@@ -94,8 +83,30 @@ else
   CLAUDE_THEME="$CLAUDE_DARK_THEME"
 fi
 
-# Neovim watches this file and picks its own colorscheme from theme.conf.
-echo "$NEW_MODE" >"$STATE_FILE"
+# Position of each theme in Claude Code's `/theme` picker, which applies a
+# choice as soon as its digit is typed -- so a running session is
+# "/theme<CR>" plus one key. Neovim gets the digit through the state file.
+case "$CLAUDE_THEME" in
+auto) CLAUDE_KEY=1 ;;
+dark) CLAUDE_KEY=2 ;;
+light) CLAUDE_KEY=3 ;;
+dark-daltonized) CLAUDE_KEY=4 ;;
+light-daltonized) CLAUDE_KEY=5 ;;
+dark-ansi) CLAUDE_KEY=6 ;;
+light-ansi) CLAUDE_KEY=7 ;;
+*) CLAUDE_KEY="" ;;
+esac
+
+# Empty unless running sessions are to be switched too (CLAUDE_LIVE_THEME=1).
+CLAUDE_LIVE_KEY=""
+[ "${CLAUDE_LIVE_THEME:-0}" = "1" ] && CLAUDE_LIVE_KEY="$CLAUDE_KEY"
+
+# === Neovim ===
+# Neovim watches this file and applies what it names. MODE stays on the first
+# line, where read_mode looks. A single write, so the watcher never fires on a
+# half-written file.
+printf 'MODE="%s"\nNVIM_COLORSCHEME="%s"\nCLAUDE_LIVE_KEY="%s"\n' \
+  "$NEW_MODE" "$NVIM_COLORSCHEME" "$CLAUDE_LIVE_KEY" >"$STATE_FILE"
 
 # === Ghostty ===
 GHOSTTY_CONFIG="$DOTFILES/ghostty/config"
@@ -130,20 +141,6 @@ if [ -n "$CLAUDE_THEME" ] && [ -f "$CLAUDE_SETTINGS" ] && command -v jq >/dev/nu
   fi
   rm -f "$CLAUDE_TMP"
 fi
-
-# Position of each theme in the `/theme` picker, which applies a choice as
-# soon as its digit is typed -- so a running session is "/theme<CR>" plus one
-# key. Keep in sync with CLAUDE_THEME_KEY in gruvim/lua/config/theme.lua.
-case "$CLAUDE_THEME" in
-auto) CLAUDE_KEY=1 ;;
-dark) CLAUDE_KEY=2 ;;
-light) CLAUDE_KEY=3 ;;
-dark-daltonized) CLAUDE_KEY=4 ;;
-light-daltonized) CLAUDE_KEY=5 ;;
-dark-ansi) CLAUDE_KEY=6 ;;
-light-ansi) CLAUDE_KEY=7 ;;
-*) CLAUDE_KEY="" ;;
-esac
 
 # claude is a child of the pane's shell, and the executable it runs is the
 # version number (.../claude/versions/2.1.228), so neither the pane's pid nor
@@ -222,7 +219,7 @@ switch_pane_theme() {
 
   tmux send-keys -t "$pane" "/theme" Enter
   sleep 0.6
-  tmux send-keys -t "$pane" "$CLAUDE_KEY"
+  tmux send-keys -t "$pane" "$CLAUDE_LIVE_KEY"
 
   if [ "$before" != "$after" ]; then
     sleep 0.6
@@ -230,7 +227,7 @@ switch_pane_theme() {
   fi
 }
 
-if [ "${CLAUDE_LIVE_THEME:-0}" = "1" ] && [ -n "$CLAUDE_KEY" ] &&
+if [ -n "$CLAUDE_LIVE_KEY" ] &&
   command -v tmux >/dev/null 2>&1 && tmux info >/dev/null 2>&1; then
   tmux list-panes -a -F '#{pane_id} #{pane_pid} #{pane_current_command}' |
     while read -r pane pane_pid pane_cmd; do
@@ -252,33 +249,21 @@ if [ "${CLAUDE_LIVE_THEME:-0}" = "1" ] && [ -n "$CLAUDE_KEY" ] &&
 fi
 
 # === Tmux ===
-# tmux.conf sources theme.local after its own (light) defaults, so a reload with
-# `C-a r` and a fresh server both come up in the current mode.
+# tmux.conf sources theme.local, so a reload with `C-a r` and a fresh server
+# both come up in the current mode.
 TMUX_LOCAL_CONFIG="$DOTFILES/tmux/theme.local"
-if [ -d "$(dirname "$TMUX_LOCAL_CONFIG")" ]; then
-  {
-    printf '# Generated by scripts/toggle-theme (%s mode). Do not edit; change theme.conf instead.\n' "$NEW_MODE"
-    printf 'set -g status-fg "%s"\n' "$TMUX_STATUS_FG"
-    printf 'set -g status-bg "%s"\n' "$TMUX_STATUS_BG"
-    printf 'set -g message-style "bg=#e49931,fg=#282C33"\n'
-    printf 'set -g message-command-style "bg=#282C33,fg=#e49931"\n'
-    printf 'set -g pane-border-style "fg=%s"\n' "$TMUX_PANE_BORDER_FG"
-    printf 'set -g pane-active-border-style "fg=%s"\n' "$TMUX_PANE_ACTIVE_BORDER_FG"
-  } >"$TMUX_LOCAL_CONFIG"
-fi
+{
+  printf '# Generated by scripts/toggle-theme (%s mode). Do not edit; change theme.conf instead.\n' "$NEW_MODE"
+  printf 'set -g status-fg "%s"\n' "$TMUX_STATUS_FG"
+  printf 'set -g status-bg "%s"\n' "$TMUX_STATUS_BG"
+  printf 'set -g message-style "%s"\n' "$TMUX_MESSAGE_STYLE"
+  printf 'set -g message-command-style "%s"\n' "$TMUX_MESSAGE_COMMAND_STYLE"
+  printf 'set -g pane-border-style "fg=%s"\n' "$TMUX_PANE_BORDER_FG"
+  printf 'set -g pane-active-border-style "fg=%s"\n' "$TMUX_PANE_ACTIVE_BORDER_FG"
+} >"$TMUX_LOCAL_CONFIG"
 
 if command -v tmux >/dev/null 2>&1 && tmux info >/dev/null 2>&1; then
-  if [ -f "$TMUX_LOCAL_CONFIG" ]; then
-    tmux source-file "$TMUX_LOCAL_CONFIG"
-  else
-    tmux set-option -g status-fg "$TMUX_STATUS_FG"
-    tmux set-option -g status-bg "$TMUX_STATUS_BG"
-    tmux set-option -g message-style "bg=#e49931,fg=#282C33"
-    tmux set-option -g message-command-style "bg=#282C33,fg=#e49931"
-    tmux set-option -g pane-border-style "fg=$TMUX_PANE_BORDER_FG"
-    tmux set-option -g pane-active-border-style "fg=$TMUX_PANE_ACTIVE_BORDER_FG"
-  fi
-
+  tmux source-file "$TMUX_LOCAL_CONFIG"
   tmux display-message "Theme: $NEW_MODE"
 else
   echo "Theme: $NEW_MODE"

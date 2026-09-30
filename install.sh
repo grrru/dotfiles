@@ -1261,20 +1261,10 @@ install_shells() {
 }
 
 setup_theme_config() {
-  local dest="$DOTFILES_DIR/theme.conf"
-  local sample="$DOTFILES_DIR/theme.conf.example"
-
-  # Machine-local on purpose: never overwrite an existing selection.
-  if [ -f "$dest" ]; then
-    echo "Theme config already present at $dest, skipping."
-  elif [ -f "$sample" ]; then
-    cp "$sample" "$dest"
-    chown_target_path "$dest"
-    echo "Created theme config at $dest"
-  fi
-
-  # Generate ghostty/theme.local, tmux/theme.local and the ~/.theme_mode state for
-  # the current mode.
+  # Nothing to seed: the defaults are tracked in theme.defaults.conf, and the
+  # machine-local theme.conf is optional and holds only what differs. Generate
+  # ghostty/theme.local, tmux/theme.local and the ~/.theme_mode state for the
+  # current mode.
   if [ -x "$DOTFILES_DIR/scripts/toggle-theme" ]; then
     "$DOTFILES_DIR/scripts/toggle-theme" --apply >/dev/null
     chown_target_path "$HOME/.theme_mode"
