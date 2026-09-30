@@ -196,6 +196,11 @@ local current_mode
 
 local function apply(state)
   local mode = state.MODE == "light" and "light" or "dark"
+
+  -- Clear first: changing 'background' reloads the old scheme and unsets
+  -- g:colors_name, so catppuccin skips its own `hi clear` and groups it does
+  -- not define (NvimTreeNormal) keep the old colors.
+  vim.cmd("highlight clear")
   vim.o.background = mode
 
   local name = state.NVIM_COLORSCHEME

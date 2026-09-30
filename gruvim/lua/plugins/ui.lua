@@ -37,6 +37,12 @@ local function refresh_bufferline()
     return
   end
 
+  -- bufferline's ColorScheme handler has already filled these from the old
+  -- setup, and it never overwrites existing groups (`default = true`).
+  for _, name in ipairs(vim.fn.getcompletion("BufferLine", "highlight")) do
+    vim.api.nvim_set_hl(0, name, {})
+  end
+
   require("bufferline").setup(bufferline_opts())
 end
 
