@@ -48,6 +48,20 @@ return {
         end
         return ret
       end
+
+      -- ctx() takes the most recently focused window from *every* tab, then calls
+      -- getcwd(win), which only searches the current tab (E5002). A window WinEnter
+      -- never fired for (the startup window, session-restored tabs) has no
+      -- timestamp, so a window in another tab wins. Stamp the current one first.
+      local Context = require("sidekick.cli.context")
+      local ctx = Context.ctx
+      Context.ctx = function()
+        local win = vim.api.nvim_get_current_win()
+        if vim.bo[vim.api.nvim_win_get_buf(win)].filetype ~= "sidekick_terminal" then
+          vim.w[win].sidekick_visit = vim.uv.hrtime()
+        end
+        return ctx()
+      end
     end,
     keys = {
       {
