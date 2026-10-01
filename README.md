@@ -30,9 +30,9 @@ Requirements:
 
 The installer uses the platform package manager for foundational CLI tools. On Linux,
 it installs GitHub CLI from GitHub's official package repository and installs Neovim,
-Tree-sitter CLI, Lazygit, zoxide on Debian/Ubuntu, and any required fzf fallback from
-verified upstream release assets. Release downloads must include a matching SHA-256
-digest before installation.
+Tree-sitter CLI, Lazygit, and any required fzf fallback from verified upstream release
+assets. Release downloads must include a matching SHA-256 digest and run on the host
+before installation.
 
 | Tool | Homebrew | Fedora (`dnf`) | Debian/Ubuntu (`apt-get`) |
 | --- | --- | --- | --- |
@@ -40,7 +40,6 @@ digest before installation.
 | tmux | Formula with version check | Package with version check | Package with version check |
 | fd | `fd` formula | `fd-find` package | `fd-find` plus `~/.local/bin/fd` alias |
 | fzf | Formula | Package, then release fallback | Package, then release fallback |
-| zoxide | Formula | Distribution package | Verified upstream release |
 | Neovim / Tree-sitter CLI / Lazygit | Formulas | Verified upstream releases | Verified upstream releases |
 | GitHub CLI | Formula | Official GitHub RPM repository | Official GitHub APT repository |
 
@@ -66,7 +65,7 @@ before a new symlink is created.
 | `./install.sh` | Install dependencies, both shell setups, application configs, and tpm |
 | `./install.sh deps` | Install CLI dependencies only |
 | `./install.sh shell` | Install and configure both Bash and Zsh |
-| `./install.sh bash` | Configure oh-my-bash only |
+| `./install.sh bash` | Configure the Bash-to-Zsh hand-off only |
 | `./install.sh zsh` | Configure oh-my-zsh, Powerlevel10k, and zsh-autosuggestions |
 | `./install.sh config` | Link Neovim, tmux, and optionally Ghostty configs |
 | `./install.sh tpm` | Install tmux Plugin Manager only |
@@ -100,7 +99,7 @@ files:
 | Layer | File | Tracked | Responsibility |
 | --- | --- | --- | --- |
 | Entry point | `~/.bashrc`, `~/.zshrc` | No | Secrets, host-specific paths, runtime setup, and sourcing the repo config |
-| Framework | `bash/bash_config.sh`, `zsh/zsh_config.sh` | Yes | oh-my-bash/oh-my-zsh, Powerlevel10k, completion, fzf, and PATH cleanup |
+| Framework | `bash/bash_config.sh`, `zsh/zsh_config.sh` | Yes | oh-my-zsh, Powerlevel10k, completion, fzf, PATH cleanup, and the Bash-to-Zsh hand-off |
 | Shared | `common.sh` | Yes | Portable helpers and defaults used by both shells |
 
 Keep machine-specific settings in the local rc files: Go and Android SDK paths, nvm,
@@ -108,7 +107,8 @@ private aliases, company hosts, and secrets. `common.sh` owns shared user-bin pa
 Mason bin path, locale defaults, `add_path`, `ecph`, and the `scripts/` directory on `PATH`.
 
 When both tracked shell configs are installed, interactive Bash sessions hand off to
-Zsh. Run `exec bash` for a temporary Bash session.
+Zsh. A Bash started from Zsh stays Bash, so run `bash` or `exec bash` for a temporary
+Bash session.
 
 ## Gruvim
 
@@ -309,12 +309,11 @@ git issue-worktree clean 42
 Both variables are required, so keep them in the machine-local rc file. `setup` asks for an
 optional tag, which produces branch names such as `issue/42-auth-refactor`, then opens a
 repository picker. Type a repository name to narrow the candidates by fuzzy match
-(`bkapi` matches `backend-api`), `Space` or `Tab` to select, `Enter` to confirm, `Esc` to
-cancel. The picker uses fzf when it is installed and a built-in one otherwise; set
-`GIW_PICKER` to `fzf` or `builtin` to choose explicitly.
+(`bkapi` matches `backend-api`), `Tab` to select, `Enter` to confirm, `Esc` to cancel.
+The picker is fzf, which `./install.sh deps` installs.
 
 Repositories are discovered up to two directories below `WORKSPACE`, and the selection is
 recorded in an `.issue-tracker` file inside the worktree base directory. `clean` reads that
 file to remove the worktrees and branches, and asks before deleting the remote branch.
 
-Requires Bash 4.3 or newer for the picker.
+Requires Bash 4.3 or newer.

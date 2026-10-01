@@ -33,7 +33,7 @@ Targets:
   all      Install dependencies, shell setup, configs, and tpm (default)
   deps     Install CLI dependencies only
   shell    Install bash bridge and zsh setup
-  bash     Install oh-my-bash setup only
+  bash     Install the bash-to-zsh bridge only
   zsh      Install oh-my-zsh + Powerlevel10k setup only
   config   Link application configs only
   tpm      Install tmux plugin manager only
@@ -284,14 +284,33 @@ move_path_entry() {
   hash -r
 }
 
+tmux_version() {
+  tmux -V 2>/dev/null | awk '{ print $2 }'
+}
+
+fzf_version() {
+  fzf --version 2>/dev/null | awk 'NR == 1 { print $1 }'
+}
+
+neovim_version() {
+  nvim --version 2>/dev/null | awk 'NR == 1 { sub(/^NVIM v/, ""); print $1 }'
+}
+
+tree_sitter_version() {
+  tree-sitter --version 2>/dev/null | awk 'NR == 1 { print $2 }'
+}
+
+# Whether the version printed by the function $1 is at least $2. A missing
+# command prints nothing, which fails.
+version_ok() {
+  local current
+
+  current="$("$1")"
+  [ -n "$current" ] && version_at_least "$current" "$2"
+}
+
 install_tmux() {
-  local current_version=""
-
-  if command_exists tmux; then
-    current_version="$(tmux -V | awk '{ print $2 }')"
-  fi
-
-  if [ -n "$current_version" ] && version_at_least "$current_version" "$TMUX_MIN_VERSION"; then
+  if version_ok tmux_version "$TMUX_MIN_VERSION"; then
     return
   fi
 
@@ -302,11 +321,6 @@ install_tmux() {
   fi
 
   hash -r
-  current_version="$(tmux -V 2>/dev/null | awk '{ print $2 }')"
-  if [ -z "$current_version" ] || ! version_at_least "$current_version" "$TMUX_MIN_VERSION"; then
-    echo "tmux ${current_version:-<missing>} at $(command -v tmux 2>/dev/null || echo '<missing>') remains below $TMUX_MIN_VERSION after $PACKAGE_MANAGER installation." >&2
-    return 1
-  fi
 }
 
 fd_available() {
@@ -472,10 +486,11 @@ download_github_release_asset() {
   verify_sha256 "$destination" "${digest#sha256:}"
 }
 
-linux_release_arch() {
+# Prints $1 on x86_64 and $2 on arm64: the names a release uses for them.
+release_arch() {
   case "$(uname -m)" in
-  x86_64 | amd64) echo "x86_64" ;;
-  aarch64 | arm64) echo "arm64" ;;
+  x86_64 | amd64) echo "$1" ;;
+  aarch64 | arm64) echo "$2" ;;
   *)
     echo "Unsupported Linux architecture: $(uname -m)" >&2
     return 1
@@ -483,78 +498,52 @@ linux_release_arch() {
   esac
 }
 
-fzf_release_arch() {
-  case "$(uname -m)" in
-  x86_64 | amd64) echo "amd64" ;;
-  aarch64 | arm64) echo "arm64" ;;
-  *)
-    echo "Unsupported fzf architecture: $(uname -m)" >&2
-    return 1
-    ;;
-  esac
-}
-
-tree_sitter_release_arch() {
-  case "$(uname -m)" in
-  x86_64 | amd64) echo "x64" ;;
-  aarch64 | arm64) echo "arm64" ;;
-  *)
-    echo "Unsupported Tree-sitter architecture: $(uname -m)" >&2
-    return 1
-    ;;
-  esac
-}
-
-zoxide_release_arch() {
-  case "$(uname -m)" in
-  x86_64 | amd64) echo "x86_64-unknown-linux-musl" ;;
-  aarch64 | arm64) echo "aarch64-unknown-linux-musl" ;;
-  *)
-    echo "Unsupported zoxide architecture: $(uname -m)" >&2
-    return 1
-    ;;
-  esac
-}
-
-fzf_version() {
-  fzf --version 2>/dev/null | awk 'NR == 1 { print $1 }'
-}
-
-install_fzf_release() (
+# Installs the binary $3 from the latest GitHub release of $1 into
+# ~/.local/bin. The asset name $2 may contain {version}, taken from the release
+# tag, and {arch}, which is $4 on x86_64 and $5 on arm64. A .zip asset is
+# unzipped; anything else is a .tar.gz holding the binary at its top level.
+install_release_binary() (
+  local repository="$1"
+  local asset_name="$2"
+  local binary="$3"
   local release_json
-  local release_tag
   local version
   local arch
-  local asset_name
   local tmpdir
   local archive
 
-  if ! release_json="$(github_release_json junegunn/fzf latest)"; then
-    echo "Failed to fetch the latest fzf release." >&2
+  if ! release_json="$(github_release_json "$repository" latest)"; then
+    echo "Failed to fetch the latest $repository release." >&2
     return 1
   fi
 
-  release_tag="$(jq -er '.tag_name' <<<"$release_json")"
-  version="${release_tag#v}"
-  arch="$(fzf_release_arch)"
-  asset_name="fzf-${version}-linux_${arch}.tar.gz"
-  tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/dotfiles-fzf.XXXXXX")"
+  version="$(jq -er '.tag_name' <<<"$release_json")"
+  version="${version#v}"
+  arch="$(release_arch "$4" "$5")"
+  asset_name="${asset_name//\{version\}/$version}"
+  asset_name="${asset_name//\{arch\}/$arch}"
+  tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/dotfiles-$binary.XXXXXX")"
   archive="$tmpdir/$asset_name"
   trap 'rm -rf "$tmpdir"' EXIT
 
   download_github_release_asset "$release_json" "$asset_name" "$archive"
-  tar -xzf "$archive" -C "$tmpdir" fzf
-  install_user_binary "$tmpdir/fzf" fzf
+  case "$asset_name" in
+  *.zip) unzip -q "$archive" -d "$tmpdir" ;;
+  *) tar -xzf "$archive" -C "$tmpdir" "$binary" ;;
+  esac
+
+  # A binary built against a newer libc than this host's is executable but does
+  # not run; keep it out of ~/.local/bin rather than replace a working one.
+  if ! "$tmpdir/$binary" --version >/dev/null 2>&1; then
+    echo "The $binary binary from the latest $repository release does not run on this host." >&2
+    return 1
+  fi
+
+  install_user_binary "$tmpdir/$binary" "$binary"
 )
 
 install_fzf() {
-  local current_version=""
-
-  if command_exists fzf; then
-    current_version="$(fzf_version)"
-  fi
-
-  if [ -n "$current_version" ] && version_at_least "$current_version" "$FZF_MIN_VERSION"; then
+  if version_ok fzf_version "$FZF_MIN_VERSION"; then
     return
   fi
 
@@ -564,65 +553,13 @@ install_fzf() {
     ;;
   dnf | apt)
     install_managed_package fzf fzf fzf
-    current_version="$(fzf_version 2>/dev/null || true)"
-    if [ -z "$current_version" ] || ! version_at_least "$current_version" "$FZF_MIN_VERSION"; then
-      install_fzf_release
+    if ! version_ok fzf_version "$FZF_MIN_VERSION"; then
+      install_release_binary junegunn/fzf 'fzf-{version}-linux_{arch}.tar.gz' fzf amd64 arm64
     fi
     ;;
   esac
 
   hash -r
-}
-
-install_zoxide_release() (
-  local release_json
-  local release_tag
-  local version
-  local arch
-  local asset_name
-  local tmpdir
-  local archive
-
-  if ! release_json="$(github_release_json ajeetdsouza/zoxide latest)"; then
-    echo "Failed to fetch the latest zoxide release." >&2
-    return 1
-  fi
-
-  release_tag="$(jq -er '.tag_name' <<<"$release_json")"
-  version="${release_tag#v}"
-  arch="$(zoxide_release_arch)"
-  asset_name="zoxide-${version}-${arch}.tar.gz"
-  tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/dotfiles-zoxide.XXXXXX")"
-  archive="$tmpdir/$asset_name"
-  trap 'rm -rf "$tmpdir"' EXIT
-
-  download_github_release_asset "$release_json" "$asset_name" "$archive"
-  tar -xzf "$archive" -C "$tmpdir" zoxide
-
-  if [ ! -x "$tmpdir/zoxide" ]; then
-    echo "The zoxide release did not contain an executable zoxide binary." >&2
-    return 1
-  fi
-
-  install_user_binary "$tmpdir/zoxide" zoxide
-)
-
-install_zoxide() {
-  if command_exists zoxide && zoxide --version >/dev/null 2>&1; then
-    return
-  fi
-
-  case "$PACKAGE_MANAGER" in
-  brew) install_brew_formula zoxide ;;
-  dnf) install_managed_package zoxide zoxide zoxide ;;
-  apt) install_zoxide_release ;;
-  esac
-
-  hash -r
-}
-
-neovim_version() {
-  nvim --version 2>/dev/null | awk 'NR == 1 { sub(/^NVIM v/, ""); print $1 }'
 }
 
 neovim_installation_usable() {
@@ -648,7 +585,7 @@ install_neovim_release() (
     return 1
   fi
 
-  arch="$(linux_release_arch)"
+  arch="$(release_arch x86_64 arm64)"
   asset_name="nvim-linux-${arch}.tar.gz"
   tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/dotfiles-neovim.XXXXXX")"
   archive="$tmpdir/$asset_name"
@@ -685,13 +622,7 @@ install_neovim_release() (
 )
 
 install_neovim() {
-  local current_version=""
-
-  if command_exists nvim; then
-    current_version="$(neovim_version)"
-  fi
-
-  if [ -n "$current_version" ] && version_at_least "$current_version" "$NVIM_MIN_VERSION"; then
+  if version_ok neovim_version "$NVIM_MIN_VERSION"; then
     return
   fi
 
@@ -704,83 +635,18 @@ install_neovim() {
   hash -r
 }
 
-tree_sitter_version() {
-  tree-sitter --version 2>/dev/null | awk 'NR == 1 { print $2 }'
-}
-
-install_tree_sitter_release() (
-  local release_json
-  local arch
-  local asset_name
-  local tmpdir
-  local archive
-  local binary
-  local version
-
-  if ! release_json="$(github_release_json tree-sitter/tree-sitter latest)"; then
-    echo "Failed to fetch the latest Tree-sitter release." >&2
-    return 1
-  fi
-
-  arch="$(tree_sitter_release_arch)"
-  asset_name="tree-sitter-cli-linux-${arch}.zip"
-  tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/dotfiles-tree-sitter.XXXXXX")"
-  archive="$tmpdir/$asset_name"
-  binary="$tmpdir/tree-sitter"
-  trap 'rm -rf "$tmpdir"' EXIT
-
-  download_github_release_asset "$release_json" "$asset_name" "$archive"
-  unzip -q "$archive" -d "$tmpdir"
-
-  if [ ! -x "$binary" ]; then
-    echo "The Tree-sitter release did not contain an executable tree-sitter binary." >&2
-    return 1
-  fi
-
-  version="$("$binary" --version | awk 'NR == 1 { print $2 }')"
-  if ! version_at_least "$version" "$TREE_SITTER_MIN_VERSION"; then
-    echo "Tree-sitter $version is older than required $TREE_SITTER_MIN_VERSION." >&2
-    return 1
-  fi
-
-  install_user_binary "$binary" tree-sitter
-)
-
 install_tree_sitter() {
-  local current_version=""
-
-  if command_exists tree-sitter; then
-    current_version="$(tree_sitter_version)"
-  fi
-
-  if [ -n "$current_version" ] && version_at_least "$current_version" "$TREE_SITTER_MIN_VERSION"; then
+  if version_ok tree_sitter_version "$TREE_SITTER_MIN_VERSION"; then
     return
   fi
 
   if [ "$PACKAGE_MANAGER" = "brew" ]; then
     upgrade_brew_formula tree-sitter-cli
   else
-    install_tree_sitter_release
+    install_release_binary tree-sitter/tree-sitter 'tree-sitter-cli-linux-{arch}.zip' tree-sitter x64 arm64
   fi
 
   hash -r
-}
-
-gh_binary_supports_state_reason() {
-  local binary="$1"
-  local fields
-
-  [ -x "$binary" ] || return 1
-  fields="$("$binary" issue list --json 2>&1 || true)"
-  grep -q '^[[:space:]]*stateReason$' <<<"$fields"
-}
-
-gh_supports_state_reason() {
-  local binary
-
-  command_exists gh || return 1
-  binary="$(command -v gh)"
-  gh_binary_supports_state_reason "$binary"
 }
 
 gh_apt_source_line() {
@@ -868,69 +734,18 @@ prepare_gh_package_source() {
 }
 
 install_gh() {
-  local managed_binary=""
-
-  if gh_supports_state_reason; then
+  if command_exists gh; then
     return
   fi
 
   case "$PACKAGE_MANAGER" in
-  brew) upgrade_brew_formula gh ;;
+  brew) install_brew_formula gh ;;
   dnf) install_gh_dnf ;;
   apt) install_gh_apt ;;
   esac
 
   hash -r
-  case "$PACKAGE_MANAGER" in
-  brew) managed_binary="$(HOME="$ORIGINAL_HOME" brew --prefix gh)/bin/gh" ;;
-  dnf | apt) managed_binary="/usr/bin/gh" ;;
-  esac
-
-  if ! gh_supports_state_reason && gh_binary_supports_state_reason "$managed_binary"; then
-    link_user_binary "$managed_binary" gh
-    hash -r
-  fi
-
-  if ! gh_supports_state_reason; then
-    echo "The gh selected from PATH ($(command -v gh 2>/dev/null || echo '<missing>')) does not support the stateReason field required by Snacks.gh." >&2
-    return 1
-  fi
 }
-
-install_lazygit_release() (
-  local release_json
-  local release_tag
-  local version
-  local arch
-  local asset_name
-  local tmpdir
-  local archive
-  local binary
-
-  if ! release_json="$(github_release_json jesseduffield/lazygit latest)"; then
-    echo "Failed to fetch the latest Lazygit release." >&2
-    return 1
-  fi
-
-  release_tag="$(jq -er '.tag_name' <<<"$release_json")"
-  version="${release_tag#v}"
-  arch="$(linux_release_arch)"
-  asset_name="lazygit_${version}_Linux_${arch}.tar.gz"
-  tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/dotfiles-lazygit.XXXXXX")"
-  archive="$tmpdir/$asset_name"
-  binary="$tmpdir/lazygit"
-  trap 'rm -rf "$tmpdir"' EXIT
-
-  download_github_release_asset "$release_json" "$asset_name" "$archive"
-  tar -xzf "$archive" -C "$tmpdir" lazygit
-
-  if [ ! -x "$binary" ]; then
-    echo "The Lazygit release did not contain an executable lazygit binary." >&2
-    return 1
-  fi
-
-  install_user_binary "$binary" lazygit
-)
 
 install_lazygit() {
   if command_exists lazygit && lazygit --version >/dev/null 2>&1; then
@@ -940,17 +755,31 @@ install_lazygit() {
   if [ "$PACKAGE_MANAGER" = "brew" ]; then
     install_brew_formula lazygit
   else
-    install_lazygit_release
+    install_release_binary jesseduffield/lazygit 'lazygit_{version}_Linux_{arch}.tar.gz' lazygit x86_64 arm64
   fi
 
   hash -r
 }
 
+# Fails with a message when the command $1 is older than $3, read with the
+# version function $2. A missing command passes: the presence check reports it.
+check_min_version() {
+  local command="$1"
+  local version_fn="$2"
+  local required="$3"
+
+  if ! command_exists "$command" || version_ok "$version_fn" "$required"; then
+    return 0
+  fi
+
+  echo "$command $required or newer is required; found $("$version_fn") at $(command -v "$command")." >&2
+  return 1
+}
+
 verify_dependencies() {
-  local commands=(git curl zsh tmux nvim rg fd fzf zoxide make tar unzip jq python3 gh lazygit tree-sitter)
+  local commands=(git curl zsh tmux nvim rg fd fzf make tar unzip jq python3 gh lazygit tree-sitter)
   local command
   local failed=0
-  local version
 
   for command in "${commands[@]}"; do
     if ! command_exists "$command"; then
@@ -959,42 +788,10 @@ verify_dependencies() {
     fi
   done
 
-  if command_exists tmux; then
-    version="$(tmux -V | awk '{ print $2 }')"
-    if ! version_at_least "$version" "$TMUX_MIN_VERSION"; then
-      echo "tmux $TMUX_MIN_VERSION or newer is required; found $version at $(command -v tmux)." >&2
-      failed=1
-    fi
-  fi
-
-  if command_exists nvim; then
-    version="$(neovim_version)"
-    if ! version_at_least "$version" "$NVIM_MIN_VERSION"; then
-      echo "Neovim $NVIM_MIN_VERSION or newer is required; found $version at $(command -v nvim)." >&2
-      failed=1
-    fi
-  fi
-
-  if command_exists fzf; then
-    version="$(fzf_version)"
-    if ! version_at_least "$version" "$FZF_MIN_VERSION"; then
-      echo "fzf $FZF_MIN_VERSION or newer is required; found $version at $(command -v fzf)." >&2
-      failed=1
-    fi
-  fi
-
-  if command_exists tree-sitter; then
-    version="$(tree_sitter_version)"
-    if ! version_at_least "$version" "$TREE_SITTER_MIN_VERSION"; then
-      echo "Tree-sitter CLI $TREE_SITTER_MIN_VERSION or newer is required; found $version at $(command -v tree-sitter)." >&2
-      failed=1
-    fi
-  fi
-
-  if command_exists zoxide && ! zoxide --version >/dev/null 2>&1; then
-    echo "zoxide exists at $(command -v zoxide) but cannot run." >&2
-    failed=1
-  fi
+  check_min_version tmux tmux_version "$TMUX_MIN_VERSION" || failed=1
+  check_min_version nvim neovim_version "$NVIM_MIN_VERSION" || failed=1
+  check_min_version fzf fzf_version "$FZF_MIN_VERSION" || failed=1
+  check_min_version tree-sitter tree_sitter_version "$TREE_SITTER_MIN_VERSION" || failed=1
 
   if command_exists lazygit && ! lazygit --version >/dev/null 2>&1; then
     echo "lazygit exists at $(command -v lazygit) but cannot run." >&2
@@ -1003,11 +800,6 @@ verify_dependencies() {
 
   if ! fd_available; then
     echo "The fd command is missing or is not sharkdp/fd." >&2
-    failed=1
-  fi
-
-  if ! gh_supports_state_reason; then
-    echo "gh at $(command -v gh 2>/dev/null || echo '<missing>') does not expose the stateReason field required by Snacks.gh." >&2
     failed=1
   fi
 
@@ -1034,7 +826,6 @@ install_dependencies() {
   run_dependency_step "tmux $TMUX_MIN_VERSION+ ($PACKAGE_MANAGER)" install_tmux
   run_dependency_step "fd ($PACKAGE_MANAGER, with Debian command alias)" install_fd
   run_dependency_step "fzf ($PACKAGE_MANAGER, upstream fallback when too old)" install_fzf
-  run_dependency_step "zoxide ($PACKAGE_MANAGER)" install_zoxide
   run_dependency_step "Neovim (Homebrew or verified upstream release)" install_neovim
   run_dependency_step "Tree-sitter CLI (Homebrew or verified upstream release)" install_tree_sitter
   run_dependency_step "GitHub CLI (official package source)" install_gh
@@ -1102,97 +893,26 @@ install_zsh_autosuggestions() {
   chown_target_path "$dest"
 }
 
-install_oh_my_bash() {
-  if [ -d "$HOME/.oh-my-bash" ]; then
-    echo "oh-my-bash already installed, skipping."
-    return
-  fi
-
-  if ! command_exists bash; then
-    echo "bash is not installed. Skipping oh-my-bash."
-    return
-  fi
-
-  if ! command_exists git; then
-    echo "git is not installed. Skipping oh-my-bash."
-    return
-  fi
-
-  echo "Installing oh-my-bash..."
-  git clone --depth=1 https://github.com/ohmybash/oh-my-bash.git "$HOME/.oh-my-bash"
-  chown_target_path "$HOME/.oh-my-bash"
-}
-
-install_oh_my_for_shell() {
-  local shell_name="${1:-$(default_shell_name)}"
-
-  case "$shell_name" in
-  zsh)
-    install_oh_my_zsh
-    install_powerlevel10k
-    install_zsh_autosuggestions
-    ;;
-  bash)
-    install_oh_my_bash
-    ;;
-  *)
-    echo "Default shell is not bash or zsh. Skipping oh-my shell setup."
-    ;;
-  esac
-}
-
-# Function to create symlinks
+# Links ~/.config/<name> ($2, default $1) to <source> ($1) in this repo, moving
+# an existing config out of the way to <name>.bak.
 link_config() {
-  local name="$1"
-  local target="$DOTFILES_DIR/$name"
-  local dest="$CONFIG_DIR/$name"
-  local current_target
+  local target="$DOTFILES_DIR/$1"
+  local dest="$CONFIG_DIR/${2:-$1}"
+
+  if [ -L "$dest" ] && [ "$(readlink "$dest")" = "$target" ]; then
+    echo "$dest already links to $target, skipping."
+    return
+  fi
 
   if [ -L "$dest" ]; then
-    current_target="$(readlink "$dest")"
-    if [ "$current_target" = "$target" ]; then
-      echo "Symlink for $name already points to dotfiles, skipping."
-    else
-      rm "$dest"
-      ln -s "$target" "$dest"
-      echo "Updated symlink for $name"
-    fi
-  elif [ -d "$dest" ] || [ -f "$dest" ]; then
-    echo "Existing config for $name found. Backing up to $dest.bak"
+    rm "$dest"
+  elif [ -e "$dest" ]; then
+    echo "Existing config found. Backing up $dest to $dest.bak"
     mv "$dest" "$dest.bak"
-    ln -s "$target" "$dest"
-    echo "Created symlink for $name"
-  else
-    ln -s "$target" "$dest"
-    echo "Created symlink for $name"
   fi
-}
 
-link_app_config() {
-  local source_name="$1"
-  local app_name="$2"
-  local target="$DOTFILES_DIR/$source_name"
-  local dest="$CONFIG_DIR/$app_name"
-  local current_target
-
-  if [ -L "$dest" ]; then
-    current_target="$(readlink "$dest")"
-    if [ "$current_target" = "$target" ]; then
-      echo "Symlink for $app_name already points to $source_name, skipping."
-    else
-      rm "$dest"
-      ln -s "$target" "$dest"
-      echo "Updated symlink for $app_name -> $source_name"
-    fi
-  elif [ -d "$dest" ] || [ -f "$dest" ]; then
-    echo "Existing config for $app_name found. Backing up to $dest.bak"
-    mv "$dest" "$dest.bak"
-    ln -s "$target" "$dest"
-    echo "Created symlink for $app_name -> $source_name"
-  else
-    ln -s "$target" "$dest"
-    echo "Created symlink for $app_name -> $source_name"
-  fi
+  ln -s "$target" "$dest"
+  echo "Linked $dest -> $target"
 }
 
 configure_bash_common() {
@@ -1203,7 +923,7 @@ configure_bash_common() {
   if grep -Fq "$source_line" "$shell_rc"; then
     echo "bash config already sourced, skipping."
   else
-    printf '\n# dotfiles bash config (oh-my-bash + shared shell layer)\n%s\n' "$source_line" >>"$shell_rc"
+    printf '\n# dotfiles bash config (shared shell layer + hand-off to zsh)\n%s\n' "$source_line" >>"$shell_rc"
     echo "Added bash config source to $shell_rc"
   fi
   chown_target_path "$shell_rc"
@@ -1248,10 +968,15 @@ configure_zsh_common() {
 install_shell() {
   local shell_name="${1:-$(default_shell_name)}"
 
-  install_oh_my_for_shell "$shell_name"
   case "$shell_name" in
   bash) configure_bash_common ;;
-  zsh) configure_zsh_common ;;
+  zsh)
+    install_oh_my_zsh
+    install_powerlevel10k
+    install_zsh_autosuggestions
+    configure_zsh_common
+    ;;
+  *) echo "Default shell is not bash or zsh. Skipping shell setup." ;;
   esac
 }
 
@@ -1314,7 +1039,7 @@ install_configs() {
   mkdir -p "$CONFIG_DIR"
   chown_target_path "$CONFIG_DIR"
   ensure_gruvim_source
-  link_app_config "gruvim" "nvim"
+  link_config "gruvim" "nvim"
   link_config "tmux"
 
   # Link ghostty config only if ghostty is installed

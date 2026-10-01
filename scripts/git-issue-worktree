@@ -46,11 +46,10 @@ Arguments:
 Environment:
   WORKTREE    worktree 베이스 경로 (필수)
   WORKSPACE   레포들이 모여있는 경로 (필수)
-  GIW_PICKER  레포 선택 UI: auto(기본) | fzf | builtin
 
-레포 선택 화면:
+레포 선택 화면 (fzf):
   레포명을 타이핑하면 fuzzy 검색으로 후보가 좁혀집니다 (예: bkapi → backend-api).
-  ↑↓ 이동 · Space/Tab 선택/해제 · Ctrl-A 전체 · Enter 확정 · ESC 취소
+  ↑↓ 이동 · Tab 선택/해제 · Ctrl-A 전체 · Ctrl-D 전체 해제 · Enter 확정 · ESC 취소
 
 Examples:
   export WORKTREE=~/worktrees
@@ -127,34 +126,19 @@ find_repos() {
 }
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 레포 선택기 — 이름을 타이핑하면 자동으로 후보가 좁혀짐
+# 레포 선택기 — 이름을 타이핑하면 fzf가 후보를 좁힌다
 #
 #   pick_repos <결과_배열명> <후보_배열명>
-#
-#   GIW_PICKER=auto     fzf가 있으면 fzf, 없으면 내장 TUI (기본값)
-#   GIW_PICKER=fzf      항상 fzf
-#   GIW_PICKER=builtin  항상 내장 TUI (외부 의존 없음)
 # ══════════════════════════════════════════════════════════════════════════════
 
-# fuzzy 서브시퀀스 매칭: needle의 문자들이 haystack에 순서대로 나타나면 매치
-#   예) "bkapi" → "backend-api",  "web" → "web-frontend"
-_fuzzy_match() {
-  local hay="${1,,}" needle="${2,,}" ch i
-  for ((i = 0; i < ${#needle}; i++)); do
-    ch="${needle:i:1}"
-    if [[ "$ch" == " " ]]; then continue; fi
-    case "$hay" in
-    *"$ch"*) hay="${hay#*"$ch"}" ;;
-    *) return 1 ;;
-    esac
-  done
-  return 0
-}
-
-# ── fzf 기반 선택기 ───────────────────────────────────────────────────────────
-_pick_repos_fzf() {
+pick_repos() {
   declare -n __out="$1"
   declare -n __src="$2"
+
+  if ! command -v fzf &>/dev/null; then
+    error "레포 선택에 fzf가 필요합니다. ./install.sh deps 로 설치하세요."
+    exit 1
+  fi
 
   local i name width=0
   for i in "${!__src[@]}"; do
@@ -182,7 +166,8 @@ _pick_repos_fzf() {
   __out=()
   if [[ -z "$picked" ]]; then
     if ((rc != 0 && rc != 1 && rc != 130)); then
-      warn "fzf 실행 실패(exit ${rc}) — GIW_PICKER=builtin 으로 재시도해보세요."
+      error "fzf 실행 실패(exit ${rc})"
+      exit 1
     fi
     return 0
   fi
@@ -197,341 +182,6 @@ _pick_repos_fzf() {
   for i in "${!__src[@]}"; do
     if [[ -n "${marked[$i]:-}" ]]; then __out+=("${__src[$i]}"); fi
   done
-}
-
-# ── 내장 타입어헤드 TUI (외부 의존 없음) ──────────────────────────────────────
-_P_STTY=""
-_p_restore_tty() {
-  printf '\033[?25h' # 커서 복구
-  if [[ -n "$_P_STTY" ]]; then stty "$_P_STTY" </dev/tty 2>/dev/null || true; fi
-}
-
-# 표시 폭 계산 → _P_W (한글 등 non-ASCII는 2칸으로 근사).
-# 줄이 터미널 폭을 넘겨 줄바꿈되면 프레임 지우기 줄 수 계산이 깨지므로 필요하다.
-_P_W=0
-_p_dwidth() {
-  local s="$1" ascii="${1//[^ -~]/}"
-  _P_W=$((${#s} * 2 - ${#ascii}))
-}
-
-_pick_repos_tui() {
-  declare -n __out="$1"
-  declare -n __src="$2"
-
-  local n=${#__src[@]}
-  declare -a P_NAME=() P_REL=() P_MARK=() P_FILT=()
-
-  local i
-  for ((i = 0; i < n; i++)); do
-    P_NAME+=("$(basename "${__src[$i]}")")
-    P_REL+=("${__src[$i]/#$WORKSPACE\//}")
-    P_MARK+=("false")
-  done
-
-  local query="" cursor=0 win=0 frame=0 cancelled=false
-  local rows max_rows
-  rows="$(tput lines 2>/dev/null || echo 24)"
-  max_rows=$((rows - 8))
-  if ((max_rows > 12)); then max_rows=12; fi
-  if ((max_rows < 3)); then max_rows=3; fi
-
-  _p_refilter() {
-    local j
-    P_FILT=()
-    for ((j = 0; j < n; j++)); do
-      if _fuzzy_match "${P_NAME[$j]}" "$query" || _fuzzy_match "${P_REL[$j]}" "$query"; then
-        P_FILT+=("$j")
-      fi
-    done
-    if ((cursor >= ${#P_FILT[@]})); then cursor=$((${#P_FILT[@]} - 1)); fi
-    if ((cursor < 0)); then cursor=0; fi
-  }
-
-  _p_move() {
-    local total=${#P_FILT[@]}
-    if ((total == 0)); then return 0; fi
-    cursor=$((cursor + $1))
-    if ((cursor < 0)); then cursor=0; fi
-    if ((cursor > total - 1)); then cursor=$((total - 1)); fi
-  }
-
-  _p_toggle() {
-    if ((${#P_FILT[@]} == 0)); then return 0; fi
-    local idx="${P_FILT[$cursor]}"
-    if [[ "${P_MARK[$idx]}" == "true" ]]; then P_MARK[$idx]="false"; else P_MARK[$idx]="true"; fi
-    # 선택 후에는 검색어를 비워 다음 레포명을 바로 타이핑할 수 있게 한다
-    if [[ -n "$query" ]]; then
-      query=""
-      _p_refilter
-      cursor="$idx" # 쿼리가 비면 filtered == 전체이므로 인덱스가 곧 화면 위치
-    fi
-  }
-
-  _p_toggle_all() {
-    local j all_marked=true
-    if ((${#P_FILT[@]} == 0)); then return 0; fi
-    for j in "${P_FILT[@]}"; do
-      if [[ "${P_MARK[$j]}" != "true" ]]; then
-        all_marked=false
-        break
-      fi
-    done
-    for j in "${P_FILT[@]}"; do
-      if [[ "$all_marked" == "true" ]]; then P_MARK[$j]="false"; else P_MARK[$j]="true"; fi
-    done
-  }
-
-  _p_render() {
-    # 직전 프레임 지우기
-    if ((frame > 0)); then printf '\033[%dA\r\033[J' "$frame"; fi
-    frame=0
-
-    local cols total=${#P_FILT[@]} sel=0 buf="" j idx
-    cols="$(tput cols 2>/dev/null || echo 80)"
-    for j in "${P_MARK[@]}"; do
-      if [[ "$j" == "true" ]]; then sel=$((sel + 1)); fi
-    done
-
-    _p_line() {
-      buf+="$1"$'\n'
-      frame=$((frame + 1))
-    }
-
-    # 터미널 폭에 맞는 가장 자세한 도움말을 고른다 (줄바꿈 방지)
-    local help
-    for help in \
-      "이름 입력=검색  ↑↓=이동  Space/Tab=선택  ^A=전체  Enter=확정  ESC=취소" \
-      "↑↓ 이동 · Space 선택 · ^A 전체 · Enter 확정 · ESC 취소" \
-      "Space=선택 Enter=확정 ESC=취소" \
-      "Space/Enter/ESC"; do
-      _p_dwidth "$help"
-      if ((_P_W <= cols)); then break; fi
-    done
-    _p_line "${DIM}${help}${RESET}"
-    # 검색어가 길어도 한 줄을 넘기지 않도록 뒤쪽만 보여준다
-    local q_disp="$query" off
-    if ((${#q_disp} > cols - 8)); then
-      off=$((${#q_disp} - (cols - 9)))
-      q_disp="…${q_disp:off}"
-    fi
-    _p_line "  ${CYAN}❯${RESET} ${BOLD}${q_disp}${RESET}${DIM}█${RESET}"
-    _p_line "${DIM}  ${total}/${n} 매치 · ${sel}개 선택${RESET}"
-
-    local start=$win end=$((win + max_rows))
-    if ((end > total)); then end=$total; fi
-
-    if ((total == 0)); then
-      if ((cols >= 52)); then
-        _p_line "  ${YELLOW}매치되는 레포가 없습니다 (Ctrl-U로 검색어 초기화)${RESET}"
-      else
-        _p_line "  ${YELLOW}매치 없음 (^U 초기화)${RESET}"
-      fi
-    fi
-
-    local mark name rel budget
-    for ((j = start; j < end; j++)); do
-      idx="${P_FILT[$j]}"
-      if [[ "${P_MARK[$idx]}" == "true" ]]; then mark="${GREEN}✓${RESET}"; else mark=" "; fi
-      name="${P_NAME[$idx]}"
-      rel="${P_REL[$idx]}"
-      # 한 줄을 넘기지 않도록 경로를 잘라낸다 (줄바꿈되면 프레임 지우기가 깨짐)
-      budget=$((cols - 10 - ${#name}))
-      if ((${#rel} > budget)); then
-        if ((budget > 3)); then rel="${rel:0:budget-1}…"; else rel=""; fi
-      fi
-      if ((j == cursor)); then
-        _p_line " ${CYAN}❯${RESET} [${mark}] ${BOLD}${name}${RESET}  ${DIM}${rel}${RESET}"
-      else
-        _p_line "   [${mark}] ${name}  ${DIM}${rel}${RESET}"
-      fi
-    done
-
-    if ((total > end)); then _p_line "${DIM}   … $((total - end))개 더${RESET}"; fi
-
-    printf '%s' "$buf"
-  }
-
-  # ── raw 모드 진입 ───────────────────────────────────────────────────────────
-  # 복구용 termios는 트랩(서브셸/EXIT 시점)에서도 보이도록 전역에 보관
-  _P_STTY="$(stty -g </dev/tty)"
-  trap '_p_restore_tty' EXIT
-  trap '_p_restore_tty; exit 130' INT TERM
-  stty -echo -icanon min 1 time 0 </dev/tty
-  printf '\033[?25l' # 커서 숨김
-
-  _p_refilter
-
-  local key rest
-  while true; do
-    # 커서를 항상 화면 안에 유지
-    if ((cursor < win)); then win=$cursor; fi
-    if ((cursor >= win + max_rows)); then win=$((cursor - max_rows + 1)); fi
-    if ((win > ${#P_FILT[@]} - max_rows)); then win=$((${#P_FILT[@]} - max_rows)); fi
-    if ((win < 0)); then win=0; fi
-
-    _p_render
-
-    key=""
-    IFS= read -rsn1 key </dev/tty || key=""
-
-    case "$key" in
-    "" | $'\r') break ;; # Enter
-    $'\x7f' | $'\b')     # Backspace
-      query="${query%?}"
-      cursor=0
-      _p_refilter
-      ;;
-    $'\t' | " ") _p_toggle ;; # Tab / Space
-    $'\x01') _p_toggle_all ;; # Ctrl-A
-    $'\x15')                  # Ctrl-U
-      query=""
-      cursor=0
-      _p_refilter
-      ;;
-    $'\x0e') _p_move 1 ;;  # Ctrl-N
-    $'\x10') _p_move -1 ;; # Ctrl-P
-    $'\x1b')               # ESC / 방향키
-      rest=""
-      IFS= read -rsn2 -t 0.05 rest </dev/tty || true
-      case "$rest" in
-      "[A") _p_move -1 ;;
-      "[B") _p_move 1 ;;
-      "[5" | "[6")
-        IFS= read -rsn1 -t 0.05 _ </dev/tty || true
-        if [[ "$rest" == "[5" ]]; then _p_move "-${max_rows}"; else _p_move "$max_rows"; fi
-        ;;
-      "")
-        cancelled=true
-        break
-        ;;
-      esac
-      ;;
-    *)
-      if [[ "$key" == [[:print:]] ]]; then
-        query+="$key"
-        cursor=0
-        _p_refilter
-      fi
-      ;;
-    esac
-  done
-
-  # ── 정리: 프레임 지우고 raw 모드 복구 ───────────────────────────────────────
-  if ((frame > 0)); then printf '\033[%dA\r\033[J' "$frame"; fi
-  _p_restore_tty
-  _P_STTY=""
-  trap - EXIT INT TERM
-
-  __out=()
-  if [[ "$cancelled" == "true" ]]; then
-    info "선택을 취소했습니다."
-    return 0
-  fi
-
-  # 아무것도 토글하지 않고 Enter를 눌렀다면 커서 위 항목을 선택으로 간주
-  local any=false j
-  for j in "${P_MARK[@]}"; do
-    if [[ "$j" == "true" ]]; then
-      any=true
-      break
-    fi
-  done
-  if [[ "$any" == "false" && ${#P_FILT[@]} -gt 0 ]]; then
-    P_MARK[${P_FILT[$cursor]}]="true"
-  fi
-
-  for ((j = 0; j < n; j++)); do
-    if [[ "${P_MARK[$j]}" == "true" ]]; then __out+=("${__src[$j]}"); fi
-  done
-}
-
-# ── 비대화형(TTY 없음) 폴백: 이름/번호 한 줄 입력 ─────────────────────────────
-_pick_repos_plain() {
-  declare -n __out="$1"
-  declare -n __src="$2"
-
-  local i
-  for i in "${!__src[@]}"; do
-    echo -e "  $((i + 1)). $(basename "${__src[$i]}")  ${DIM}${__src[$i]/#$WORKSPACE\//}${RESET}"
-  done
-  echo ""
-
-  local input=""
-  read -r -p "레포명 또는 번호 (쉼표/공백 구분, a=전체): " input || true
-
-  declare -a picked=()
-  for i in "${!__src[@]}"; do picked+=("false"); done
-
-  if [[ "$input" == "a" || "$input" == "A" ]]; then
-    for i in "${!picked[@]}"; do picked[$i]="true"; done
-  else
-    declare -a tokens=()
-    IFS=', ' read -r -a tokens <<<"$input"
-    local tok idx
-    for tok in "${tokens[@]}"; do
-      if [[ "$tok" =~ ^[0-9]+$ ]]; then
-        idx=$((tok - 1))
-        if ((idx >= 0 && idx < ${#__src[@]})); then
-          picked[$idx]="true"
-        else
-          warn "범위를 벗어난 번호: $tok (1~${#__src[@]})"
-        fi
-        continue
-      fi
-      declare -a hits=()
-      for i in "${!__src[@]}"; do
-        if _fuzzy_match "$(basename "${__src[$i]}")" "$tok"; then hits+=("$i"); fi
-      done
-      case ${#hits[@]} in
-      0) warn "매치되는 레포 없음: '$tok'" ;;
-      1) picked[${hits[0]}]="true" ;;
-      *)
-        # 완전일치가 있으면 그것을 우선
-        local exact=""
-        for i in "${hits[@]}"; do
-          if [[ "$(basename "${__src[$i]}")" == "$tok" ]]; then exact="$i"; fi
-        done
-        if [[ -n "$exact" ]]; then
-          picked[$exact]="true"
-        else
-          warn "모호한 입력 '$tok' — 후보: $(for i in "${hits[@]}"; do printf '%s ' "$(basename "${__src[$i]}")"; done)"
-        fi
-        ;;
-      esac
-    done
-  fi
-
-  __out=()
-  for i in "${!__src[@]}"; do
-    if [[ "${picked[$i]}" == "true" ]]; then __out+=("${__src[$i]}"); fi
-  done
-}
-
-# ── 디스패처 ──────────────────────────────────────────────────────────────────
-pick_repos() {
-  local out_name="$1" src_name="$2"
-  local picker="${GIW_PICKER:-auto}"
-
-  if [[ ! -r /dev/tty || ! -t 1 ]]; then
-    _pick_repos_plain "$out_name" "$src_name"
-    return
-  fi
-
-  case "$picker" in
-  fzf) _pick_repos_fzf "$out_name" "$src_name" ;;
-  builtin | tui) _pick_repos_tui "$out_name" "$src_name" ;;
-  auto)
-    if command -v fzf &>/dev/null; then
-      _pick_repos_fzf "$out_name" "$src_name"
-    else
-      _pick_repos_tui "$out_name" "$src_name"
-    fi
-    ;;
-  *)
-    warn "알 수 없는 GIW_PICKER='${picker}' (auto|fzf|builtin) — 내장 선택기로 진행합니다."
-    _pick_repos_tui "$out_name" "$src_name"
-    ;;
-  esac
 }
 
 # ══════════════════════════════════════════════════════════════════════════════
