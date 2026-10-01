@@ -131,7 +131,12 @@ ensure_gruvim_source() {
 NVIM_MIN_VERSION="${NVIM_MIN_VERSION:-0.12.0}"
 TREE_SITTER_MIN_VERSION="${TREE_SITTER_MIN_VERSION:-0.26.1}"
 FZF_MIN_VERSION="${FZF_MIN_VERSION:-0.48.0}"
-TMUX_MIN_VERSION="${TMUX_MIN_VERSION:-3.2}"
+# 3.6 is the first tmux that tells panes when the terminal's theme changes
+# (mode 2031), which Claude Code's `auto` theme follows. Package managers that
+# ship an older one (el9, current Debian/Ubuntu) get TMUX_BUILD_VERSION built
+# from source instead.
+TMUX_MIN_VERSION="${TMUX_MIN_VERSION:-3.6}"
+TMUX_BUILD_VERSION="${TMUX_BUILD_VERSION:-3.6b}"
 # Published in GitHub CLI's official Linux installation guide.
 GH_APT_KEYRING_SHA256="${GH_APT_KEYRING_SHA256:-6084d5d7bd8e288441e0e94fc6275570895da18e6751f70f057485dc2d1a811b}"
 
@@ -309,6 +314,39 @@ version_ok() {
   [ -n "$current" ] && version_at_least "$current" "$2"
 }
 
+# Builds tmux $TMUX_BUILD_VERSION from its release tarball into ~/.local,
+# installing the compiler and the libevent and ncurses headers it needs first.
+install_tmux_source() (
+  local asset_name="tmux-$TMUX_BUILD_VERSION.tar.gz"
+  local release_json
+  local tmpdir
+
+  case "$PACKAGE_MANAGER" in
+  dnf) sudo dnf install -y gcc make bison pkgconf-pkg-config libevent-devel ncurses-devel ;;
+  apt) sudo apt-get install -y build-essential bison pkg-config libevent-dev libncurses-dev ;;
+  esac
+
+  if ! release_json="$(github_release_json tmux/tmux "$TMUX_BUILD_VERSION")"; then
+    echo "Failed to fetch the tmux $TMUX_BUILD_VERSION release." >&2
+    return 1
+  fi
+
+  tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/dotfiles-tmux.XXXXXX")"
+  trap 'rm -rf "$tmpdir"' EXIT
+
+  download_github_release_asset "$release_json" "$asset_name" "$tmpdir/$asset_name"
+  tar -xzf "$tmpdir/$asset_name" -C "$tmpdir"
+  cd "$tmpdir/tmux-$TMUX_BUILD_VERSION"
+  ./configure --prefix="$HOME/.local" >/dev/null
+  make -j"$(getconf _NPROCESSORS_ONLN)" >/dev/null
+  make install >/dev/null
+  chown_target_path "$HOME/.local/bin/tmux"
+  chown_target_path "$HOME/.local/share/man/man1/tmux.1"
+
+  # A running server of an older tmux keeps its own binary until it exits.
+  echo "Built tmux $TMUX_BUILD_VERSION into ~/.local/bin. Restart running tmux servers (tmux kill-server) to use it."
+)
+
 install_tmux() {
   if version_ok tmux_version "$TMUX_MIN_VERSION"; then
     return
@@ -318,6 +356,10 @@ install_tmux() {
     upgrade_brew_formula tmux
   else
     install_managed_package tmux tmux tmux
+    hash -r
+    if ! version_ok tmux_version "$TMUX_MIN_VERSION"; then
+      install_tmux_source
+    fi
   fi
 
   hash -r

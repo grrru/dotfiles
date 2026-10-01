@@ -9,10 +9,9 @@
 -- Applying a colorscheme fires `User ThemeChanged` so plugins that bake theme
 -- colors into their setup (bufferline) can refresh themselves.
 --
--- With CLAUDE_LIVE_THEME=1 in theme.conf, claude sessions running in terminal
--- buffers are switched too -- toggle-theme only rewrites settings.json, which
--- Claude Code reads at startup and never again. toggle-theme does the same
--- for the claude sessions running directly in a tmux pane.
+-- Terminal buffers running claude or a tmux client (sidekick attaches its
+-- sessions that way) are told about the change too, so Claude Code's `auto`
+-- theme follows it in sessions that are already running.
 
 local M = {}
 
@@ -45,24 +44,25 @@ local function read_state()
   return state
 end
 
--- Channels of the terminal buffers that have a claude process under them.
--- toggle-theme rewrites ~/.claude/settings.json, but Claude Code only reads
--- that at startup, so already-running sessions have to be driven through
--- their own picker. Claude is usually a child of the terminal's shell rather
--- than the job itself, so walk the process tree up to each terminal job.
-local function claude_buffers()
-  local job_buf = {}
+-- Channels of the terminal buffers that take a theme report (DEC mode 2031):
+-- a tmux client, which then asks this terminal for its colors again, or a
+-- claude, which asks itself. Neovim answers those queries from 'background'
+-- but never sends the report on its own. Both usually run below the buffer's
+-- job (a shell) rather than as the job, so walk the process tree up to each
+-- job. Any other job would get the report as typed input.
+local function theme_report_channels()
+  local job_channel = {}
   for _, buf in ipairs(vim.api.nvim_list_bufs()) do
     if vim.api.nvim_buf_is_loaded(buf) and vim.bo[buf].buftype == "terminal" then
       local pid = vim.b[buf].terminal_job_pid
       local channel = vim.bo[buf].channel
       if pid and channel and channel > 0 then
-        job_buf[tonumber(pid)] = { buf = buf, channel = channel }
+        job_channel[tonumber(pid)] = channel
       end
     end
   end
 
-  if vim.tbl_isempty(job_buf) then
+  if vim.tbl_isempty(job_channel) then
     return {}
   end
 
@@ -75,16 +75,17 @@ local function claude_buffers()
     end
   end
 
+  -- tmux renames its processes to "tmux: client" / "tmux: server" on Linux.
   local found, seen = {}, {}
   for pid, comm in pairs(name) do
-    if comm == "claude" then
+    if comm == "claude" or comm == "tmux" or vim.startswith(comm, "tmux: ") then
       local cur, hops = pid, 0
       while cur and hops < 10 do
-        local target = job_buf[cur]
-        if target then
-          if not seen[target.channel] then
-            seen[target.channel] = true
-            found[#found + 1] = target
+        local channel = job_channel[cur]
+        if channel then
+          if not seen[channel] then
+            seen[channel] = true
+            found[#found + 1] = channel
           end
           break
         end
@@ -97,98 +98,10 @@ local function claude_buffers()
   return found
 end
 
-local function claude_editor_mode()
-  local dir = vim.env.CLAUDE_CONFIG_DIR
-  if not dir or dir == "" then
-    dir = vim.fn.expand("~/.claude")
-  end
-
-  local ok, lines = pcall(vim.fn.readfile, dir .. "/settings.json")
-  if not ok then
-    return ""
-  end
-
-  local decoded_ok, decoded = pcall(vim.json.decode, table.concat(lines, "\n"))
-  if not decoded_ok or type(decoded) ~= "table" then
-    return ""
-  end
-
-  return decoded.editorMode or ""
-end
-
--- Whatever sits after the last prompt marker on screen. The marker is not
--- anchored to the start of the line: depending on the version the input box
--- draws a border or an indent in front of it.
-local function prompt_text(lines)
-  for i = #lines, 1, -1 do
-    local rest = lines[i]:match(".*❯%s*(.*)$")
-    if rest then
-      return vim.trim(rest)
-    end
-  end
-  return nil
-end
-
--- Types "/theme" plus the picker's digit into every running claude session,
--- putting back whatever was in the prompt. toggle-theme leaves the digit empty
--- unless CLAUDE_LIVE_THEME is on.
-local function switch_claude_theme(key)
-  if not key or key == "" then
-    return
-  end
-
-  local editor_mode = claude_editor_mode()
-
-  for _, target in ipairs(claude_buffers()) do
-    -- The bottom of the terminal screen: the prompt, its footer, and any open
-    -- dialog.
-    local lines = vim.api.nvim_buf_get_lines(target.buf, -9, -1, false)
-    local screen = table.concat(lines, "\n")
-
-    -- Typing into a busy session or an open dialog is not just lost -- a digit
-    -- answers a permission prompt. Only type at an idle prompt.
-    local blocked = screen:find("esc to interrupt", 1, true)
-      or screen:find("to confirm", 1, true)
-      or screen:find("❯ 1.", 1, true)
-
-    if not blocked then
-      local send = function(keys)
-        pcall(vim.fn.chansend, target.channel, keys)
-      end
-
-      -- A prompt sitting in vim normal mode reads "/theme" as normal-mode
-      -- commands instead of text, so the picker never opens. `A` returns to
-      -- insert at the end of the line; in insert mode it would type a literal.
-      if editor_mode == "vim" and not screen:find("-- INSERT --", 1, true) then
-        send("A")
-      end
-
-      local before = prompt_text(lines)
-
-      -- C-u kills back to the cursor and C-k forward from it, so the pair
-      -- clears a line wherever the cursor sits. One pair per line,
-      -- overshooting is free, and the kills accumulate into a single C-y.
-      send(("\21\11"):rep(8))
-
-      -- Only restore when those kills actually took something. Reading the
-      -- screen again rather than trusting the first read keeps this working
-      -- whatever the input box looks like: an empty prompt is unchanged by the
-      -- kills, and C-y would then paste back a draft from an earlier run.
-      vim.defer_fn(function()
-        local after = prompt_text(vim.api.nvim_buf_get_lines(target.buf, -9, -1, false))
-        send("/theme\r")
-
-        -- The picker needs a frame to open before it accepts the digit.
-        vim.defer_fn(function()
-          send(key)
-          if before ~= after then
-            vim.defer_fn(function()
-              send("\25")
-            end, 400)
-          end
-        end, 400)
-      end, 300)
-    end
+local function report_theme(mode)
+  local report = mode == "light" and "\27[?997;2n" or "\27[?997;1n"
+  for _, channel in ipairs(theme_report_channels()) do
+    pcall(vim.fn.chansend, channel, report)
   end
 end
 
@@ -220,7 +133,7 @@ local function apply(state)
   current_mode = mode
   vim.api.nvim_exec_autocmds("User", { pattern = "ThemeChanged", modeline = false })
 
-  switch_claude_theme(state.CLAUDE_LIVE_KEY)
+  report_theme(mode)
 end
 
 function M.reload()
@@ -238,8 +151,8 @@ function M.setup()
   local settle = vim.uv.new_timer()
   if watcher and settle then
     -- A single rewrite arrives as several events (the truncate, then the
-    -- write), and every reload types into the claude sessions, so wait for the
-    -- burst to end and reload once. Editors rewriting the file can break the
+    -- write), and every reload sends theme reports, so wait for the burst to
+    -- end and reload once. Editors rewriting the file can break the
     -- watch; re-arm after every reload.
     local function watch()
       watcher:stop()

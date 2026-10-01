@@ -83,30 +83,11 @@ else
   CLAUDE_THEME="$CLAUDE_DARK_THEME"
 fi
 
-# Position of each theme in Claude Code's `/theme` picker, which applies a
-# choice as soon as its digit is typed -- so a running session is
-# "/theme<CR>" plus one key. Neovim gets the digit through the state file.
-case "$CLAUDE_THEME" in
-auto) CLAUDE_KEY=1 ;;
-dark) CLAUDE_KEY=2 ;;
-light) CLAUDE_KEY=3 ;;
-dark-daltonized) CLAUDE_KEY=4 ;;
-light-daltonized) CLAUDE_KEY=5 ;;
-dark-ansi) CLAUDE_KEY=6 ;;
-light-ansi) CLAUDE_KEY=7 ;;
-*) CLAUDE_KEY="" ;;
-esac
-
-# Empty unless running sessions are to be switched too (CLAUDE_LIVE_THEME=1).
-CLAUDE_LIVE_KEY=""
-[ "${CLAUDE_LIVE_THEME:-0}" = "1" ] && CLAUDE_LIVE_KEY="$CLAUDE_KEY"
-
 # === Neovim ===
 # Neovim watches this file and applies what it names. MODE stays on the first
 # line, where read_mode looks. A single write, so the watcher never fires on a
 # half-written file.
-printf 'MODE="%s"\nNVIM_COLORSCHEME="%s"\nCLAUDE_LIVE_KEY="%s"\n' \
-  "$NEW_MODE" "$NVIM_COLORSCHEME" "$CLAUDE_LIVE_KEY" >"$STATE_FILE"
+printf 'MODE="%s"\nNVIM_COLORSCHEME="%s"\n' "$NEW_MODE" "$NVIM_COLORSCHEME" >"$STATE_FILE"
 
 # === Ghostty ===
 GHOSTTY_CONFIG="$DOTFILES/ghostty/config"
@@ -126,11 +107,8 @@ if [ -d "$(dirname "$GHOSTTY_LOCAL_CONFIG")" ]; then
 fi
 
 # === Claude Code ===
-# Claude Code keeps its theme in settings.json and reads it at startup only,
-# so this rewrite covers new sessions. Already-running ones have to be driven
-# through their own `/theme` picker, which CLAUDE_LIVE_THEME=1 turns on: this
-# script types into the tmux panes running claude, and Neovim does the same
-# through the job channel for the ones in its terminal buffers.
+# Claude Code reads its theme from settings.json at startup. With `auto` it then
+# follows the terminal's background on its own (see the end of this script).
 CLAUDE_SETTINGS="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/settings.json"
 if [ -n "$CLAUDE_THEME" ] && [ -f "$CLAUDE_SETTINGS" ] && command -v jq >/dev/null 2>&1; then
   CLAUDE_TMP="$(mktemp "${TMPDIR:-/tmp}/toggle-theme.XXXXXX")"
@@ -140,112 +118,6 @@ if [ -n "$CLAUDE_THEME" ] && [ -f "$CLAUDE_SETTINGS" ] && command -v jq >/dev/nu
     cat "$CLAUDE_TMP" >"$CLAUDE_SETTINGS"
   fi
   rm -f "$CLAUDE_TMP"
-fi
-
-# claude is a child of the pane's shell, and the executable it runs is the
-# version number (.../claude/versions/2.1.228), so neither the pane's pid nor
-# `#{pane_current_command}` names it. Walk the pane's process tree instead.
-pane_runs_claude() {
-  ps -Ao pid=,ppid=,comm= | awk -v root="$1" '
-    { ppid[$1] = $2; comm[$1] = $3 }
-    END {
-      for (pid in comm) {
-        if (comm[pid] !~ /(^|\/)claude$/ && comm[pid] !~ /\/claude\/versions\//) continue
-        cur = pid
-        for (hop = 0; hop < 8 && cur != ""; hop++) {
-          if (cur == root) { exit 0 }
-          cur = ppid[cur]
-        }
-      }
-      exit 1
-    }'
-}
-
-CLAUDE_EDITOR_MODE=""
-if [ -f "$CLAUDE_SETTINGS" ] && command -v jq >/dev/null 2>&1; then
-  CLAUDE_EDITOR_MODE="$(jq -r '.editorMode // ""' "$CLAUDE_SETTINGS" 2>/dev/null)"
-fi
-
-# Whatever sits after the last prompt marker on screen. The marker is not
-# anchored to the start of the line: depending on the version the input box
-# draws a border or an indent in front of it.
-prompt_text() {
-  printf '%s\n' "$1" | grep '❯' | tail -1 | sed 's/.*❯[[:space:]]*//' | tr -d '[:space:]'
-}
-
-# Drives one pane's `/theme` picker, putting back whatever was in its prompt.
-switch_pane_theme() {
-  pane="$1"
-  screen="$2"
-
-  # Typing into a busy session or an open dialog is not just lost -- a digit
-  # answers a permission prompt. Only type at an idle prompt.
-  case "$screen" in
-  *"esc to interrupt"* | *"to confirm"* | *"❯ 1."*) return ;;
-  esac
-
-  # A prompt sitting in vim normal mode reads "/theme" as normal-mode commands
-  # instead of text, so the picker never opens. `A` returns to insert at the
-  # end of the line; in insert mode it would type a literal A instead, hence
-  # the check for the mode indicator.
-  if [ "$CLAUDE_EDITOR_MODE" = "vim" ]; then
-    case "$screen" in
-    *"-- INSERT --"*) ;;
-    *)
-      tmux send-keys -t "$pane" "A"
-      sleep 0.2
-      ;;
-    esac
-  fi
-
-  before="$(prompt_text "$screen")"
-
-  # C-u kills back to the cursor and C-k forward from it, so the pair clears a
-  # line wherever the cursor sits. One pair per line, overshooting is free, and
-  # the kills accumulate into a single C-y.
-  i=0
-  while [ "$i" -lt 8 ]; do
-    tmux send-keys -t "$pane" C-u
-    tmux send-keys -t "$pane" C-k
-    i=$((i + 1))
-  done
-
-  # Only restore when those kills actually took something. Asking the screen
-  # rather than trusting the earlier read keeps this working whatever the input
-  # box looks like: an empty prompt is unchanged by the kills, and C-y would
-  # then paste back a draft killed by an earlier run.
-  sleep 0.3
-  after="$(prompt_text "$(tmux capture-pane -p -t "$pane" | tail -8)")"
-
-  tmux send-keys -t "$pane" "/theme" Enter
-  sleep 0.6
-  tmux send-keys -t "$pane" "$CLAUDE_LIVE_KEY"
-
-  if [ "$before" != "$after" ]; then
-    sleep 0.6
-    tmux send-keys -t "$pane" C-y
-  fi
-}
-
-if [ -n "$CLAUDE_LIVE_KEY" ] &&
-  command -v tmux >/dev/null 2>&1 && tmux info >/dev/null 2>&1; then
-  tmux list-panes -a -F '#{pane_id} #{pane_pid} #{pane_current_command}' |
-    while read -r pane pane_pid pane_cmd; do
-      # Panes running an editor host claude in a terminal buffer, where these
-      # keys would land in the editor instead. Neovim switches those itself.
-      case "$pane_cmd" in
-      nvim | vim) continue ;;
-      esac
-
-      # The bottom of the screen: the prompt, its footer, and any open dialog.
-      pane_screen="$(tmux capture-pane -p -t "$pane" | tail -8)"
-
-      # A claude on the far end of an ssh session is not in this tree; run
-      # toggle-theme on that machine instead.
-      pane_runs_claude "$pane_pid" || continue
-
-      switch_pane_theme "$pane" "$pane_screen"
-    done
 fi
 
 # === Tmux ===
@@ -269,6 +141,17 @@ TMUX_LOCAL_CONFIG="$DOTFILES/tmux/theme.local"
 if command -v tmux >/dev/null 2>&1 && tmux info >/dev/null 2>&1; then
   tmux source-file "$TMUX_LOCAL_CONFIG"
   tmux display-message "Theme: $NEW_MODE"
+
+  # Claude Code's `auto` theme asks tmux for the background, and tmux 3.6+
+  # answers with the attached terminal's and tells panes when it changes. tmux
+  # only asks the terminal again when the terminal reports a theme change, so
+  # ask on its behalf; the answer arrives as the terminal's input. The sleep
+  # lets a terminal reloading its config on this toggle (Ghostty) finish first.
+  sleep 0.3
+  tmux list-clients -F '#{client_tty}' | while read -r client_tty; do
+    # shellcheck disable=SC1003 # an ESC \ string terminator, not a quote escape
+    printf '\033]11;?\033\\' >"$client_tty" 2>/dev/null
+  done
 else
   echo "Theme: $NEW_MODE"
 fi

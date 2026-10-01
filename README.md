@@ -23,7 +23,7 @@ Requirements:
 
 - macOS with Homebrew, or x86_64/arm64 Linux with `dnf` or `apt-get`
 - Git and permission to install system packages
-- tmux 3.2 or newer
+- tmux 3.6 or newer; the installer builds it from source where the package is older
 - Neovim 0.12 or newer for Gruvim
 - Tree-sitter CLI 0.26.1 or newer
 - A Nerd Font for the configured icons; Ghostty defaults to D2CodingLigature Nerd Font
@@ -37,7 +37,7 @@ before installation.
 | Tool | Homebrew | Fedora (`dnf`) | Debian/Ubuntu (`apt-get`) |
 | --- | --- | --- | --- |
 | Base CLI tools | Homebrew formulas | Distribution packages | Distribution packages |
-| tmux | Formula with version check | Package with version check | Package with version check |
+| tmux | Formula with version check | Package, then source build when older than 3.6 | Package, then source build when older than 3.6 |
 | fd | `fd` formula | `fd-find` package | `fd-find` plus `~/.local/bin/fd` alias |
 | fzf | Formula | Package, then release fallback | Package, then release fallback |
 | Neovim / Tree-sitter CLI / Lazygit | Formulas | Verified upstream releases | Verified upstream releases |
@@ -240,10 +240,17 @@ the mode:
 | --- | --- |
 | `ghostty/theme.local` | Ghostty (`config-file`); the script touches `ghostty/config` to reload it |
 | `tmux/theme.local` | `tmux.conf`, which sources it, so `C-a r` and new servers keep the mode; also sourced into the running server |
-| `~/.theme_mode` | Neovim, through a file watcher: the mode, the colorscheme, and the `/theme` picker digit for live Claude Code switching |
+| `~/.theme_mode` | Neovim, through a file watcher: the mode and the colorscheme |
 | `theme` in `~/.claude/settings.json` | Claude Code, at startup |
 
 All of them are rewritten from scratch on every run, so hand-edits do not survive.
+
+Claude Code's theme defaults to `auto`, which follows the terminal's background in
+running sessions too. tmux 3.6 or newer answers Claude Code's background queries with
+the attached terminal's color and tells panes when it changes; `toggle-theme` asks each
+tmux client's terminal for its color again, and Neovim sends the change to claude and
+tmux clients in its terminal buffers. Under an older tmux, or with a fixed theme name
+such as `light-daltonized`, only sessions started after the toggle change.
 
 ### Per-machine themes
 
