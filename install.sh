@@ -341,7 +341,8 @@ install_tmux_source() (
   make -j"$(getconf _NPROCESSORS_ONLN)" >/dev/null
   make install >/dev/null
   chown_target_path "$HOME/.local/bin/tmux"
-  chown_target_path "$HOME/.local/share/man/man1/tmux.1"
+  # make install may have created these directories as the installing user.
+  chown_target_path "$HOME/.local/share/man"
 
   # A running server of an older tmux keeps its own binary until it exits.
   echo "Built tmux $TMUX_BUILD_VERSION into ~/.local/bin. Restart running tmux servers (tmux kill-server) to use it."
