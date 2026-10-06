@@ -153,6 +153,8 @@ pick_repos() {
   done
 
   local picked="" rc=0
+  # 선택 개수를 테두리 라벨에 표시한다 (fzf 0.58에는 multi 이벤트가 없어 선택 액션마다 붙인다)
+  local count_label='transform-border-label(if [ "$FZF_SELECT_COUNT" -gt 0 ]; then echo " ✓ ${FZF_SELECT_COUNT}개 선택됨 "; else echo " 선택 없음 "; fi)'
   # --with-nth=2 로 인덱스 필드는 화면/검색 대상에서 제외된다
   # (--nth 를 함께 주면 변환된 라인에 delimiter가 없어 매치가 0이 되므로 쓰지 않는다)
   picked="$(printf '%s' "$input" | fzf \
@@ -160,8 +162,10 @@ pick_repos() {
     --prompt='레포 검색> ' \
     --header='이름 입력=검색  Tab=선택/해제  ^A=전체선택  ^D=전체해제  Enter=확정  ESC=취소' \
     --header-first --reverse --height='~80%' --border=rounded --info=inline \
-    --pointer='❯' --marker='✓' \
-    --bind='ctrl-a:select-all,ctrl-d:deselect-all')" || rc=$?
+    --border-label=' 선택 없음 ' --border-label-pos=-3 \
+    --pointer='❯' --marker='✓ ' --highlight-line \
+    --color='marker:green:bold,selected-fg:green:bold,selected-bg:22,label:yellow:bold' \
+    --bind="tab:toggle+${count_label},ctrl-a:select-all+${count_label},ctrl-d:deselect-all+${count_label}")" || rc=$?
 
   __out=()
   if [[ -z "$picked" ]]; then
