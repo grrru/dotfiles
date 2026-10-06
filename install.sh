@@ -936,11 +936,16 @@ install_zsh_autosuggestions() {
   chown_target_path "$dest"
 }
 
-# Links ~/.config/<name> ($2, default $1) to <source> ($1) in this repo, moving
-# an existing config out of the way to <name>.bak.
+# Links ~/.config/<name> ($2, default $1) to <source> ($1) in this repo.
 link_config() {
-  local target="$DOTFILES_DIR/$1"
-  local dest="$CONFIG_DIR/${2:-$1}"
+  link_path "$DOTFILES_DIR/$1" "$CONFIG_DIR/${2:-$1}"
+}
+
+# Links <dest> ($2) to <target> ($1), moving an existing file out of the way to
+# <dest>.bak.
+link_path() {
+  local target="$1"
+  local dest="$2"
 
   if [ -L "$dest" ] && [ "$(readlink "$dest")" = "$target" ]; then
     echo "$dest already links to $target, skipping."
@@ -1078,6 +1083,17 @@ install_macos_keymap() {
   launchctl bootstrap "gui/$uid" "$dest"
 }
 
+link_claude_keybindings() {
+  local claude_dir="$HOME/.claude"
+
+  if [ ! -d "$claude_dir" ]; then
+    mkdir -p "$claude_dir"
+    chown_target_path "$claude_dir"
+  fi
+
+  link_path "$DOTFILES_DIR/claude/keybindings.json" "$claude_dir/keybindings.json"
+}
+
 install_configs() {
   mkdir -p "$CONFIG_DIR"
   chown_target_path "$CONFIG_DIR"
@@ -1090,6 +1106,7 @@ install_configs() {
     link_config "ghostty"
   fi
 
+  link_claude_keybindings
   install_macos_keymap
   setup_theme_config
 }

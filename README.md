@@ -14,6 +14,7 @@ the target user's home directory.
 | `zsh/`, `bash/` | Tracked shell framework configuration |
 | `common.sh` | Portable PATH helpers, aliases, and defaults shared by Bash and Zsh |
 | `ghostty/` | Ghostty configuration, linked when Ghostty is installed |
+| `claude/` | Claude Code keybindings, linked to `~/.claude/keybindings.json` |
 | `macos/` | macOS LaunchAgents, copied into `~/Library/LaunchAgents` on macOS |
 | `scripts/` | Standalone commands, added to `PATH` by `common.sh` |
 
@@ -67,7 +68,7 @@ before a new symlink is created.
 | `./install.sh shell` | Install and configure both Bash and Zsh |
 | `./install.sh bash` | Configure the Bash-to-Zsh hand-off only |
 | `./install.sh zsh` | Configure oh-my-zsh, Powerlevel10k, and zsh-autosuggestions |
-| `./install.sh config` | Link Neovim, tmux, and optionally Ghostty configs |
+| `./install.sh config` | Link Neovim, tmux, Claude Code keybindings, and optionally Ghostty configs |
 | `./install.sh tpm` | Install tmux Plugin Manager only |
 | `./install.sh help` | Show command-line help |
 
@@ -202,6 +203,19 @@ prefix bindings include:
 
 Ghostty configures the matching font, terminal colors, clipboard access, and the
 `Ctrl-/` control sequence used by Neovim.
+
+## Claude Code keybindings
+
+`claude/keybindings.json` adds scroll keys to the fullscreen conversation view, in
+addition to `PgUp` / `PgDn`:
+
+| Key | Action |
+| --- | --- |
+| `M-j` / `M-k` | Scroll down / up one line |
+| `M-d` / `M-u` | Scroll down / up half a page |
+
+Claude Code reloads the file a few seconds after it changes, through either path. `M-d`
+is also the prompt's delete-word-forward key.
 
 ## Korean input on macOS
 
