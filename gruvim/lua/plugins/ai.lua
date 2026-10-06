@@ -62,6 +62,15 @@ return {
         end
         return ctx()
       end
+
+      -- @file references are made relative to the cwd with no option to turn that
+      -- off. relpath() fails for a base that is not an ancestor, which leaves the
+      -- name absolute, so hand it a cwd that never is one.
+      local Loc = require("sidekick.cli.context.location")
+      local get = Loc.get
+      Loc.get = function(loc, o)
+        return get(vim.tbl_extend("force", loc, { cwd = "/nonexistent" }), o)
+      end
     end,
     keys = {
       {
