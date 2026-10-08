@@ -144,9 +144,9 @@ return {
     opts = {},
   },
 
-  -- Pantran (translation)
+  -- Pantran forked version(translation)
   {
-    "potamides/pantran.nvim",
+    "grrru/pantran.nvim",
     cmd = "Pantran",
     opts = {
       -- Without an API key the google engine falls back to the free web
