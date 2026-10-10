@@ -231,7 +231,7 @@ install_managed_package() {
 install_core_dependencies() {
   case "$PACKAGE_MANAGER" in
   brew)
-    local brew_packages=(git curl zsh ripgrep make jq python)
+    local brew_packages=(git curl zsh ripgrep make jq python imagemagick)
     local package
 
     for package in "${brew_packages[@]}"; do
@@ -240,13 +240,13 @@ install_core_dependencies() {
     ;;
   dnf)
     sudo dnf install -y \
-      ca-certificates curl git zsh ripgrep make tar gzip unzip jq \
+      ca-certificates curl git zsh ripgrep make tar gzip unzip jq ImageMagick \
       python3 python3-pip
     ;;
   apt)
     sudo apt-get update
     sudo apt-get install -y \
-      ca-certificates curl git zsh ripgrep make tar gzip unzip jq \
+      ca-certificates curl git zsh ripgrep make tar gzip unzip jq imagemagick \
       python3 python3-pip python3-venv
     ;;
   esac
