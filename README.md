@@ -336,5 +336,22 @@ The picker is fzf, which `./install.sh deps` installs.
 Repositories are discovered up to two directories below `WORKSPACE`, and the selection is
 recorded in an `.issue-tracker` file inside the worktree base directory. `clean` reads that
 file to remove the worktrees and branches, and asks before deleting the remote branch.
+`list [issue]` prints each issue's tag, branch, and worktree paths.
+
+Every prompt has a matching option, so the script also runs without a terminal, for
+example from Claude Code. When stdin is not a terminal it never prompts or opens fzf, and
+output is uncolored:
+
+```sh
+git issue-worktree setup 42 --tag auth-refactor --repo backend-api --repo frontend
+git issue-worktree list 42
+git issue-worktree clean 42 auth-refactor            # prints the plan, deletes nothing
+git issue-worktree clean 42 auth-refactor --yes --keep-remote
+```
+
+`setup` needs `--tag` (`--tag ''` for no tag) and `--repo`; if a tree with that tag already
+exists, the repositories are added to it. Missing options make it exit with the options to
+pass and the candidates. `clean` deletes only with `--yes`, keeps the remote branch unless
+`--delete-remote` is given, and needs the tag when an issue has more than one tree.
 
 Requires Bash 4.3 or newer.
