@@ -65,6 +65,13 @@ return {
       groups = {
         all = {
           FlashLabel = { bg = "bg0", fg = "palette.cyan", style = "bold" },
+          -- nightfox leaves the word-diff groups undefined, so gitsigns falls
+          -- back to TermCursor (`reverse`), which turns each token's syntax
+          -- color into its background. "Change" is the new side of a replaced
+          -- word (the old side is always Delete), so it shares Add's green.
+          GitSignsAddInline = { fg = "bg0", bg = "git.add", style = "bold" },
+          GitSignsChangeInline = { fg = "bg0", bg = "git.add", style = "bold" },
+          GitSignsDeleteInline = { fg = "bg0", bg = "git.removed", style = "bold" },
         },
       },
     },
