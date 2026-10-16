@@ -286,9 +286,21 @@ every machine. The script looks for the override in `$DOTFILES_THEME_CONF`,
 existing file wins. A `theme.conf` copied whole from the old `theme.conf.example` still
 works, it just repeats the defaults.
 
-Neovim colorschemes must come from a plugin it actually loads. This repo ships
-catppuccin and nightfox; to use anything else on one machine, drop a lazy.nvim spec into
-the git-ignored `gruvim/lua/local/plugins/`, which `init.lua` imports when present:
+Neovim colorschemes must be ones it can load. This repo ships catppuccin and nightfox as
+plugins, and `ghostty` in `gruvim/colors/`: Ghostty's built-in default colors (dark
+only), for pairing with a Ghostty that has no theme set:
+
+```sh
+# ~/dotfiles/theme.conf
+GHOSTTY_DARK_THEME=""
+NVIM_DARK_COLORSCHEME="ghostty"
+```
+
+Its colors live in `gruvim/lua/ghostty/palette.lua`, shared with the lualine theme;
+`:colorscheme ghostty` re-reads the file, so edits show without a restart.
+
+To use anything else on one machine, drop a lazy.nvim spec into the git-ignored
+`gruvim/lua/local/plugins/`, which `init.lua` imports when present:
 
 ```lua
 -- gruvim/lua/local/plugins/colorscheme.lua
