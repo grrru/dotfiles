@@ -1,6 +1,7 @@
 #!/bin/sh
 # 현재 탭의 패널을 tmux 에서 쓰던 프리셋대로 다시 배치한다.
 #
+#   pane-layout.sh even           패널을 모두 좌우로 같은 너비로 놓는다 (tmux even-horizontal)
 #   pane-layout.sh two            패널 2개를 좌우로 놓고 포커스된 패널 68%, 나머지 32%
 #   pane-layout.sh three [size]   패널 3개를 왼쪽 위·아래 + 오른쪽 하나로 놓는다 (좌우 68:32).
 #                                 size 는 왼쪽 아래 패널 높이로, 퍼센트(기본 30) 또는 "Nlines"
@@ -52,16 +53,9 @@ put_back() {
   "$herdr" pane move "$1" --tab "$tab" --split "$2" --target-pane "$3" --ratio "$4" "$(focus_flag "$1")" >/dev/null
 }
 
-two() {
-  if [ "$count" -ne 2 ]; then
-    notify "2분할 프리셋은 패널이 2개일 때만 동작합니다"
-    return 0
-  fi
-  target=0.32
-  if [ "$active" = "$p1" ]; then
-    target=0.68
-  fi
-
+# side_by_side <ratio>: 패널 2개를 좌우로 놓고 왼쪽 패널이 ratio 만큼 차지하게 한다.
+side_by_side() {
+  target=$1
   if [ "$(field '.result.layout.splits[0].direction')" != right ]; then
     park "$p2" >/dev/null
     put_back "$p2" right "$p1" "$target"
@@ -75,6 +69,47 @@ two() {
   -*) "$herdr" pane resize --pane "$active" --direction left --amount "${delta#-}" >/dev/null ;;
   *) "$herdr" pane resize --pane "$active" --direction right --amount "$delta" >/dev/null ;;
   esac
+}
+
+even() {
+  if [ "$count" -lt 2 ]; then
+    return 0
+  fi
+  if [ "$count" -eq 2 ]; then
+    side_by_side 0.5
+    return 0
+  fi
+
+  # 첫 패널만 남기고 나머지를 임시 탭에 모았다가 왼쪽부터 하나씩 붙인다. 붙일 때마다
+  # 바로 앞 패널은 자기 몫인 한 칸만 남기므로, 남은 칸이 n 개면 비율은 1/n 이다.
+  rest=$(field '.result.layout.panes[1:][].pane_id')
+  tmp=
+  for p in $rest; do
+    if [ -z "$tmp" ]; then
+      tmp=$(park "$p")
+    else
+      "$herdr" pane move "$p" --tab "$tmp" --split right --no-focus >/dev/null
+    fi
+  done
+  prev=$p1
+  slots=$count
+  for p in $rest; do
+    put_back "$p" right "$prev" "$(awk -v n="$slots" 'BEGIN { printf "%.4f", 1 / n }')"
+    prev=$p
+    slots=$((slots - 1))
+  done
+}
+
+two() {
+  if [ "$count" -ne 2 ]; then
+    notify "2분할 프리셋은 패널이 2개일 때만 동작합니다"
+    return 0
+  fi
+  if [ "$active" = "$p1" ]; then
+    side_by_side 0.68
+  else
+    side_by_side 0.32
+  fi
 }
 
 three() {
@@ -96,10 +131,11 @@ three() {
 }
 
 case $mode in
+even) even ;;
 two) two ;;
 three) three ;;
 *)
-  notify "pane-layout.sh: 알 수 없는 모드 '$mode' (two|three)"
+  notify "pane-layout.sh: 알 수 없는 모드 '$mode' (even|two|three)"
   exit 1
   ;;
 esac

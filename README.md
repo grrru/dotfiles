@@ -230,6 +230,7 @@ defaults:
 | --- | --- |
 | `\|` | Split to the right |
 | `1`–`9` | Switch to that workspace (tab number keys are unbound) |
+| `M-1` | All panes side by side at equal widths (50:50 for two) |
 | `M-2` | Two panes side by side, the focused one at 68% |
 | `M-3` | Two panes stacked on the left (70:30) and one on the right, left:right 68:32 |
 | `M-#` | `M-3` with the bottom-left pane as short as herdr allows (10% of the tab) |

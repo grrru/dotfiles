@@ -27,6 +27,12 @@ switch_workspace = "prefix+1..9"
 switch_tab = ""
 
 [[keys.command]]
+key = "prefix+alt+1"
+type = "shell"
+command = "~/.config/herdr/scripts/pane-layout.sh even"
+description = "좌우 같은 너비 (2분할이면 50:50)"
+
+[[keys.command]]
 key = "prefix+alt+2"
 type = "shell"
 command = "~/.config/herdr/scripts/pane-layout.sh two"
