@@ -185,6 +185,20 @@ local to the current buffer or `<leader>sk` to search all mappings.
 Use `:Lazy` for plugin management, `:Mason` for the tool registry, and `<leader>cm` as
 the Mason shortcut.
 
+### Sidekick
+
+Sidekick sends `@file` references, lines, and selections from Neovim to an AI CLI such as
+Claude Code running in a multiplexer pane next to it (`<leader>at`, `<leader>al`,
+`<leader>af`, `<leader>av`). It looks for that pane in tmux, or in Herdr when Neovim runs
+inside a [Herdr](https://herdr.dev) pane (`HERDR_ENV=1`).
+
+Under Herdr, `gruvim/lua/config/sidekick_herdr.lua` provides the session backend:
+
+- Sends go straight to the agent in Neovim's own Herdr tab when the tab has exactly one;
+  otherwise Sidekick opens its picker, which shows each agent's terminal title.
+- `<leader>aa` focuses that agent's pane.
+- A session started from the picker opens in a Herdr split taking 32% of the Neovim pane.
+
 ## tmux and Ghostty
 
 tmux uses `C-a` as its prefix, vi copy mode, mouse support, and true color. Common

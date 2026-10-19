@@ -1,3 +1,20 @@
+local in_herdr = vim.env.HERDR_ENV == "1"
+
+-- Inside Herdr, aim at the agent in Neovim's own tab when there is exactly one, so a
+-- send needs no picker. Elsewhere, or with several agents in the tab, sidekick asks.
+---@return sidekick.cli.Filter
+local function tab_filter()
+  local Herdr = require("config.sidekick_herdr")
+  local session = Herdr.enabled() and Herdr.tab_session() or nil
+  return session and { session = session } or {}
+end
+
+local function send(msg)
+  return function()
+    require("sidekick.cli").send({ msg = msg, filter = tab_filter() })
+  end
+end
+
 return {
 
   {
@@ -7,16 +24,22 @@ return {
       cli = {
         mux = {
           enabled = true,
-          backend = "tmux",
+          backend = in_herdr and "herdr" or "tmux",
+          -- herdr only: new sessions open in a split taking 32% of the Neovim pane
+          split = { vertical = true, size = 0.32 },
         },
       },
     },
     config = function(_, opts)
+      if in_herdr then
+        require("sidekick.cli.session").register("herdr", require("config.sidekick_herdr"))
+      end
       require("sidekick").setup(opts)
 
-      -- The session picker only shows the tmux session name and the cwd, so several
-      -- claude panes started in the same directory are indistinguishable. Their pane
-      -- titles are not: claude keeps a summary of what it is doing in there.
+      -- The session picker only shows the multiplexer session name and the cwd, so
+      -- several claude panes started in the same directory are indistinguishable. Their
+      -- pane titles are not: claude keeps a summary of what it is doing in there.
+      -- Herdr sessions carry that title already; tmux panes are looked up here.
       local Select = require("sidekick.cli.ui.select")
       local format = Select.format
       local cache = { at = 0, panes = {} }
@@ -40,8 +63,9 @@ return {
 
       Select.format = function(state, picker)
         local ret = format(state, picker)
-        local pane = state.session and state.session.tmux_pane_id
-        local label = pane and pane_labels()[pane]
+        local session = state.session
+        local pane = session and session.tmux_pane_id
+        local label = session and session.herdr_title or pane and pane_labels()[pane]
         if label then
           ret[#ret + 1] = { " " }
           ret[#ret + 1] = { vim.fn.strcharpart(label, 0, 60), "Comment" }
@@ -82,7 +106,16 @@ return {
       {
         "<leader>aa",
         function()
-          require("sidekick.cli").toggle()
+          if not in_herdr then
+            require("sidekick.cli").toggle()
+            return
+          end
+          -- Herdr agents live in their own pane, so jump to it, starting one if needed
+          require("sidekick.cli.state").with(function(state)
+            if state.session.backend == "herdr" then
+              state.session:focus()
+            end
+          end, { attach = true, filter = tab_filter() })
         end,
         desc = "Sidekick Toggle CLI",
       },
@@ -102,31 +135,23 @@ return {
       },
       {
         "<leader>at",
-        function()
-          require("sidekick.cli").send({ msg = "{this}" })
-        end,
+        send("{this}"),
         desc = "Send This",
         mode = { "n", "x" },
       },
       {
         "<leader>al",
-        function()
-          require("sidekick.cli").send({ msg = "{line}" })
-        end,
+        send("{line}"),
         desc = "Send Current Line",
       },
       {
         "<leader>af",
-        function()
-          require("sidekick.cli").send({ msg = "{file}" })
-        end,
+        send("{file}"),
         desc = "Send File",
       },
       {
         "<leader>av",
-        function()
-          require("sidekick.cli").send({ msg = "{selection}" })
-        end,
+        send("{selection}"),
         desc = "Send Visual Selection",
         mode = { "x" },
       },
