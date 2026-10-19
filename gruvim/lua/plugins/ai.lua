@@ -33,6 +33,15 @@ return {
     config = function(_, opts)
       if in_herdr then
         require("sidekick.cli.session").register("herdr", require("config.sidekick_herdr"))
+        -- setup() accepts only its built-in multiplexers for cli.mux.backend
+        local Config = require("sidekick.config")
+        local validate = Config.validate
+        Config.validate = function(key, t)
+          if key == "cli.mux.backend" then
+            t = vim.list_extend({ "herdr" }, t)
+          end
+          return validate(key, t)
+        end
       end
       require("sidekick").setup(opts)
 
