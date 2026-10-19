@@ -26,6 +26,30 @@ if vim.env.TMUX then
     paste = { ["+"] = paste, ["*"] = paste },
     cache_enabled = true,
   }
+elseif vim.env.HERDR_ENV == "1" then
+  -- Herdr forwards OSC 52 writes from its panes to the outer terminal, but Neovim
+  -- cannot detect OSC 52 support inside a Herdr pane and ends up with no clipboard.
+  -- Yank over OSC 52, and paste the last yank instead of asking the terminal for
+  -- its clipboard, for the same reason as under tmux above.
+  local osc52 = require("vim.ui.clipboard.osc52")
+  local last = {} ---@type table<string, {[1]:string[], [2]:string}>
+  local function copy(reg)
+    local write = osc52.copy(reg)
+    return function(lines, regtype)
+      last[reg] = { lines, regtype }
+      write(lines, regtype)
+    end
+  end
+  local function paste(reg)
+    return function()
+      return last[reg] or { {}, "v" }
+    end
+  end
+  vim.g.clipboard = {
+    name = "herdr-osc52",
+    copy = { ["+"] = copy("+"), ["*"] = copy("*") },
+    paste = { ["+"] = paste("+"), ["*"] = paste("*") },
+  }
 end
 
 opt.clipboard = "unnamedplus"
