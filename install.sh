@@ -1094,6 +1094,20 @@ link_claude_keybindings() {
   link_path "$DOTFILES_DIR/claude/keybindings.json" "$claude_dir/keybindings.json"
 }
 
+# ~/.config/herdr also holds the herdr server's sockets, logs, and session state, so
+# only the tracked files inside it are linked.
+link_herdr_config() {
+  local herdr_dir="$CONFIG_DIR/herdr"
+
+  if [ ! -d "$herdr_dir" ]; then
+    mkdir -p "$herdr_dir"
+    chown_target_path "$herdr_dir"
+  fi
+
+  link_path "$DOTFILES_DIR/herdr/config.toml" "$herdr_dir/config.toml"
+  link_path "$DOTFILES_DIR/herdr/scripts" "$herdr_dir/scripts"
+}
+
 install_configs() {
   mkdir -p "$CONFIG_DIR"
   chown_target_path "$CONFIG_DIR"
@@ -1104,6 +1118,11 @@ install_configs() {
   # Link ghostty config only if ghostty is installed
   if command_exists ghostty; then
     link_config "ghostty"
+  fi
+
+  # Link herdr config only if herdr is installed
+  if command_exists herdr; then
+    link_herdr_config
   fi
 
   link_claude_keybindings

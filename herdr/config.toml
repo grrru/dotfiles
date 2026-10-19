@@ -1,0 +1,45 @@
+onboarding = false
+
+[theme]
+name = "terminal"
+auto_switch = false
+
+[ui]
+status_indicators = "symbols"
+
+[ui.sound]
+enabled = true
+
+[ui.toast]
+delivery = "herdr"
+
+[ui.sidebar.spaces]
+rows = [["state_icon", "workspace"], ["git_status"]]
+
+[keys]
+prefix = "ctrl+a"
+navigate_workspace_up = "k"
+navigate_workspace_down = "j"
+navigate_pane_up = "ctrl+k"
+navigate_pane_down = "ctrl+j"
+split_vertical = "prefix+|"
+switch_workspace = "prefix+1..9"
+switch_tab = ""
+
+[[keys.command]]
+key = "prefix+alt+2"
+type = "shell"
+command = "~/.config/herdr/scripts/pane-layout.sh two"
+description = "2분할 68:32"
+
+[[keys.command]]
+key = "prefix+alt+3"
+type = "shell"
+command = "~/.config/herdr/scripts/pane-layout.sh three 30"
+description = "3분할 (왼쪽 위·아래 70:30 + 오른쪽)"
+
+[[keys.command]]
+key = ["prefix+alt+#", "prefix+alt+shift+3"]
+type = "shell"
+command = "~/.config/herdr/scripts/pane-layout.sh three 1lines"
+description = "3분할 (왼쪽 아래 최소 높이 + 오른쪽)"

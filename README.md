@@ -14,6 +14,7 @@ the target user's home directory.
 | `zsh/`, `bash/` | Tracked shell framework configuration |
 | `common.sh` | Portable PATH helpers, aliases, and defaults shared by Bash and Zsh |
 | `ghostty/` | Ghostty configuration, linked when Ghostty is installed |
+| `herdr/` | herdr configuration and pane layout presets, linked into `~/.config/herdr` when herdr is installed |
 | `claude/` | Claude Code keybindings, linked to `~/.claude/keybindings.json` |
 | `macos/` | macOS LaunchAgents, copied into `~/Library/LaunchAgents` on macOS |
 | `scripts/` | Standalone commands, added to `PATH` by `common.sh` |
@@ -68,7 +69,7 @@ before a new symlink is created.
 | `./install.sh shell` | Install and configure both Bash and Zsh |
 | `./install.sh bash` | Configure the Bash-to-Zsh hand-off only |
 | `./install.sh zsh` | Configure oh-my-zsh, Powerlevel10k, and zsh-autosuggestions |
-| `./install.sh config` | Link Neovim, tmux, Claude Code keybindings, and optionally Ghostty configs |
+| `./install.sh config` | Link Neovim, tmux, Claude Code keybindings, and optionally Ghostty and herdr configs |
 | `./install.sh tpm` | Install tmux Plugin Manager only |
 | `./install.sh help` | Show command-line help |
 
@@ -217,6 +218,29 @@ prefix bindings include:
 
 Ghostty configures the matching font, terminal colors, clipboard access, and the
 `Ctrl-/` control sequence used by Neovim.
+
+## herdr
+
+[herdr](https://herdr.dev) is a terminal multiplexer that tracks coding agents in its
+panes. `herdr/config.toml` uses the terminal's colors and `C-a` as the prefix; press the
+prefix twice to send a literal `C-a` to the pane. Bindings that differ from herdr's
+defaults:
+
+| Key | Action |
+| --- | --- |
+| `\|` | Split to the right |
+| `1`–`9` | Switch to that workspace (tab number keys are unbound) |
+| `M-2` | Two panes side by side, the focused one at 68% |
+| `M-3` | Two panes stacked on the left (70:30) and one on the right, left:right 68:32 |
+| `M-#` | `M-3` with the bottom-left pane as short as herdr allows (10% of the tab) |
+
+In workspace navigation (`C-a w`), `j` / `k` move between workspaces and `C-j` / `C-k`
+between panes. The layout presets are `herdr/scripts/pane-layout.sh`.
+
+`~/.config/herdr` also holds the herdr server's sockets, logs, and session state, so
+`./install.sh config` links only `config.toml` and `scripts/` into it, and only when
+herdr is installed. Inside a herdr pane, Neovim yanks to the system clipboard over
+OSC 52 and Sidekick talks to herdr panes (see [Sidekick](#sidekick)).
 
 ## Claude Code keybindings
 
