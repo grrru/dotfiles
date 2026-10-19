@@ -112,6 +112,11 @@ When both tracked shell configs are installed, interactive Bash sessions hand of
 Zsh. A Bash started from Zsh stays Bash, so run `bash` or `exec bash` for a temporary
 Bash session.
 
+After each command, Zsh turns off mouse reporting, focus reports, and Kitty keyboard
+flags before drawing the prompt. A program that exits without restoring them, such as an
+SSH session dropped while the Mac sleeps, would otherwise leave keys and clicks arriving
+at the prompt as escape codes like `9;5u`.
+
 ## Gruvim
 
 Gruvim is a Lua-based Neovim configuration built around native LSP and diagnostics.

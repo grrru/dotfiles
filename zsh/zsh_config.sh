@@ -32,5 +32,23 @@ if command -v fzf >/dev/null 2>&1; then
   unset fzf_init
 fi
 
+## Terminal input modes
+# A program that exits without restoring the terminal (an SSH session dropped while the
+# Mac sleeps, say) leaves mouse reporting and Kitty keyboard flags on, so clicks and keys
+# reach the prompt as escape codes such as `9;5u` for Ctrl-C. After each command, turn
+# off mouse tracking, focus reports, the Kitty keyboard stack (popping more entries than
+# it holds clears it), and modifyOtherKeys. Skipping shells that have not run a command
+# keeps startup output-free for Powerlevel10k's instant prompt.
+autoload -Uz add-zsh-hook
+_input_modes_dirty=0
+_input_modes_mark_dirty() { _input_modes_dirty=1 }
+_input_modes_reset() {
+  (( _input_modes_dirty )) || return 0
+  _input_modes_dirty=0
+  print -rn -- $'\e[?1000l\e[?1002l\e[?1003l\e[?1006l\e[?1004l\e[<99u\e[>4m'
+}
+add-zsh-hook preexec _input_modes_mark_dirty
+add-zsh-hook precmd _input_modes_reset
+
 ## Deduplicate PATH (zsh built-in unique array)
 typeset -U path
