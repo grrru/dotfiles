@@ -25,6 +25,7 @@ navigate_pane_down = "ctrl+j"
 split_vertical = "prefix+|"
 switch_workspace = "prefix+1..9"
 switch_tab = ""
+close_workspace = "prefix+d"
 
 [[keys.command]]
 key = "prefix+alt+1"
