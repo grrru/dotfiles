@@ -5,7 +5,7 @@ name = "terminal"
 auto_switch = false
 
 [ui]
-status_indicators = "symbols"
+status_indicators = "dots"
 
 [ui.sound]
 enabled = true
