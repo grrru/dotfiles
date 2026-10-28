@@ -129,4 +129,23 @@ return {
     "mfussenegger/nvim-ansible",
     ft = { "yaml", "yaml.ansible" },
   },
+
+  -- Ansible LSP
+  {
+    "neovim/nvim-lspconfig",
+    optional = true,
+    opts = function()
+      vim.lsp.config("ansiblels", {
+        settings = {
+          ansible = {
+            validation = {
+              lint = {
+                arguments = "-x 'yaml[commas]'",
+              },
+            },
+          },
+        },
+      })
+    end,
+  },
 }
