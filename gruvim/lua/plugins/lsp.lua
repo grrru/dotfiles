@@ -22,6 +22,8 @@ return {
           local client = vim.lsp.get_client_by_id(args.data.client_id)
           if client and client.name == "ruff" then
             client.server_capabilities.hoverProvider = false
+          elseif client and client.name == "ansiblels" then
+            vim.keymap.set("n", "K", vim.lsp.buf.hover, { buffer = args.buf, desc = "Hover" })
           end
         end,
       })
