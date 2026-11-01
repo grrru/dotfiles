@@ -54,6 +54,11 @@ return {
     priority = 1001,
     opts = {
       options = {
+        -- Leave the 16-color palette of terminal buffers to Ghostty, which
+        -- toggle-theme switches too. A palette set here is fixed into each
+        -- terminal (lazygit) when it opens, so its diff colors stayed nightfox
+        -- after switching back to light.
+        terminal_colors = false,
         styles = {
           comments = "NONE",
           functions = "italic",

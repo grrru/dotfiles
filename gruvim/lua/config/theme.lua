@@ -7,7 +7,7 @@
 -- lua/local/plugins/.
 --
 -- Applying a colorscheme fires `User ThemeChanged` so plugins that bake theme
--- colors into their setup (bufferline) can refresh themselves.
+-- colors into their setup (bufferline, lazygit) can refresh themselves.
 --
 -- Terminal buffers running claude or a tmux client (sidekick attaches its
 -- sessions that way) are told about the change too, so Claude Code's `auto`
@@ -115,6 +115,13 @@ local function apply(state)
   -- not define (NvimTreeNormal) keep the old colors.
   vim.cmd("highlight clear")
   vim.o.background = mode
+
+  -- Same for the terminal palette: a scheme that sets g:terminal_color_N
+  -- leaves it behind for one that does not, and every terminal opened after
+  -- the switch would show the old scheme's colors.
+  for i = 0, 15 do
+    vim.g["terminal_color_" .. i] = nil
+  end
 
   local name = state.NVIM_COLORSCHEME
   if not name or name == "" then

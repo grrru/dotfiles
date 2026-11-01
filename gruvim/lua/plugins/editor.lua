@@ -45,19 +45,55 @@ local function toggle_explorer(path)
   end
 end
 
+-- The lazygit terminals snacks keeps, visible or hidden.
+local function lazygit_terminals()
+  return vim.tbl_filter(function(term)
+    local cmd = type(term.cmd) == "table" and term.cmd[1] or term.cmd
+    return cmd == "lazygit"
+  end, Snacks.terminal.list())
+end
+
 -- Called by lazygit (see the lazygit os.edit config below) over --remote-expr,
 -- which blocks until nvim answers. That gives the shell a barrier: once it
 -- returns, the lazygit window is gone and the following --remote edit lands in
 -- the window that had focus before lazygit opened. hide() keeps the buffer, so
 -- the pty stays open and the lazygit session resumes on the next toggle.
 function _G.snacks_lazygit_hide()
-  for _, term in ipairs(Snacks.terminal.list()) do
-    local cmd = type(term.cmd) == "table" and term.cmd[1] or term.cmd
-    if cmd == "lazygit" and term:valid() then
+  for _, term in ipairs(lazygit_terminals()) do
+    if term:valid() then
       term:hide()
     end
   end
   return 1
+end
+
+-- Snacks writes lazygit's theme file from the current highlights only when
+-- Snacks.lazygit() is called, so a lazygit left running keeps its colors
+-- across a theme toggle. Rewrite the file now by running that open path with
+-- the terminal step stubbed out (snacks' ColorScheme autocmd has already marked
+-- the theme stale), then send a focus-out/in pair: lazygit re-reads changed
+-- config files on focus-in, but only on one that follows a focus-out.
+local function refresh_lazygit_theme()
+  -- Before the first Snacks.lazygit() there is no lazygit to refresh.
+  if not package.loaded["snacks.lazygit"] then
+    return
+  end
+  local terms = lazygit_terminals()
+  if #terms == 0 then
+    return
+  end
+
+  local terminal = Snacks.terminal
+  Snacks.terminal = function() end
+  local ok = pcall(Snacks.lazygit.open)
+  Snacks.terminal = terminal
+  if not ok then
+    return
+  end
+
+  for _, term in ipairs(terms) do
+    pcall(vim.fn.chansend, vim.bo[term.buf].channel, "\27[O\27[I")
+  end
 end
 
 return {
@@ -67,6 +103,12 @@ return {
     "grrru/snacks.nvim",
     priority = 1000,
     lazy = false,
+    init = function()
+      vim.api.nvim_create_autocmd("User", {
+        pattern = "ThemeChanged",
+        callback = refresh_lazygit_theme,
+      })
+    end,
     opts = {
       bigfile = { enabled = true },
       quickfile = { enabled = true },
