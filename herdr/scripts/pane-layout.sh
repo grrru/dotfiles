@@ -2,8 +2,8 @@
 # 현재 탭의 패널을 tmux 에서 쓰던 프리셋대로 다시 배치한다.
 #
 #   pane-layout.sh even           패널을 모두 좌우로 같은 너비로 놓는다 (tmux even-horizontal)
-#   pane-layout.sh two            패널 2개를 좌우로 놓고 포커스된 패널 68%, 나머지 32%
-#   pane-layout.sh three [size]   패널 3개를 왼쪽 위·아래 + 오른쪽 하나로 놓는다 (좌우 68:32).
+#   pane-layout.sh two            패널 2개를 좌우로 놓고 포커스된 패널 63%, 나머지 37%
+#   pane-layout.sh three [size]   패널 3개를 왼쪽 위·아래 + 오른쪽 하나로 놓는다 (좌우 63:37).
 #                                 size 는 왼쪽 아래 패널 높이로, 퍼센트(기본 30) 또는 "Nlines"
 #
 # 패널 순서는 herdr 레이아웃 순서(왼쪽 위부터)를 따르고, 포커스는 원래 패널에 남긴다.
@@ -106,9 +106,9 @@ two() {
     return 0
   fi
   if [ "$active" = "$p1" ]; then
-    side_by_side 0.68
+    side_by_side 0.63
   else
-    side_by_side 0.32
+    side_by_side 0.37
   fi
 }
 
@@ -126,7 +126,7 @@ three() {
 
   tmp=$(park "$p2")
   "$herdr" pane move "$p3" --tab "$tmp" --split right --no-focus >/dev/null
-  put_back "$p3" right "$p1" 0.68
+  put_back "$p3" right "$p1" 0.63
   put_back "$p2" down "$p1" "$top"
 }
 
