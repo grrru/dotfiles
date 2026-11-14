@@ -37,7 +37,7 @@ description = "좌우 같은 너비 (2분할이면 50:50)"
 key = "prefix+alt+2"
 type = "shell"
 command = "~/.config/herdr/scripts/pane-layout.sh two"
-description = "2분할 68:32"
+description = "2분할 65:35"
 
 [[keys.command]]
 key = "prefix+alt+3"
