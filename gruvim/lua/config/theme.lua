@@ -6,6 +6,9 @@
 -- shipped by this repo can be added through git-ignored specs in
 -- lua/local/plugins/.
 --
+-- The terminal's background, as Neovim detects it at startup, wins over the
+-- file's mode, and later answers to its background queries swap the scheme.
+--
 -- Applying a colorscheme fires `User ThemeChanged` so plugins that bake theme
 -- colors into their setup (bufferline, lazygit) can refresh themselves.
 --
@@ -107,9 +110,29 @@ end
 
 local current_mode
 
-local function apply(state)
-  local mode = state.MODE == "light" and "light" or "dark"
+-- The file's colorscheme for a mode; older files name only the current one.
+local function colorscheme_for(state, mode)
+  local name = state[mode == "light" and "NVIM_LIGHT_COLORSCHEME" or "NVIM_DARK_COLORSCHEME"]
+  if (not name or name == "") and state.MODE == mode then
+    name = state.NVIM_COLORSCHEME
+  end
+  return name
+end
 
+-- "dark" or "light" for an OSC 11 answer, by Neovim's own luminance cut.
+local function mode_from_osc11(sequence)
+  local r, g, b = sequence:match("^\27%]11;rgba?:(%x+)/(%x+)/(%x+)")
+  if not r then
+    return nil
+  end
+  local function level(hex)
+    return tonumber(hex, 16) / (16 ^ #hex - 1)
+  end
+  local luminance = 0.299 * level(r) + 0.587 * level(g) + 0.114 * level(b)
+  return luminance < 0.5 and "dark" or "light"
+end
+
+local function apply(mode, name)
   -- Clear first: changing 'background' reloads the old scheme and unsets
   -- g:colors_name, so catppuccin skips its own `hi clear` and groups it does
   -- not define (NvimTreeNormal) keep the old colors.
@@ -123,7 +146,6 @@ local function apply(state)
     vim.g["terminal_color_" .. i] = nil
   end
 
-  local name = state.NVIM_COLORSCHEME
   if not name or name == "" then
     name = FALLBACK[mode]
   end
@@ -143,8 +165,14 @@ local function apply(state)
   report_theme(mode)
 end
 
+local function file_mode(state)
+  return state.MODE == "light" and "light" or "dark"
+end
+
 function M.reload()
-  apply(read_state())
+  local state = read_state()
+  local mode = file_mode(state)
+  apply(mode, colorscheme_for(state, mode))
 end
 
 function M.mode()
@@ -152,7 +180,26 @@ function M.mode()
 end
 
 function M.setup()
-  M.reload()
+  -- Only Neovim's terminal detection can have set 'background' by now.
+  local state = read_state()
+  local mode = file_mode(state)
+  if vim.api.nvim_get_option_info2("background", {}).was_set then
+    mode = vim.o.background
+  end
+  apply(mode, colorscheme_for(state, mode))
+
+  vim.api.nvim_create_autocmd("TermResponse", {
+    desc = "Swap to the colorscheme for the terminal's new background",
+    callback = function(ev)
+      local new_mode = mode_from_osc11(ev.data.sequence or "")
+      if new_mode and new_mode ~= current_mode then
+        -- Outside the autocmd, so the colorscheme's own events fire.
+        vim.schedule(function()
+          apply(new_mode, colorscheme_for(read_state(), new_mode))
+        end)
+      end
+    end,
+  })
 
   local watcher = vim.uv.new_fs_event()
   local settle = vim.uv.new_timer()

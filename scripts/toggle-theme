@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Switch light/dark mode across Ghostty, tmux, Neovim and Claude Code.
+# Switch light/dark mode across Ghostty, tmux, Neovim, Claude Code and Herdr.
 #
 #   toggle-theme            flip the current mode
 #   toggle-theme light      force light mode
@@ -72,6 +72,7 @@ if [ "$NEW_MODE" = "light" ]; then
   TMUX_PANE_BORDER_FG="$TMUX_LIGHT_PANE_BORDER_FG"
   TMUX_PANE_ACTIVE_BORDER_FG="$TMUX_LIGHT_PANE_ACTIVE_BORDER_FG"
   CLAUDE_THEME="$CLAUDE_LIGHT_THEME"
+  HERDR_THEME="$HERDR_LIGHT_THEME"
 else
   GHOSTTY_THEME="$GHOSTTY_DARK_THEME"
   FONT_THICKEN_STRENGTH="$DARK_FONT_THICKEN_STRENGTH"
@@ -81,13 +82,21 @@ else
   TMUX_PANE_BORDER_FG="$TMUX_DARK_PANE_BORDER_FG"
   TMUX_PANE_ACTIVE_BORDER_FG="$TMUX_DARK_PANE_ACTIVE_BORDER_FG"
   CLAUDE_THEME="$CLAUDE_DARK_THEME"
+  HERDR_THEME="$HERDR_DARK_THEME"
 fi
 
+# True when Ghostty is running and scriptable (macOS).
+ghostty_scriptable() {
+  [ "$(uname -s)" = "Darwin" ] && command -v osascript >/dev/null 2>&1 &&
+    pgrep -x ghostty >/dev/null 2>&1
+}
+
 # === Neovim ===
-# Neovim watches this file and applies what it names. MODE stays on the first
-# line, where read_mode looks. A single write, so the watcher never fires on a
-# half-written file.
-printf 'MODE="%s"\nNVIM_COLORSCHEME="%s"\n' "$NEW_MODE" "$NVIM_COLORSCHEME" >"$STATE_FILE"
+# Neovim watches this file and applies what it names; both schemes are listed
+# for when it follows the terminal instead. MODE stays on the first line, where
+# read_mode looks. A single write, so the watcher never sees half a file.
+printf 'MODE="%s"\nNVIM_COLORSCHEME="%s"\nNVIM_LIGHT_COLORSCHEME="%s"\nNVIM_DARK_COLORSCHEME="%s"\n' \
+  "$NEW_MODE" "$NVIM_COLORSCHEME" "$NVIM_LIGHT_COLORSCHEME" "$NVIM_DARK_COLORSCHEME" >"$STATE_FILE"
 
 # === Ghostty ===
 GHOSTTY_CONFIG="$DOTFILES/ghostty/config"
@@ -102,8 +111,12 @@ if [ -d "$(dirname "$GHOSTTY_LOCAL_CONFIG")" ]; then
       printf 'font-thicken = false\n'
     fi
   } >"$GHOSTTY_LOCAL_CONFIG"
-  # Ghostty reloads when the main config file's mtime changes.
   touch "$GHOSTTY_CONFIG"
+  # Ghostty does not reload on file changes; do what Cmd+Shift+, does.
+  if ghostty_scriptable; then
+    osascript -e 'tell application "Ghostty" to perform action "reload_config" on terminal 1' \
+      >/dev/null 2>&1
+  fi
 fi
 
 # === Claude Code ===
@@ -154,4 +167,193 @@ if command -v tmux >/dev/null 2>&1 && tmux info >/dev/null 2>&1; then
   done
 else
   echo "Theme: $NEW_MODE"
+fi
+
+# === Herdr ===
+# Clients are the herdr processes with a terminal; the server and the
+# `--remote` bridge have none.
+HERDR_CLIENTS="$(ps -Ao pid=,uid=,tty=,comm= 2>/dev/null |
+  awk -v uid="$(id -u)" '$2 == uid && $4 ~ /(^|\/)herdr$/ && $3 !~ /^\?+$/ { print $1 }')"
+HERDR_SERVER=""
+if command -v herdr >/dev/null 2>&1 &&
+  herdr status server 2>/dev/null | grep -q '^status: running'; then
+  HERDR_SERVER=1
+fi
+
+# Name this mode's theme in config.toml (auto_switch follows the macOS
+# appearance, not Ghostty's theme). Clients draw the sidebar and bars with it,
+# servers the borders of their panes.
+HERDR_CONFIG="$DOTFILES/herdr/config.toml"
+HERDR_THEME_CHANGED=""
+if { [ -n "$HERDR_CLIENTS" ] || [ -n "$HERDR_SERVER" ]; } &&
+  [ -n "${HERDR_THEME-}" ] && [ -f "$HERDR_CONFIG" ]; then
+  HERDR_TMP="$(mktemp "${TMPDIR:-/tmp}/toggle-theme.XXXXXX")"
+  awk -v theme="$HERDR_THEME" '
+    /^\[/ { in_theme = ($0 == "[theme]") }
+    in_theme && /^name[[:space:]]*=/ { print "name = \"" theme "\""; next }
+    { print }
+  ' "$HERDR_CONFIG" >"$HERDR_TMP"
+  if ! cmp -s "$HERDR_TMP" "$HERDR_CONFIG"; then
+    # In place: ~/.config/herdr/config.toml links to this file.
+    cat "$HERDR_TMP" >"$HERDR_CONFIG"
+    HERDR_THEME_CHANGED=1
+  fi
+  rm -f "$HERDR_TMP"
+fi
+
+# herdr_key_script <chord>: the AppleScript line pressing a chord such as
+# "ctrl+a" on terminal t. Fails on unknown modifiers.
+herdr_key_script() {
+  local parts mods="" mod i
+  IFS='+' read -ra parts <<<"$1"
+  for ((i = 0; i < ${#parts[@]} - 1; i++)); do
+    case "${parts[i]}" in
+    ctrl | control) mod="control" ;;
+    alt | option | opt) mod="option" ;;
+    shift) mod="shift" ;;
+    cmd | command | super) mod="command" ;;
+    *) return 1 ;;
+    esac
+    mods="${mods:+$mods,}$mod"
+  done
+  printf 'send key "%s"%s to t\n' "${parts[${#parts[@]} - 1]}" "${mods:+ modifiers \"$mods\"}"
+}
+
+# herdr_config_key <name> <default>: a key binding from config.toml's [keys].
+herdr_config_key() {
+  local value
+  value="$(awk -F'"' -v name="$1" '
+    /^\[/ { section = $0 }
+    section == "[keys]" && $0 ~ "^" name "[[:space:]]*=" { print $2; exit }
+  ' "$HERDR_CONFIG")"
+  echo "${value:-$2}"
+}
+
+# `herdr server reload-config` reaches only the server; a client reloads its
+# theme only from its UI, so press its reload_config keys in Ghostty.
+if [ -n "$HERDR_THEME_CHANGED" ] && [ -n "$HERDR_SERVER" ]; then
+  herdr server reload-config >/dev/null 2>&1
+fi
+if [ -n "$HERDR_THEME_CHANGED" ] && [ -n "$HERDR_CLIENTS" ]; then
+  HERDR_RELOADED=""
+  HERDR_RELOAD_KEYS="$(herdr_config_key reload_config 'prefix+shift+r')"
+  HERDR_KEY_SCRIPT=""
+  case "$HERDR_RELOAD_KEYS" in
+  prefix+*)
+    if prefix_line="$(herdr_key_script "$(herdr_config_key prefix 'ctrl+b')")" &&
+      key_line="$(herdr_key_script "${HERDR_RELOAD_KEYS#prefix+}")"; then
+      HERDR_KEY_SCRIPT="$prefix_line"$'\n'"delay 0.1"$'\n'"$key_line"
+    fi
+    ;;
+  *)
+    if key_line="$(herdr_key_script "$HERDR_RELOAD_KEYS")"; then
+      HERDR_KEY_SCRIPT="$key_line"
+    fi
+    ;;
+  esac
+  if [ -n "$HERDR_KEY_SCRIPT" ] && ghostty_scriptable; then
+    for pid in $HERDR_CLIENTS; do
+      tty="$(ps -o tty= -p "$pid" 2>/dev/null | tr -d ' ')"
+      [ -n "$tty" ] || continue
+      if printf '%s\n' 'tell application "Ghostty"' \
+        "set t to first terminal whose tty is \"/dev/$tty\"" \
+        "$HERDR_KEY_SCRIPT" 'end tell' | osascript >/dev/null 2>&1; then
+        HERDR_RELOADED=1
+      fi
+    done
+  fi
+  if [ -z "$HERDR_RELOADED" ]; then
+    echo "Herdr: press $HERDR_RELOAD_KEYS to show the $HERDR_THEME theme"
+  fi
+fi
+
+# Clients read the host terminal's colors again on SIGWINCH.
+if [ -n "$HERDR_CLIENTS" ]; then
+  # Let a terminal reloading its config on this toggle (Ghostty) finish first.
+  sleep 0.3
+  for pid in $HERDR_CLIENTS; do
+    kill -WINCH "$pid" 2>/dev/null
+  done
+  # Give the clients time to get the terminal's answer before panes ask.
+  sleep 0.5
+fi
+
+# Claude Code's `auto` theme asks for the background again only on a theme
+# change report (DEC 2031), so send one to each claude pane here. Herdr's
+# answer is current only while this machine is on screen, so Neovim is left
+# to ~/.theme_mode.
+if [ -n "$HERDR_SERVER" ] && command -v jq >/dev/null 2>&1; then
+  if [ "$NEW_MODE" = "dark" ]; then
+    THEME_REPORT=$'\e[?997;1n'
+  else
+    THEME_REPORT=$'\e[?997;2n'
+  fi
+  herdr pane list 2>/dev/null | jq -r '.result.panes[]?.pane_id' |
+    while read -r pane; do
+      # Only with claude in the foreground, or a shell takes the report as
+      # input. The native build's process is named after its version, so
+      # match argv[0] too.
+      herdr pane process-info --pane "$pane" 2>/dev/null |
+        jq -e '.result.process_info.foreground_processes[]? |
+          select([.name, ((.argv0 // .argv[0]? // "") | split("/") | last)] |
+            any(. == "claude"))' >/dev/null || continue
+      herdr pane send-text "$pane" "$THEME_REPORT" >/dev/null 2>&1
+    done
+fi
+
+# toggle_theme_on_machine <machine> <label>: run toggle-theme with this mode in
+# a short-lived tab on a saved Herdr machine. TOGGLE_THEME_REMOTE stops it
+# from reaching further.
+toggle_theme_on_machine() {
+  local machine="$1" label="$2" workspaces workspace pane
+  if ! workspaces="$(herdr --machine "$machine" workspace list 2>/dev/null)"; then
+    echo "toggle-theme: $label: not reachable through Herdr, skipped" >&2
+    return 1
+  fi
+  workspace="$(jq -r '.result.workspaces[0].workspace_id // empty' <<<"$workspaces")"
+  if [ -z "$workspace" ]; then
+    echo "toggle-theme: $label: no Herdr workspace to run in" >&2
+    return 1
+  fi
+  pane="$(herdr --machine "$machine" tab create --workspace "$workspace" --no-focus \
+    --label toggle-theme --env TOGGLE_THEME_REMOTE=1 2>/dev/null |
+    jq -r '.result.root_pane.pane_id // empty')"
+  if [ -z "$pane" ]; then
+    echo "toggle-theme: $label: could not open a tab" >&2
+    return 1
+  fi
+  # The shell computes the marker, so the command line it echoes never matches.
+  if ! herdr --machine "$machine" pane run "$pane" \
+    "$THEME_HERDR_REMOTE_TOGGLE $NEW_MODE >/dev/null 2>&1; echo toggle-theme-done-\$((40 + 2))" \
+    >/dev/null 2>&1 ||
+    ! herdr --machine "$machine" pane wait-output "$pane" --match toggle-theme-done-42 \
+      --timeout 30000 >/dev/null 2>&1; then
+    echo "toggle-theme: $label: the toggle there did not finish" >&2
+  fi
+  herdr --machine "$machine" pane close "$pane" >/dev/null 2>&1
+}
+
+# herdr_machines: "<id-or-label>\t<label>" per line for THEME_HERDR_MACHINES.
+# "auto" takes the enabled machines only while a client here keeps them
+# connected.
+herdr_machines() {
+  local machine
+  if [ "${THEME_HERDR_MACHINES-}" = "auto" ]; then
+    [ -n "$HERDR_CLIENTS" ] || return 0
+    herdr machine list --json 2>/dev/null |
+      jq -r '.[]? | select(.enabled) | "\(.id)\t\(.label)"'
+  else
+    for machine in ${THEME_HERDR_MACHINES-}; do
+      printf '%s\t%s\n' "$machine" "$machine"
+    done
+  fi
+}
+
+if [ -z "${TOGGLE_THEME_REMOTE-}" ] &&
+  command -v herdr >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
+  while IFS=$'\t' read -r machine label; do
+    [ -n "$machine" ] || continue
+    toggle_theme_on_machine "$machine" "${label:-$machine}" &
+  done < <(herdr_machines)
+  wait
 fi

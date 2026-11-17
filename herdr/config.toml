@@ -1,6 +1,8 @@
 onboarding = false
 
 [theme]
+# scripts/toggle-theme rewrites `name`. auto_switch stays off: it follows the
+# macOS appearance, not Ghostty's theme.
 name = "catppuccin-latte"
 auto_switch = false
 
