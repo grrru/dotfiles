@@ -1,12 +1,7 @@
-tmux/plugins/
-shell_common.sh
-
-.nvimlog
 nvim.log
 .DS_Store
 ghostty/theme.local
 ghostty/local.conf
-tmux/theme.local
 
 # machine-local theme selection and colorscheme plugin specs
 /theme.conf

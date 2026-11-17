@@ -1,6 +1,6 @@
 # dotfiles
 
-Personal workstation configuration for Neovim, tmux, Zsh, Bash, and Ghostty.
+Personal workstation configuration for Neovim, Zsh, Bash, Ghostty, and herdr.
 `install.sh` installs the shared tooling and links the tracked configuration into
 the target user's home directory.
 
@@ -8,9 +8,8 @@ the target user's home directory.
 
 | Path | Role |
 | --- | --- |
-| `install.sh` | Idempotent installer for dependencies, shells, application configs, and tpm |
+| `install.sh` | Idempotent installer for dependencies, shells, and application configs |
 | `gruvim/` | Neovim configuration, linked to `~/.config/nvim` |
-| `tmux/` | tmux configuration and layout helpers, linked to `~/.config/tmux` |
 | `zsh/`, `bash/` | Tracked shell framework configuration |
 | `common.sh` | Portable PATH helpers, aliases, and defaults shared by Bash and Zsh |
 | `ghostty/` | Ghostty configuration, linked when Ghostty is installed |
@@ -25,7 +24,6 @@ Requirements:
 
 - macOS with Homebrew, or x86_64/arm64 Linux with `dnf` or `apt-get`
 - Git and permission to install system packages
-- tmux 3.6 or newer; the installer builds it from source where the package is older
 - Neovim 0.12 or newer for Gruvim
 - Tree-sitter CLI 0.26.1 or newer
 - A Nerd Font for the configured icons; Ghostty defaults to D2CodingLigature Nerd Font
@@ -39,7 +37,6 @@ before installation.
 | Tool | Homebrew | Fedora (`dnf`) | Debian/Ubuntu (`apt-get`) |
 | --- | --- | --- | --- |
 | Base CLI tools | Homebrew formulas | Distribution packages | Distribution packages |
-| tmux | Formula with version check | Package, then source build when older than 3.6 | Package, then source build when older than 3.6 |
 | fd | `fd` formula | `fd-find` package | `fd-find` plus `~/.local/bin/fd` alias |
 | fzf | Formula | Package, then release fallback | Package, then release fallback |
 | Neovim / Tree-sitter CLI / Lazygit | Formulas | Verified upstream releases | Verified upstream releases |
@@ -64,13 +61,12 @@ before a new symlink is created.
 
 | Command | Action |
 | --- | --- |
-| `./install.sh` | Install dependencies, both shell setups, application configs, and tpm |
+| `./install.sh` | Install dependencies, both shell setups, and application configs |
 | `./install.sh deps` | Install CLI dependencies only |
 | `./install.sh shell` | Install and configure both Bash and Zsh |
 | `./install.sh bash` | Configure the Bash-to-Zsh hand-off only |
 | `./install.sh zsh` | Configure oh-my-zsh, Powerlevel10k, and zsh-autosuggestions |
-| `./install.sh config` | Link Neovim, tmux, Claude Code keybindings, and optionally Ghostty and herdr configs |
-| `./install.sh tpm` | Install tmux Plugin Manager only |
+| `./install.sh config` | Link Neovim, Claude Code keybindings, and optionally Ghostty and herdr configs |
 | `./install.sh help` | Show command-line help |
 
 To install user-level files for another account:
@@ -90,8 +86,6 @@ Gruvim's Mason list:
 ```vim
 :GruvimMasonInstall
 ```
-
-Open tmux and press `C-a I` to install the plugins declared in `tmux.conf`.
 
 ## Shell configuration
 
@@ -143,8 +137,10 @@ Run `:GruvimMasonInstall` after changing the managed list in
 
 - LSP servers: `ansible-language-server`, `bash-language-server`, `basedpyright`,
   `docker-compose-language-service`, `dockerfile-language-server`, `gopls`, `json-lsp`,
-  `lua-language-server`, `marksman`, `ruff`, `vtsls`, and `yaml-language-server`
-- Formatters: `gdscript-formatter`, `goimports`, `shfmt`, `stylua`, and Ruff's formatter
+  `lua-language-server`, `marksman`, `ruff`, `vtsls`, `yaml-language-server`,
+  `kotlin-lsp`, `gradle-language-server`, and `terraform-ls`
+- Formatters: `biome`, `gdscript-formatter`, `goimports`, `shfmt`, `stylua`, and Ruff's
+  formatter
 - Supporting tool: `shellcheck`
 - External servers: `clangd` must be available on `PATH`; GDScript connects to Godot at
   `127.0.0.1:6005`
@@ -194,9 +190,9 @@ the Mason shortcut.
 ### Sidekick
 
 Sidekick sends `@file` references, lines, and selections from Neovim to an AI CLI such as
-Claude Code running in a multiplexer pane next to it (`<leader>at`, `<leader>al`,
-`<leader>af`, `<leader>av`). It looks for that pane in tmux, or in Herdr when Neovim runs
-inside a [Herdr](https://herdr.dev) pane (`HERDR_ENV=1`).
+Claude Code running next to it (`<leader>at`, `<leader>al`, `<leader>af`, `<leader>av`).
+When Neovim runs inside a [Herdr](https://herdr.dev) pane (`HERDR_ENV=1`), the CLI runs in
+a Herdr pane; elsewhere it runs in a Neovim terminal.
 
 Under Herdr, `gruvim/lua/config/sidekick_herdr.lua` provides the session backend:
 
@@ -205,21 +201,7 @@ Under Herdr, `gruvim/lua/config/sidekick_herdr.lua` provides the session backend
 - `<leader>aa` focuses that agent's pane.
 - A session started from the picker opens in a Herdr split taking 32% of the Neovim pane.
 
-## tmux and Ghostty
-
-tmux uses `C-a` as its prefix, vi copy mode, mouse support, and true color. Common
-prefix bindings include:
-
-| Key | Action |
-| --- | --- |
-| `\|` / `-` | Split horizontally / vertically in the current directory |
-| `h` / `j` / `k` / `l` | Move between panes |
-| `H` / `J` / `K` / `L` | Resize panes |
-| `r` | Reload `tmux.conf` |
-| `M-2` | Apply the two-pane layout |
-| `M-3` | Apply the three-pane layout |
-| `g` | Hide the current pane, or restore the last hidden pane to where it was |
-| `G` | Hide the current pane even when another pane is already hidden |
+## Ghostty
 
 Ghostty configures the matching font, terminal colors, clipboard access, and the
 `Ctrl-/` control sequence used by Neovim.
@@ -227,8 +209,9 @@ Ghostty configures the matching font, terminal colors, clipboard access, and the
 ## herdr
 
 [herdr](https://herdr.dev) is a terminal multiplexer that tracks coding agents in its
-panes. `herdr/config.toml` uses the terminal's colors and `C-a` as the prefix; press the
-prefix twice to send a literal `C-a` to the pane. Bindings that differ from herdr's
+panes. `herdr/config.toml` uses `C-a` as the prefix; press the prefix twice to send a
+literal `C-a` to the pane. Its theme is set by `toggle-theme` (see
+[Theme switching](#theme-switching)). Bindings that differ from herdr's
 defaults:
 
 | Key | Action |
@@ -296,19 +279,21 @@ the mode:
 
 | Generated | Read by |
 | --- | --- |
-| `ghostty/theme.local` | Ghostty (`config-file`); the script touches `ghostty/config` to reload it |
-| `tmux/theme.local` | `tmux.conf`, which sources it, so `C-a r` and new servers keep the mode; also sourced into the running server |
+| `ghostty/theme.local` | Ghostty (`config-file`); on macOS the script reloads Ghostty through AppleScript |
 | `~/.theme_mode` | Neovim, through a file watcher: the mode and the colorscheme |
 | `theme` in `~/.claude/settings.json` | Claude Code, at startup |
+| `name` in `herdr/config.toml` | herdr: the server reloads it for pane borders, and the script presses the client's reload key through Ghostty |
 
-All of them are rewritten from scratch on every run, so hand-edits do not survive.
+All of them are rewritten on every run, so hand-edits do not survive.
 
 Claude Code's theme defaults to `auto`, which follows the terminal's background in
-running sessions too. tmux 3.6 or newer answers Claude Code's background queries with
-the attached terminal's color and tells panes when it changes; `toggle-theme` asks each
-tmux client's terminal for its color again, and Neovim sends the change to claude and
-tmux clients in its terminal buffers. Under an older tmux, or with a fixed theme name
-such as `light-daltonized`, only sessions started after the toggle change.
+running sessions too: `toggle-theme` tells claude panes under herdr that the theme
+changed, and Neovim does the same for claude in its terminal buffers. With a fixed theme
+name such as `light-daltonized`, only sessions started after the toggle change.
+
+While a herdr client runs, `toggle-theme` also runs, with the same mode, on every enabled
+saved herdr machine (`THEME_HERDR_MACHINES`), so their Neovims, pane borders, and Claude
+Code panes switch too.
 
 ### Per-machine themes
 
@@ -327,8 +312,7 @@ toggle-theme --apply
 `theme.defaults.conf` documents every key. Changing a value there changes the default on
 every machine. The script looks for the override in `$DOTFILES_THEME_CONF`,
 `<dotfiles>/theme.conf`, and `~/.config/dotfiles/theme.conf`, in that order; the first
-existing file wins. A `theme.conf` copied whole from the old `theme.conf.example` still
-works, it just repeats the defaults.
+existing file wins.
 
 Neovim colorschemes must come from a plugin it actually loads. This repo ships
 catppuccin and nightfox; to use anything else on one machine, drop a lazy.nvim spec into

@@ -23,9 +23,10 @@ return {
       nes = { enabled = false },
       cli = {
         mux = {
-          enabled = true,
-          backend = in_herdr and "herdr" or "tmux",
-          -- herdr only: new sessions open in a split taking 32% of the Neovim pane
+          -- Herdr only; elsewhere sessions open in a Neovim terminal.
+          enabled = in_herdr,
+          backend = in_herdr and "herdr" or nil,
+          -- new sessions open in a split taking 32% of the Neovim pane
           split = { vertical = true, size = 0.32 },
         },
       },
@@ -47,34 +48,13 @@ return {
 
       -- The session picker only shows the multiplexer session name and the cwd, so
       -- several claude panes started in the same directory are indistinguishable. Their
-      -- pane titles are not: claude keeps a summary of what it is doing in there.
-      -- Herdr sessions carry that title already; tmux panes are looked up here.
+      -- pane titles are not: claude keeps a summary of what it is doing in there, and
+      -- Herdr sessions carry that title.
       local Select = require("sidekick.cli.ui.select")
       local format = Select.format
-      local cache = { at = 0, panes = {} }
-
-      local function pane_labels()
-        if vim.uv.now() - cache.at < 1000 then
-          return cache.panes
-        end
-        cache = { at = vim.uv.now(), panes = {} }
-        local out = vim
-          .system({ "tmux", "list-panes", "-a", "-F", "#{pane_id} #{window_index}.#{pane_index} #{pane_title}" })
-          :wait()
-        for line in vim.gsplit(out.stdout or "", "\n", { trimempty = true }) do
-          local pane, label = line:match("^(%%%d+) (.*)$")
-          if pane then
-            cache.panes[pane] = label
-          end
-        end
-        return cache.panes
-      end
-
       Select.format = function(state, picker)
         local ret = format(state, picker)
-        local session = state.session
-        local pane = session and session.tmux_pane_id
-        local label = session and session.herdr_title or pane and pane_labels()[pane]
+        local label = state.session and state.session.herdr_title
         if label then
           ret[#ret + 1] = { " " }
           ret[#ret + 1] = { vim.fn.strcharpart(label, 0, 60), "Comment" }

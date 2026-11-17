@@ -30,13 +30,12 @@ Options:
   -u, --user USER  Install user-level files for USER instead of the current user
 
 Targets:
-  all      Install dependencies, shell setup, configs, and tpm (default)
+  all      Install dependencies, shell setup, and configs (default)
   deps     Install CLI dependencies only
   shell    Install bash bridge and zsh setup
   bash     Install the bash-to-zsh bridge only
   zsh      Install oh-my-zsh + Powerlevel10k setup only
   config   Link application configs only
-  tpm      Install tmux plugin manager only
   help     Show this help
 EOF
 }
@@ -131,12 +130,6 @@ ensure_gruvim_source() {
 NVIM_MIN_VERSION="${NVIM_MIN_VERSION:-0.12.0}"
 TREE_SITTER_MIN_VERSION="${TREE_SITTER_MIN_VERSION:-0.26.1}"
 FZF_MIN_VERSION="${FZF_MIN_VERSION:-0.48.0}"
-# 3.6 is the first tmux that tells panes when the terminal's theme changes
-# (mode 2031), which Claude Code's `auto` theme follows. Package managers that
-# ship an older one (el9, current Debian/Ubuntu) get TMUX_BUILD_VERSION built
-# from source instead.
-TMUX_MIN_VERSION="${TMUX_MIN_VERSION:-3.6}"
-TMUX_BUILD_VERSION="${TMUX_BUILD_VERSION:-3.6b}"
 # Published in GitHub CLI's official Linux installation guide.
 GH_APT_KEYRING_SHA256="${GH_APT_KEYRING_SHA256:-6084d5d7bd8e288441e0e94fc6275570895da18e6751f70f057485dc2d1a811b}"
 
@@ -289,10 +282,6 @@ move_path_entry() {
   hash -r
 }
 
-tmux_version() {
-  tmux -V 2>/dev/null | awk '{ print $2 }'
-}
-
 fzf_version() {
   fzf --version 2>/dev/null | awk 'NR == 1 { print $1 }'
 }
@@ -312,58 +301,6 @@ version_ok() {
 
   current="$("$1")"
   [ -n "$current" ] && version_at_least "$current" "$2"
-}
-
-# Builds tmux $TMUX_BUILD_VERSION from its release tarball into ~/.local,
-# installing the compiler and the libevent and ncurses headers it needs first.
-install_tmux_source() (
-  local asset_name="tmux-$TMUX_BUILD_VERSION.tar.gz"
-  local release_json
-  local tmpdir
-
-  case "$PACKAGE_MANAGER" in
-  dnf) sudo dnf install -y gcc make bison pkgconf-pkg-config libevent-devel ncurses-devel ;;
-  apt) sudo apt-get install -y build-essential bison pkg-config libevent-dev libncurses-dev ;;
-  esac
-
-  if ! release_json="$(github_release_json tmux/tmux "$TMUX_BUILD_VERSION")"; then
-    echo "Failed to fetch the tmux $TMUX_BUILD_VERSION release." >&2
-    return 1
-  fi
-
-  tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/dotfiles-tmux.XXXXXX")"
-  trap 'rm -rf "$tmpdir"' EXIT
-
-  download_github_release_asset "$release_json" "$asset_name" "$tmpdir/$asset_name"
-  tar -xzf "$tmpdir/$asset_name" -C "$tmpdir"
-  cd "$tmpdir/tmux-$TMUX_BUILD_VERSION"
-  ./configure --prefix="$HOME/.local" >/dev/null
-  make -j"$(getconf _NPROCESSORS_ONLN)" >/dev/null
-  make install >/dev/null
-  chown_target_path "$HOME/.local/bin/tmux"
-  # make install may have created these directories as the installing user.
-  chown_target_path "$HOME/.local/share/man"
-
-  # A running server of an older tmux keeps its own binary until it exits.
-  echo "Built tmux $TMUX_BUILD_VERSION into ~/.local/bin. Restart running tmux servers (tmux kill-server) to use it."
-)
-
-install_tmux() {
-  if version_ok tmux_version "$TMUX_MIN_VERSION"; then
-    return
-  fi
-
-  if [ "$PACKAGE_MANAGER" = "brew" ]; then
-    upgrade_brew_formula tmux
-  else
-    install_managed_package tmux tmux tmux
-    hash -r
-    if ! version_ok tmux_version "$TMUX_MIN_VERSION"; then
-      install_tmux_source
-    fi
-  fi
-
-  hash -r
 }
 
 fd_available() {
@@ -820,7 +757,7 @@ check_min_version() {
 }
 
 verify_dependencies() {
-  local commands=(git curl zsh tmux nvim rg fd fzf make tar unzip jq python3 gh lazygit tree-sitter)
+  local commands=(git curl zsh nvim rg fd fzf make tar unzip jq python3 gh lazygit tree-sitter)
   local command
   local failed=0
 
@@ -831,7 +768,6 @@ verify_dependencies() {
     fi
   done
 
-  check_min_version tmux tmux_version "$TMUX_MIN_VERSION" || failed=1
   check_min_version nvim neovim_version "$NVIM_MIN_VERSION" || failed=1
   check_min_version fzf fzf_version "$FZF_MIN_VERSION" || failed=1
   check_min_version tree-sitter tree_sitter_version "$TREE_SITTER_MIN_VERSION" || failed=1
@@ -866,7 +802,6 @@ install_dependencies() {
   move_path_entry "$HOME/.local/share/nvim/mason/bin" end
   run_dependency_step "GitHub CLI package source preflight" prepare_gh_package_source
   run_dependency_step "Base packages ($PACKAGE_MANAGER)" install_core_dependencies
-  run_dependency_step "tmux $TMUX_MIN_VERSION+ ($PACKAGE_MANAGER)" install_tmux
   run_dependency_step "fd ($PACKAGE_MANAGER, with Debian command alias)" install_fd
   run_dependency_step "fzf ($PACKAGE_MANAGER, upstream fallback when too old)" install_fzf
   run_dependency_step "Neovim (Homebrew or verified upstream release)" install_neovim
@@ -1036,13 +971,11 @@ install_shells() {
 setup_theme_config() {
   # Nothing to seed: the defaults are tracked in theme.defaults.conf, and the
   # machine-local theme.conf is optional and holds only what differs. Generate
-  # ghostty/theme.local, tmux/theme.local and the ~/.theme_mode state for the
-  # current mode.
+  # ghostty/theme.local and the ~/.theme_mode state for the current mode.
   if [ -x "$DOTFILES_DIR/scripts/toggle-theme" ]; then
     "$DOTFILES_DIR/scripts/toggle-theme" --apply >/dev/null
     chown_target_path "$HOME/.theme_mode"
     chown_target_path "$DOTFILES_DIR/ghostty/theme.local"
-    chown_target_path "$DOTFILES_DIR/tmux/theme.local"
   fi
 }
 
@@ -1113,7 +1046,6 @@ install_configs() {
   chown_target_path "$CONFIG_DIR"
   ensure_gruvim_source
   link_config "gruvim" "nvim"
-  link_config "tmux"
 
   # Link ghostty config only if ghostty is installed
   if command_exists ghostty; then
@@ -1130,22 +1062,10 @@ install_configs() {
   setup_theme_config
 }
 
-install_tpm() {
-  if [ ! -d "$DOTFILES_DIR/tmux/plugins/tpm" ]; then
-    echo "Installing tpm (Tmux Plugin Manager)..."
-    git clone https://github.com/tmux-plugins/tpm "$DOTFILES_DIR/tmux/plugins/tpm"
-    chown_target_path "$DOTFILES_DIR/tmux/plugins/tpm"
-  else
-    echo "tpm already installed, skipping."
-    chown_target_path "$DOTFILES_DIR/tmux/plugins/tpm"
-  fi
-}
-
 install_all() {
   install_dependencies
   install_shells
   install_configs
-  install_tpm
 
   echo "Installation complete!"
   echo "Default Neovim config now points to: gruvim"
@@ -1188,9 +1108,6 @@ main() {
     ;;
   config)
     install_configs
-    ;;
-  tpm)
-    install_tpm
     ;;
   help | -h | --help)
     usage

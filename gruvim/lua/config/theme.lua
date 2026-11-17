@@ -12,9 +12,8 @@
 -- Applying a colorscheme fires `User ThemeChanged` so plugins that bake theme
 -- colors into their setup (bufferline, lazygit) can refresh themselves.
 --
--- Terminal buffers running claude or a tmux client (sidekick attaches its
--- sessions that way) are told about the change too, so Claude Code's `auto`
--- theme follows it in sessions that are already running.
+-- Terminal buffers running claude are told about the change too, so Claude
+-- Code's `auto` theme follows it in sessions that are already running.
 
 local M = {}
 
@@ -47,12 +46,12 @@ local function read_state()
   return state
 end
 
--- Channels of the terminal buffers that take a theme report (DEC mode 2031):
--- a tmux client, which then asks this terminal for its colors again, or a
--- claude, which asks itself. Neovim answers those queries from 'background'
--- but never sends the report on its own. Both usually run below the buffer's
--- job (a shell) rather than as the job, so walk the process tree up to each
--- job. Any other job would get the report as typed input.
+-- Channels of the terminal buffers running claude, which takes a theme report
+-- (DEC mode 2031) and then asks this terminal for its colors again. Neovim
+-- answers those queries from 'background' but never sends the report on its
+-- own. claude usually runs below the buffer's job (a shell) rather than as the
+-- job, so walk the process tree up to each job. Any other job would get the
+-- report as typed input.
 local function theme_report_channels()
   local job_channel = {}
   for _, buf in ipairs(vim.api.nvim_list_bufs()) do
@@ -78,10 +77,9 @@ local function theme_report_channels()
     end
   end
 
-  -- tmux renames its processes to "tmux: client" / "tmux: server" on Linux.
   local found, seen = {}, {}
   for pid, comm in pairs(name) do
-    if comm == "claude" or comm == "tmux" or vim.startswith(comm, "tmux: ") then
+    if comm == "claude" then
       local cur, hops = pid, 0
       while cur and hops < 10 do
         local channel = job_channel[cur]
