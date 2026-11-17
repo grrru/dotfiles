@@ -121,7 +121,7 @@ stable feature boundaries instead of duplicating every dependency.
 | --- | --- |
 | Plugin management | lazy.nvim with a pinned `lazy-lock.json` |
 | Editing | blink.cmp, friendly-snippets, mini.pairs, Yanky, Treesitter comments |
-| Navigation and search | Snacks picker/explorer, Flash, Grug Far |
+| Navigation and search | Snacks picker/explorer, Flash, Grug Far, Dropbar |
 | Language support | Native Neovim LSP, nvim-lspconfig, Mason, SchemaStore, LazyDev |
 | Syntax | Treesitter highlighting, context, textobjects, and autotagging |
 | Formatting | Conform with format-on-save enabled by default |
