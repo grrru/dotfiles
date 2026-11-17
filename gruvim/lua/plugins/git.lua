@@ -218,46 +218,4 @@ return {
       end,
     },
   },
-
-  -- Diffview
-  {
-    "dlyongemallo/diffview-plus.nvim",
-    version = "*",
-    cmd = {
-      "DiffviewOpen",
-      "DiffviewFileHistory",
-      "DiffviewClose",
-      "DiffviewToggleFiles",
-      "DiffviewFocusFiles",
-    },
-    keys = {
-      { "<leader>gv", "<cmd>DiffviewOpen<cr>", desc = "Diffview Open" },
-      { "<leader>gV", "<cmd>DiffviewFileHistory<cr>", desc = "Diffview File History" },
-    },
-    opts = function()
-      local actions = require("diffview.actions")
-
-      return {
-        view = {
-          default = { layout = "diff2_horizontal" },
-          merge_tool = { layout = "diff3_horizontal" },
-        },
-        file_panel = {
-          listing_style = "tree",
-          win_config = { position = "left", width = 30 },
-        },
-        keymaps = {
-          view = {
-            { "n", "<leader>e", actions.toggle_files, { desc = "Toggle File Panel" } },
-          },
-          file_panel = {
-            { "n", "<leader>e", actions.toggle_files, { desc = "Toggle File Panel" } },
-          },
-          file_history_panel = {
-            { "n", "<leader>e", actions.toggle_files, { desc = "Toggle File Panel" } },
-          },
-        },
-      }
-    end,
-  },
 }

@@ -189,8 +189,8 @@ return {
       local core = require("scope.core")
 
       -- scope lists the current buffer on TabNewEntered. When a new tab is
-      -- opened while the dashboard is showing (e.g. DiffviewOpen), that lists
-      -- the dashboard buffer, and the next TabLeave unlists it again -- which
+      -- opened while the dashboard is showing, that lists the dashboard
+      -- buffer, and the next TabLeave unlists it again -- which
       -- fires BufDelete. The dashboard's own BufDelete/BufWipeout handler
       -- deletes its augroup unconditionally, so the later real BufWipeout
       -- raises E367. Never let the dashboard buffer become listed.
@@ -333,7 +333,6 @@ return {
           { "<leader><tab>", group = "tabs" },
           { "<leader>b", group = "buffer" },
           { "<leader>c", group = "code" },
-          { "<leader>d", group = "debug" },
           { "<leader>f", group = "file/find" },
           { "<leader>g", group = "git" },
           { "<leader>gh", group = "hunks" },
