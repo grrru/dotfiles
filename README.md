@@ -235,10 +235,12 @@ OSC 52 and Sidekick talks to herdr panes (see [Sidekick](#sidekick)).
 
 ### Issue tree plugin
 
-`herdr/plugins/issue-tree/` is a herdr plugin for the issue trees described in
-[Git issue worktrees](#git-issue-worktrees): one folder per issue under `WORKTREE`, with a
-worktree per repository inside it. It opens a tree as a herdr workspace with a shell in the
-issue folder on the left and `claude agents` on the right.
+`herdr/plugins/issue-tree/` is a herdr plugin for issue trees: an issue branch such as
+`issue/42-auth-refactor` checked out as a worktree in several repositories at once, grouped
+in one folder per issue under `WORKTREE`. Repositories are the Git checkouts directly below
+`WORKSPACE`, and the folder's `.issue-tracker` file records the issue, branch, and
+worktrees. The plugin opens a tree as a herdr workspace with a shell in the issue folder on
+the left and `claude agents` on the right.
 
 `C-a i` lists the trees, most recently worked on first, with each tree's repositories and
 their state in the preview. In the list, `Enter` opens the tree, `C-o` creates a new one,
@@ -249,8 +251,8 @@ for the tree's folder name before deleting. `C-a I` goes straight to the new-tre
 
 Each tree's workspace carries an `issue_tree` token set to the `ID=` line of
 `.issue-tracker`, which is how the plugin finds the workspace again after a herdr restart.
-`git issue-worktree setup` rewrites `.issue-tracker` without that line, so create and extend
-trees with the plugin instead, which also runs without a terminal:
+`setup` creates a tree without a terminal, or adds repositories to the issue's tree with
+the same tag:
 
 ```sh
 herdr/plugins/issue-tree/issue-tree setup 42 --tag auth-refactor --repo backend-api --repo frontend
@@ -387,46 +389,3 @@ font-size = 15
 
 Ghostty picks it up on the next config reload (`Cmd-Shift-,`, or any `toggle-theme` run,
 which touches `ghostty/config`).
-
-## Git issue worktrees
-
-`scripts/git-issue-worktree` sets up an issue branch plus a worktree across several
-repositories at once, and tears them down again. `common.sh` puts `scripts/` on `PATH`, so
-Git resolves it as a subcommand with no install step:
-
-```sh
-export WORKSPACE="$HOME/projects"   # where the repositories live
-export WORKTREE="$HOME/worktrees"   # where worktrees are created
-git issue-worktree setup 42
-git issue-worktree clean 42
-```
-
-Both variables are required, so keep them in the machine-local rc file. `setup` asks for an
-optional tag, which produces branch names such as `issue/42-auth-refactor`, then opens a
-repository picker. Type a repository name to narrow the candidates by fuzzy match
-(`bkapi` matches `backend-api`), `Tab` to select, `Enter` to confirm, `Esc` to cancel.
-The picker is fzf, which `./install.sh deps` installs.
-
-Repositories are discovered up to two directories below `WORKSPACE`, and the selection is
-recorded in an `.issue-tracker` file inside the worktree base directory. `clean` reads that
-file to remove the worktrees and branches, and asks before deleting the remote branch.
-`list [issue]` prints each issue's tag, branch, and worktree paths.
-
-Every prompt has a matching option, so the script also runs without a terminal, for
-example from Claude Code. When stdin is not a terminal it never prompts or opens fzf, and
-output is uncolored:
-
-```sh
-git issue-worktree setup 42 --tag auth-refactor --repo backend-api --repo frontend
-git issue-worktree list 42
-git issue-worktree clean 42 auth-refactor            # prints the plan, deletes nothing
-git issue-worktree clean 42 auth-refactor --yes --keep-remote
-```
-
-`setup` needs `--tag` (`--tag ''` for no tag) and `--repo`; if a tree with that tag already
-exists, the repositories are added to it. Missing options make it exit with the options to
-pass and the candidates. `clean` deletes only with `--yes`, keeps the remote branch unless
-`--delete-remote` is given, and needs the tag when an issue has more than one tree.
-
-Requires Bash 4.3 or newer. Inside herdr, use the [issue-tree plugin](#issue-tree-plugin)
-for these trees instead.

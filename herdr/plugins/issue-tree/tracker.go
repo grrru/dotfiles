@@ -10,8 +10,7 @@ import (
 	"strings"
 )
 
-// 이슈 tree 는 $WORKTREE/<dir>/.issue-tracker 가 있는 폴더다. 브랜치·폴더·worktree 이름과 tracker 형식은
-// scripts/git-issue-worktree 와 같아서 두 도구가 서로 만든 tree 를 그대로 다룬다.
+// 이슈 tree 는 $WORKTREE/<dir>/.issue-tracker 가 있는 폴더다.
 //   브랜치  issue/<번호>[-<태그>]      폴더  $WORKTREE/<번호>[-<태그>]
 //   worktree  <폴더>/<레포>_<폴더 이름>  레포 후보  $WORKSPACE/*/.git
 // 이미 있는 tree 에 레포를 더하거나 정리할 때는 폴더 이름이 아니라 tracker 의 ISSUE_NUM, BRANCH 를 쓴다.

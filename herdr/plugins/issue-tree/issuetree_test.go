@@ -100,7 +100,7 @@ func TestTrackerID(t *testing.T) {
 	dir := filepath.Join(worktreeDir, "1-id")
 	os.MkdirAll(dir, 0o755)
 	defer os.RemoveAll(dir)
-	// git-issue-worktree 가 쓴 ID 없는 tracker 에 ID 를 넣으면 BRANCH 줄 바로 뒤에 온다.
+	// ID 줄이 없는 tracker 에 ID 를 넣으면 BRANCH 줄 바로 뒤에 온다.
 	os.WriteFile(filepath.Join(dir, trackerName), []byte("ISSUE_NUM=1\nBRANCH=issue/1-id\nREPO\t/r/a\t"+dir+"/a_1-id\n"), 0o644)
 	id := ensureTreeID(dir)
 	if len(id) != 16 || ensureTreeID(dir) != id {

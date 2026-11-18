@@ -60,8 +60,7 @@ add_path --append "$HOME/.local/share/nvim/mason/bin"
 export LANG=en_US.UTF-8
 
 # Dotfiles scripts
-# Prepended so the tracked script wins over an ad-hoc copy in ~/bin, and so Git
-# resolves the git-* names here as subcommands (git issue-worktree).
+# Prepended so the tracked scripts win over ad-hoc copies in ~/bin.
 if [ -n "${_dotfiles_dir:-}" ]; then
   add_path --prepend "$_dotfiles_dir/scripts"
 fi
