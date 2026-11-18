@@ -1,0 +1,40 @@
+# 빌드: GOROOT=~/sdk/go1.27.3 GOTOOLCHAIN=local ~/sdk/go1.27.3/bin/go build -o issue-tree .
+id = "dotfiles.issue-tree"
+name = "Issue Tree"
+version = "0.3.0"
+min_herdr_version = "0.9.5"
+description = "이슈 tree(이슈 폴더 + 레포별 worktree)를 popup 에서 고르고, 만들고, 정리한다"
+platforms = ["linux", "macos"]
+
+[[startup]]
+command = ["./issue-tree", "restore-tags"]
+
+[[events]]
+on = "workspace.closed"
+command = ["./issue-tree", "sync-tags"]
+
+[[actions]]
+id = "pick"
+title = "Issue tree: 목록"
+command = ["./issue-tree", "pick"]
+
+[[actions]]
+id = "new"
+title = "Issue tree: 새 tree"
+command = ["./issue-tree", "new"]
+
+[[panes]]
+id = "picker"
+title = "이슈 tree"
+placement = "popup"
+width = "80%"
+height = "70%"
+command = ["./issue-tree", "picker"]
+
+[[panes]]
+id = "creator"
+title = "새 이슈 tree"
+placement = "popup"
+width = "80%"
+height = "70%"
+command = ["./issue-tree", "creator"]

@@ -13,7 +13,7 @@ the target user's home directory.
 | `zsh/`, `bash/` | Tracked shell framework configuration |
 | `common.sh` | Portable PATH helpers, aliases, and defaults shared by Bash and Zsh |
 | `ghostty/` | Ghostty configuration, linked when Ghostty is installed |
-| `herdr/` | herdr configuration and pane layout presets, linked into `~/.config/herdr` when herdr is installed |
+| `herdr/` | herdr configuration and pane layout presets, linked into `~/.config/herdr` when herdr is installed, and the issue-tree plugin |
 | `claude/` | Claude Code keybindings, linked to `~/.claude/keybindings.json` |
 | `macos/` | macOS LaunchAgents, copied into `~/Library/LaunchAgents` on macOS |
 | `scripts/` | Standalone commands, added to `PATH` by `common.sh` |
@@ -222,6 +222,8 @@ defaults:
 | `M-2` | Two panes side by side, the focused one at 65% |
 | `M-3` | Two panes stacked on the left (70:30) and one on the right, left:right 65:35 |
 | `M-#` | `M-3` with the bottom-left pane as short as herdr allows (10% of the tab) |
+| `i` | Issue tree list ([issue-tree plugin](#issue-tree-plugin)) |
+| `I` | New issue tree form |
 
 In workspace navigation (`C-a w`), `j` / `k` move between workspaces and `C-j` / `C-k`
 between panes. The layout presets are `herdr/scripts/pane-layout.sh`.
@@ -230,6 +232,50 @@ between panes. The layout presets are `herdr/scripts/pane-layout.sh`.
 `./install.sh config` links only `config.toml` and `scripts/` into it, and only when
 herdr is installed. Inside a herdr pane, Neovim yanks to the system clipboard over
 OSC 52 and Sidekick talks to herdr panes (see [Sidekick](#sidekick)).
+
+### Issue tree plugin
+
+`herdr/plugins/issue-tree/` is a herdr plugin for the issue trees described in
+[Git issue worktrees](#git-issue-worktrees): one folder per issue under `WORKTREE`, with a
+worktree per repository inside it. It opens a tree as a herdr workspace with a shell in the
+issue folder on the left and `claude agents` on the right.
+
+`C-a i` lists the trees, most recently worked on first, with each tree's repositories and
+their state in the preview. In the list, `Enter` opens the tree, `C-o` creates a new one,
+`C-r` adds repositories to the selected tree, and `C-x` removes its worktrees and branches,
+keeping or deleting the remote branch. When the cleanup would lose uncommitted changes,
+commits found nowhere else, or other files in the issue folder, `C-x` lists them and asks
+for the tree's folder name before deleting. `C-a I` goes straight to the new-tree form.
+
+Each tree's workspace carries an `issue_tree` token set to the `ID=` line of
+`.issue-tracker`, which is how the plugin finds the workspace again after a herdr restart.
+`git issue-worktree setup` rewrites `.issue-tracker` without that line, so create and extend
+trees with the plugin instead, which also runs without a terminal:
+
+```sh
+herdr/plugins/issue-tree/issue-tree setup 42 --tag auth-refactor --repo backend-api --repo frontend
+```
+
+The tree opens in a new workspace. `--here <pane_id>` turns that pane's workspace into the
+tree's workspace instead, `--pane <pane_id>` moves that pane into the new workspace, and
+`--no-open` only creates the tree. An agent running in herdr passes its own pane as
+`"$HERDR_PANE_ID"`.
+
+`./install.sh` does not build or link the plugin:
+
+```sh
+cd herdr/plugins/issue-tree
+go build -o issue-tree .
+herdr plugin link "$PWD"
+```
+
+Building needs Go 1.27.3 or newer; running needs herdr 0.9.5 or newer and fzf 0.58 or
+newer. The binary is not tracked, so rebuild it after pulling changes. Relinking is needed
+only when `herdr-plugin.toml` changes. `WORKTREE` and `WORKSPACE` come from the herdr
+server's environment, or from `KEY=VALUE` lines in
+`$(herdr plugin config-dir dotfiles.issue-tree)/config.sh`, which can also set the right
+pane's command, its working directory, and the split ratio (listed at the top of
+`main.go`).
 
 ## Claude Code keybindings
 
@@ -382,4 +428,5 @@ exists, the repositories are added to it. Missing options make it exit with the 
 pass and the candidates. `clean` deletes only with `--yes`, keeps the remote branch unless
 `--delete-remote` is given, and needs the tag when an issue has more than one tree.
 
-Requires Bash 4.3 or newer.
+Requires Bash 4.3 or newer. Inside herdr, use the [issue-tree plugin](#issue-tree-plugin)
+for these trees instead.

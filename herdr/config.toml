@@ -56,3 +56,15 @@ key = ["prefix+alt+#", "prefix+alt+shift+3"]
 type = "shell"
 command = "~/.config/herdr/scripts/pane-layout.sh three 1lines"
 description = "3분할 (왼쪽 아래 최소 높이 + 오른쪽)"
+
+[[keys.command]]
+key = "prefix+i"
+type = "plugin_action"
+command = "dotfiles.issue-tree.pick"
+description = "이슈 tree 목록"
+
+[[keys.command]]
+key = "prefix+shift+i"
+type = "plugin_action"
+command = "dotfiles.issue-tree.new"
+description = "새 이슈 tree"
