@@ -8,42 +8,23 @@ the target user's home directory.
 
 | Path | Role |
 | --- | --- |
-| `install.sh` | Idempotent installer for dependencies, shells, and application configs |
-| `gruvim/` | Neovim configuration, linked to `~/.config/nvim` |
+| `install.sh` | Idempotent installer for dependencies, shells, and application configs ([details](docs/install.md)) |
+| `gruvim/` | Neovim configuration, linked to `~/.config/nvim` ([README](gruvim/README.md)) |
 | `zsh/`, `bash/` | Tracked shell framework configuration |
 | `common.sh` | Portable PATH helpers, aliases, and defaults shared by Bash and Zsh |
 | `ghostty/` | Ghostty configuration, linked when Ghostty is installed |
-| `herdr/` | herdr configuration and pane layout presets, linked into `~/.config/herdr` when herdr is installed, and the issue-tree plugin |
+| `herdr/` | herdr configuration and pane layout presets, linked into `~/.config/herdr` when herdr is installed |
+| `herdr/plugins/issue-tree/` | herdr plugin for issue worktrees across repositories ([README](herdr/plugins/issue-tree/README.md)) |
 | `claude/` | Claude Code keybindings, linked to `~/.claude/keybindings.json` |
-| `macos/` | macOS LaunchAgents, copied into `~/Library/LaunchAgents` on macOS |
+| `macos/` | macOS LaunchAgents, copied into `~/Library/LaunchAgents` on macOS; Korean input setup ([README](macos/README.md)) |
 | `scripts/` | Standalone commands, added to `PATH` by `common.sh` |
+| `theme.defaults.conf` | Light and dark theme settings for every tool, applied by `toggle-theme` ([docs](docs/theme.md)) |
 
 ## Installation
 
-Requirements:
-
-- macOS with Homebrew, or x86_64/arm64 Linux with `dnf` or `apt-get`
-- Git and permission to install system packages
-- Neovim 0.12 or newer for Gruvim
-- Tree-sitter CLI 0.26.1 or newer
-- A Nerd Font for the configured icons; Ghostty defaults to D2CodingLigature Nerd Font
-
-The installer uses the platform package manager for foundational CLI tools. On Linux,
-it installs GitHub CLI from GitHub's official package repository and installs Neovim,
-Tree-sitter CLI, Lazygit, and any required fzf fallback from verified upstream release
-assets. Release downloads must include a matching SHA-256 digest and run on the host
-before installation.
-
-| Tool | Homebrew | Fedora (`dnf`) | Debian/Ubuntu (`apt-get`) |
-| --- | --- | --- | --- |
-| Base CLI tools | Homebrew formulas | Distribution packages | Distribution packages |
-| fd | `fd` formula | `fd-find` package | `fd-find` plus `~/.local/bin/fd` alias |
-| fzf | Formula | Package, then release fallback | Package, then release fallback |
-| Neovim / Tree-sitter CLI / Lazygit | Formulas | Verified upstream releases | Verified upstream releases |
-| GitHub CLI | Formula | Official GitHub RPM repository | Official GitHub APT repository |
-
-Standalone release binaries are installed in `~/.local/bin`. Neovim's complete
-runtime tree is stored under `/opt` and exposed through a user-local symlink.
+Needs macOS with Homebrew, or x86_64/arm64 Linux with `dnf` or `apt-get`. The full
+requirements, installer targets, and where each tool comes from are in
+[docs/install.md](docs/install.md).
 
 ```sh
 git clone https://github.com/grrru/dotfiles.git ~/dotfiles
@@ -51,46 +32,12 @@ cd ~/dotfiles
 ./install.sh
 ```
 
-Keep the checkout at a stable path. Shell startup files and application symlinks point
-back into this repository. Existing application configs are moved to a `.bak` path
-before a new symlink is created.
-
-### Installer targets
-
-`all` is the default target.
-
-| Command | Action |
-| --- | --- |
-| `./install.sh` | Install dependencies, both shell setups, and application configs |
-| `./install.sh deps` | Install CLI dependencies only |
-| `./install.sh shell` | Install and configure both Bash and Zsh |
-| `./install.sh bash` | Configure the Bash-to-Zsh hand-off only |
-| `./install.sh zsh` | Configure oh-my-zsh, Powerlevel10k, and zsh-autosuggestions |
-| `./install.sh config` | Link Neovim, Claude Code keybindings, and optionally Ghostty and herdr configs |
-| `./install.sh help` | Show command-line help |
-
-To install user-level files for another account:
-
-```sh
-./install.sh --user target_user
-./install.sh --user target_user config
-```
-
-The checkout must be readable by `target_user`.
-
-### Post-install setup
-
-Open Neovim once to let lazy.nvim install plugins, then install the tools managed by
-Gruvim's Mason list:
-
-```vim
-:GruvimMasonInstall
-```
+Keep the checkout at a stable path, since shell startup files and application symlinks
+point back into it. Existing application configs are moved to a `.bak` path before a new
+symlink is created. Open Neovim once to let lazy.nvim install plugins, then run
+`:GruvimMasonInstall`.
 
 ## Shell configuration
-
-Shell configuration is divided into tracked, portable layers and machine-local startup
-files:
 
 | Layer | File | Tracked | Responsibility |
 | --- | --- | --- | --- |
@@ -106,113 +53,17 @@ When both tracked shell configs are installed, interactive Bash sessions hand of
 Zsh. A Bash started from Zsh stays Bash, so run `bash` or `exec bash` for a temporary
 Bash session.
 
-After each command, Zsh turns off mouse reporting, focus reports, and Kitty keyboard
-flags before drawing the prompt. A program that exits without restoring them, such as an
-SSH session dropped while the Mac sleeps, would otherwise leave keys and clicks arriving
-at the prompt as escape codes like `9;5u`.
-
-## Gruvim
-
-Gruvim is a Lua-based Neovim configuration built around native LSP and diagnostics.
-The complete plugin specs live under `gruvim/lua/plugins/`; this section documents the
-stable feature boundaries instead of duplicating every dependency.
-
-| Area | Main components |
-| --- | --- |
-| Plugin management | lazy.nvim with a pinned `lazy-lock.json` |
-| Editing | blink.cmp, friendly-snippets, mini.pairs, Yanky, Treesitter comments |
-| Navigation and search | Snacks picker/explorer, Flash, Grug Far, Dropbar |
-| Language support | Native Neovim LSP, nvim-lspconfig, Mason, SchemaStore, LazyDev |
-| Syntax | Treesitter highlighting, context, textobjects, and autotagging |
-| Formatting | Conform with format-on-save enabled by default |
-| Git | Gitsigns, Snacks Lazygit and Git pickers |
-| UI | Catppuccin Latte, OneDarkPro, lualine, bufferline, Noice, which-key |
-| Markdown | In-buffer rendering and browser preview |
-| Sessions and AI | persistence.nvim and Sidekick |
-
-### Language tooling
-
-Run `:GruvimMasonInstall` after changing the managed list in
-`gruvim/lua/config/mason.lua`.
-
-- LSP servers: `ansible-language-server`, `bash-language-server`, `basedpyright`,
-  `docker-compose-language-service`, `dockerfile-language-server`, `gopls`, `json-lsp`,
-  `lua-language-server`, `marksman`, `ruff`, `vtsls`, `yaml-language-server`,
-  `kotlin-lsp`, `gradle-language-server`, and `terraform-ls`
-- Formatters: `biome`, `gdscript-formatter`, `goimports`, `shfmt`, `stylua`, and Ruff's
-  formatter
-- Supporting tool: `shellcheck`
-- External servers: `clangd` must be available on `PATH`; GDScript connects to Godot at
-  `127.0.0.1:6005`
-
-Mason's bin directory is appended to `PATH`, so tools explicitly installed by
-`install.sh` take precedence and Mason fills only missing commands.
-
-Diagnostics come from language servers. Bash language server uses ShellCheck for shell
-diagnostics; there is no separate general-purpose lint runner in Gruvim.
-
-Conform formats on save and uses LSP formatting as a fallback. Explicit formatter
-mappings are:
-
-| Filetype | Formatter |
-| --- | --- |
-| GDScript | `gdscript-formatter` |
-| Go | `goimports` |
-| Lua | `stylua` |
-| Python | `ruff_format` |
-| Shell | `shfmt` |
-
-### Keymaps
-
-`Space` is the leader key and `\` is the local leader. Press `<leader>?` for mappings
-local to the current buffer or `<leader>sk` to search all mappings.
-
-| Key | Action |
-| --- | --- |
-| `<leader><space>` / `<leader>ff` | Find files from the current directory / project root |
-| `<leader>e` / `<leader>E` | Open the explorer at the current directory / Git root |
-| `<leader>sg` / `<leader>sG` | Grep from the current directory / project root |
-| `<S-h>` / `<S-l>` | Move to the previous / next buffer |
-| `<leader>bd` | Delete the current buffer |
-| `gd` / `grr` / `gri` / `grt` | LSP definition / references / implementation / type definition |
-| `gra` / `<leader>cd` | LSP code action / line diagnostics |
-| `<leader>cf` | Format the current buffer or selection |
-| `<leader>uf` / `<leader>uF` | Toggle format-on-save globally / for the current buffer |
-| `<leader>gg` | Open Lazygit at the Git root |
-| `<leader>gv` / `<leader>gV` / `<leader>gm` | Open working-tree diff / history / main-branch review |
-| `Ctrl-/` | Toggle the terminal |
-| `<leader>cp` / `<leader>um` | Toggle Markdown preview / in-buffer rendering |
-| `<leader>cv` | Select a Python virtual environment |
-
-Use `:Lazy` for plugin management, `:Mason` for the tool registry, and `<leader>cm` as
-the Mason shortcut.
-
-### Sidekick
-
-Sidekick sends `@file` references, lines, and selections from Neovim to an AI CLI such as
-Claude Code running next to it (`<leader>at`, `<leader>al`, `<leader>af`, `<leader>av`).
-When Neovim runs inside a [Herdr](https://herdr.dev) pane (`HERDR_ENV=1`), the CLI runs in
-a Herdr pane; elsewhere it runs in a Neovim terminal.
-
-Under Herdr, `gruvim/lua/config/sidekick_herdr.lua` provides the session backend:
-
-- Sends go straight to the agent in Neovim's own Herdr tab when the tab has exactly one;
-  otherwise Sidekick opens its picker, which shows each agent's terminal title.
-- `<leader>aa` focuses that agent's pane.
-- A session started from the picker opens in a Herdr split taking 32% of the Neovim pane.
-
-## Ghostty
-
-Ghostty configures the matching font, terminal colors, clipboard access, and the
-`Ctrl-/` control sequence used by Neovim.
+After each command, Zsh turns off mouse reporting, focus reports, and Kitty keyboard flags
+before drawing the prompt, so a program that exits without restoring them (such as an SSH
+session dropped while the Mac sleeps) doesn't leave keys arriving as escape codes like
+`9;5u`.
 
 ## herdr
 
 [herdr](https://herdr.dev) is a terminal multiplexer that tracks coding agents in its
 panes. `herdr/config.toml` uses `C-a` as the prefix; press the prefix twice to send a
 literal `C-a` to the pane. Its theme is set by `toggle-theme` (see
-[Theme switching](#theme-switching)). Bindings that differ from herdr's
-defaults:
+[Theme switching](#theme-switching)). Bindings that differ from herdr's defaults:
 
 | Key | Action |
 | --- | --- |
@@ -222,71 +73,21 @@ defaults:
 | `M-2` | Two panes side by side, the focused one at 65% |
 | `M-3` | Two panes stacked on the left (70:30) and one on the right, left:right 65:35 |
 | `M-#` | `M-3` with the bottom-left pane as short as herdr allows (10% of the tab) |
-| `i` | Issue tree list ([issue-tree plugin](#issue-tree-plugin)) |
-| `I` | New issue tree form |
+| `i` / `I` | Issue tree list / new issue tree ([issue-tree](herdr/plugins/issue-tree/README.md)) |
 
 In workspace navigation (`C-a w`), `j` / `k` move between workspaces and `C-j` / `C-k`
 between panes. The layout presets are `herdr/scripts/pane-layout.sh`.
 
 `~/.config/herdr` also holds the herdr server's sockets, logs, and session state, so
-`./install.sh config` links only `config.toml` and `scripts/` into it, and only when
-herdr is installed. Inside a herdr pane, Neovim yanks to the system clipboard over
-OSC 52 and Sidekick talks to herdr panes (see [Sidekick](#sidekick)).
+`./install.sh config` links only `config.toml` and `scripts/` into it. Inside a herdr pane,
+Neovim yanks to the system clipboard over OSC 52 and Sidekick talks to herdr panes (see
+[Gruvim](gruvim/README.md#sidekick)).
 
-### Issue tree plugin
+## Ghostty
 
-`herdr/plugins/issue-tree/` is a herdr plugin for issue trees: an issue branch such as
-`issue/42-auth-refactor` checked out as a worktree in several repositories at once, grouped
-in one folder per issue under `WORKTREE`. Repositories are the Git checkouts directly below
-`WORKSPACE`, and the folder's `.issue-tracker` file records the issue number, branch, and
-worktrees. A tree created from an issue link rather than a number, or given one with `C-e`,
-also records the issue's `host/owner/repo` as `ISSUE_REPO`, which the list preview shows.
-Issues are told apart by that repository and the number, so a tree without `ISSUE_REPO`
-matches only a bare number and a tree with it matches only a link to that repository.
-Folder and branch names carry only the number and tag, so two issues with the same number
-need different tags. The plugin opens a tree as a herdr workspace with a shell in the issue
-folder on the left and `claude agents` on the right.
-
-`C-a i` lists the trees, most recently worked on first, with each tree's repositories and
-their state in the preview. In the list, `Enter` opens the tree, `C-o` creates a new one,
-`C-r` adds repositories to the selected tree, `C-e` sets or clears its `ISSUE_REPO` from an
-issue link or `host/owner/repo`, and `C-x` removes its worktrees and branches,
-keeping or deleting the remote branch. When the cleanup would lose uncommitted changes,
-commits found nowhere else, or other files in the issue folder, `C-x` lists them and asks
-for the tree's folder name before deleting. `C-a I` goes straight to the new-tree form.
-
-Each tree's workspace carries an `issue_tree` token set to the `ID=` line of
-`.issue-tracker`, which is how the plugin finds the workspace again after a herdr restart.
-`setup` creates a tree without a terminal, or adds repositories to the issue's tree with
-the same tag:
-
-```sh
-herdr/plugins/issue-tree/issue-tree setup 42 --tag auth-refactor --repo backend-api --repo frontend
-```
-
-The tree opens in a new workspace. `--here <pane_id>` turns that pane's workspace into the
-tree's workspace instead, `--pane <pane_id>` moves that pane into the new workspace, and
-`--no-open` only creates the tree. An agent running in herdr passes its own pane as
-`"$HERDR_PANE_ID"`.
-
-`herdr/plugins/issue-tree/install.sh` builds the plugin and links it to herdr; `./install.sh`
-does not run it:
-
-```sh
-herdr/plugins/issue-tree/install.sh           # build and link
-herdr/plugins/issue-tree/install.sh --build   # build only
-```
-
-It builds with the first Go 1.27.3 or newer found on `PATH`, under `~/sdk/go*/`, or in
-`/usr/local/go/`, ignoring `GOROOT` from the shell; `ISSUE_TREE_GO=/path/to/go` picks one.
-The binary is not tracked, so run the script again after pulling changes.
-
-Running the plugin needs herdr 0.9.5 or newer and fzf 0.58 or newer. The script warns when
-fzf is missing or older, or when `WORKTREE` or `WORKSPACE` is not set. Those two come from the
-herdr server's environment, or from `KEY=VALUE` lines in
-`$(herdr plugin config-dir dotfiles.issue-tree)/config.sh`, which can also set the right
-pane's command, its working directory, and the split ratio (listed at the top of
-`main.go`).
+Ghostty configures the matching font, terminal colors, clipboard access, and the
+`Ctrl-/` control sequence used by Neovim. Per-machine settings go in the git-ignored
+`ghostty/local.conf` (see [docs/theme.md](docs/theme.md#per-machine-ghostty-settings)).
 
 ## Claude Code keybindings
 
@@ -301,21 +102,10 @@ addition to `PgUp` / `PgDn`:
 Claude Code reloads the file a few seconds after it changes, through either path. `M-d`
 is also the prompt's delete-word-forward key.
 
-## Korean input on macOS
-
-The macOS 27 built-in 2-Set Korean input source re-inserts the last jamo on backspace
-in Ghostty and kitty, so use [Gureum](https://github.com/gureum/gureum)
-(`brew install --cask gureumkim`) instead.
-
-On macOS, `./install.sh config` installs a LaunchAgent that remaps right Command to F19
-with `hidutil` at login. Set Gureum's Korean/English toggle shortcut to F19. Because the
-key is no longer a modifier, typing quickly after toggling can't trigger Command
-shortcuts such as `Cmd-D`. To undo the mapping for the current session, run
-`hidutil property --set '{"UserKeyMapping":[]}'`.
-
 ## Theme switching
 
-Run the script from Bash or Zsh:
+`toggle-theme` switches Ghostty, Neovim, Claude Code, and herdr between light and dark
+together:
 
 ```sh
 toggle-theme            # flip light <-> dark
@@ -323,78 +113,6 @@ toggle-theme light      # force a mode
 toggle-theme --apply    # re-apply the current mode (use after editing theme.conf)
 ```
 
-Every theme setting lives in two files in the dotfiles root, and `toggle-theme` is the
-only thing that reads them:
-
-| File | Tracked | Holds |
-| --- | --- | --- |
-| `theme.defaults.conf` | yes | every key with its default (Catppuccin Latte / Frappe) |
-| `theme.conf` | no (git-ignored) | only the keys that differ on this machine |
-
-From those the script generates one file per tool and never reads them back, apart from
-the mode:
-
-| Generated | Read by |
-| --- | --- |
-| `ghostty/theme.local` | Ghostty (`config-file`); on macOS the script reloads Ghostty through AppleScript |
-| `~/.theme_mode` | Neovim, through a file watcher: the mode and the colorscheme |
-| `theme` in `~/.claude/settings.json` | Claude Code, at startup |
-| `name` in `herdr/config.toml` | herdr: the server reloads it for pane borders, and the script presses the client's reload key through Ghostty |
-
-All of them are rewritten on every run, so hand-edits do not survive.
-
-Claude Code's theme defaults to `auto`, which follows the terminal's background in
-running sessions too: `toggle-theme` tells claude panes under herdr that the theme
-changed, and Neovim does the same for claude in its terminal buffers. With a fixed theme
-name such as `light-daltonized`, only sessions started after the toggle change.
-
-While a herdr client runs, `toggle-theme` also runs, with the same mode, on every enabled
-saved herdr machine (`THEME_HERDR_MACHINES`), so their Neovims, pane borders, and Claude
-Code panes switch too.
-
-### Per-machine themes
-
-Put only what differs into `theme.conf`, then apply it:
-
-```sh
-# ~/dotfiles/theme.conf
-GHOSTTY_DARK_THEME="NightFox"
-NVIM_DARK_COLORSCHEME="nightfox"
-```
-
-```sh
-toggle-theme --apply
-```
-
-`theme.defaults.conf` documents every key. Changing a value there changes the default on
-every machine. The script looks for the override in `$DOTFILES_THEME_CONF`,
-`<dotfiles>/theme.conf`, and `~/.config/dotfiles/theme.conf`, in that order; the first
-existing file wins.
-
-Neovim colorschemes must come from a plugin it actually loads. This repo ships
-catppuccin and nightfox; to use anything else on one machine, drop a lazy.nvim spec into
-the git-ignored `gruvim/lua/local/plugins/`, which `init.lua` imports when present:
-
-```lua
--- gruvim/lua/local/plugins/colorscheme.lua
-return {
-  { "folke/tokyonight.nvim", lazy = false, priority = 1000 },
-}
-```
-
-then set `NVIM_DARK_COLORSCHEME="tokyonight"` in `theme.conf`. If a configured
-colorscheme cannot be loaded, Neovim warns and falls back to Catppuccin.
-
-### Per-machine Ghostty settings
-
-`ghostty/config` reads two optional files after itself: the generated `theme.local`, and
-`local.conf` for everything else that differs per machine. `local.conf` is git-ignored,
-hand-written, has no seed file, and is read last, so it overrides both:
-
-```sh
-# ~/dotfiles/ghostty/local.conf
-font-size = 15
-```
-
-Ghostty picks it up on the next config reload (`Cmd-Shift-,`, or any `toggle-theme` run,
-which touches `ghostty/config`).
+Defaults live in `theme.defaults.conf` and per-machine overrides in the git-ignored
+`theme.conf`. How each tool picks up the mode, and how to override themes per machine, is
+in [docs/theme.md](docs/theme.md).
