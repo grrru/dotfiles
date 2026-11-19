@@ -15,11 +15,16 @@ import (
 //   worktree  <폴더>/<레포>_<폴더 이름>  레포 후보  $WORKSPACE/*/.git
 // 이미 있는 tree 에 레포를 더하거나 정리할 때는 폴더 이름이 아니라 tracker 의 ISSUE_NUM, BRANCH 를 쓴다.
 // tracker 의 ID 는 tree 마다 무작위로 만든 식별자로, 그 tree 의 워크스페이스를 찾는 데 쓴다.
+// ISSUE_REPO 는 그 이슈의 <host>/<owner>/<repo> 로, 이슈 링크로 만들었거나 목록의 ^E 로 지정한 tree 에 있다.
+// 이슈는 ISSUE_REPO 와 번호로 구분하고, ISSUE_REPO 가 없는 tree 는 번호만 넣은 이슈와 같다.
+// 폴더 이름에는 저장소가 없어서, 번호가 같은 다른 이슈는 태그가 달라야 한다.
 
 const trackerName = ".issue-tracker"
 
 var (
 	issueURL = regexp.MustCompile(`/(issues|pull)/([0-9]+)`)
+	repoURL  = regexp.MustCompile(`^(?:https?://)?([^/\s]+)/([^/\s]+)/([^/\s]+)/(?:issues|pull)/[0-9]+(?:[/?#]|$)`)
+	repoOnly = regexp.MustCompile(`^(?:https?://)?([^/\s]+)/([^/\s]+)/([^/\s]+?)(?:\.git)?/?$`)
 	digits   = regexp.MustCompile(`^[0-9]+$`)
 	numPart  = regexp.MustCompile(`^([0-9]+)(-|$)`)
 	tagPart  = regexp.MustCompile(`^[0-9]+-(.+)$`)
@@ -40,6 +45,48 @@ func parseIssueRef(input string) (string, bool) {
 		return "", false
 	}
 	return num, true
+}
+
+// parseIssueRepo 는 <host>/<owner>/<repo>/(issues|pull)/<번호> 꼴 링크의 "<host>/<owner>/<repo>" 다.
+// 번호만 주었거나 다른 꼴의 링크(GitLab 의 하위 그룹 등)면 빈 값.
+func parseIssueRepo(input string) string {
+	m := repoURL.FindStringSubmatch(strings.TrimSpace(input))
+	if m == nil {
+		return ""
+	}
+	return m[1] + "/" + m[2] + "/" + m[3]
+}
+
+// issueRepoInput 은 ^E 입력을 ISSUE_REPO 값으로 바꾼다. 번호가 num 인 이슈 링크나 <host>/<owner>/<repo> 를
+// 받고, 빈 값은 지우기다. 받을 수 없으면 problem 에 까닭을 준다.
+func issueRepoInput(q, num string) (issueRepo, problem string) {
+	q = strings.TrimSpace(q)
+	switch {
+	case q == "":
+		return "", ""
+	case issueURL.MatchString(q):
+		n, _ := parseIssueRef(q)
+		r := parseIssueRepo(q)
+		if r == "" {
+			return "", "저장소 인식 실패 · <host>/<owner>/<repo>/issues/<번호> 꼴 아님"
+		}
+		if n != num {
+			return "", "번호 다름 · #" + n + " (이 tree 는 #" + num + ")"
+		}
+		return r, ""
+	}
+	if m := repoOnly.FindStringSubmatch(q); m != nil {
+		return m[1] + "/" + m[2] + "/" + m[3], ""
+	}
+	return "", "인식 실패 · 이슈 링크나 <host>/<owner>/<repo>"
+}
+
+// issueLabel 은 이슈를 <host>/<owner>/<repo>#<번호> 로, 저장소가 없으면 "저장소 없는 #<번호>" 로 쓴다.
+func issueLabel(issueRepo, num string) string {
+	if issueRepo == "" {
+		return "저장소 없는 #" + num
+	}
+	return issueRepo + "#" + num
 }
 
 // sanitizeTag 는 공백을 '-' 로 바꾸고 ASCII 영숫자, '-', '_' 만 남긴다.
@@ -109,32 +156,81 @@ func newID() string {
 	return hex.EncodeToString(b)
 }
 
+// trackerInsert 는 after= 로 시작하는 첫 줄 바로 뒤에 line 을 넣는다. 그런 줄이 없으면 맨 뒤에 넣는다.
+func trackerInsert(dir, after, line string) {
+	var out []string
+	done := false
+	for _, l := range trackerLines(dir) {
+		out = append(out, l)
+		if !done && strings.HasPrefix(l, after+"=") {
+			out = append(out, line)
+			done = true
+		}
+	}
+	if !done {
+		out = append(out, line)
+	}
+	writeAtomic(filepath.Join(dir, trackerName), strings.Join(out, "\n")+"\n")
+}
+
 // ensureTreeID 는 ID 를 돌려준다. 없으면 만들어 tracker 의 BRANCH 줄 뒤에 넣는다.
 func ensureTreeID(dir string) string {
 	if id := treeID(dir); id != "" {
 		return id
 	}
 	id := newID()
+	trackerInsert(dir, "BRANCH", "ID="+id)
+	return id
+}
+
+// setIssueRepo 는 tracker 의 ISSUE_REPO 줄을 바꾸고 다른 줄은 순서까지 그대로 둔다. 줄이 없으면 ISSUE_NUM 줄
+// 뒤에 넣고, 빈 값이면 줄을 지운다. 목록의 최근 작업순이 tracker 수정 시각을 쓰므로 그 시각은 그대로 둔다.
+func setIssueRepo(dir, issueRepo string) error {
+	path := filepath.Join(dir, trackerName)
+	fi, statErr := os.Stat(path)
 	var out []string
-	done := false
-	for _, line := range trackerLines(dir) {
-		out = append(out, line)
-		if !done && strings.HasPrefix(line, "BRANCH=") {
-			out = append(out, "ID="+id)
+	done := issueRepo == ""
+	for _, l := range trackerLines(dir) {
+		if strings.HasPrefix(l, "ISSUE_REPO=") {
+			if !done {
+				out = append(out, "ISSUE_REPO="+issueRepo)
+				done = true
+			}
+			continue
+		}
+		out = append(out, l)
+		if !done && strings.HasPrefix(l, "ISSUE_NUM=") {
+			out = append(out, "ISSUE_REPO="+issueRepo)
 			done = true
 		}
 	}
 	if !done {
-		out = append(out, "ID="+id)
+		out = append(out, "ISSUE_REPO="+issueRepo)
 	}
-	writeAtomic(filepath.Join(dir, trackerName), strings.Join(out, "\n")+"\n")
-	return id
+	if err := writeAtomic(path, strings.Join(out, "\n")+"\n"); err != nil {
+		return err
+	}
+	if statErr == nil {
+		os.Chtimes(path, fi.ModTime(), fi.ModTime())
+	}
+	return nil
 }
 
-// writeTracker 는 tracker 를 통째로 쓴다.
-func writeTracker(dir, num, branch, id string, rows []repoRow) error {
+// issueNum 은 tree 의 이슈 번호다. tracker 에 없으면 폴더 이름 앞 번호.
+func issueNum(dir string) string {
+	if n := trackerGet(dir, "ISSUE_NUM"); n != "" {
+		return n
+	}
+	return treeNum(dir)
+}
+
+// writeTracker 는 tracker 를 통째로 쓴다. issueRepo 가 비면 ISSUE_REPO 줄을 쓰지 않는다.
+func writeTracker(dir, num, issueRepo, branch, id string, rows []repoRow) error {
 	var b strings.Builder
 	b.WriteString("ISSUE_NUM=" + num + "\n")
+	if issueRepo != "" {
+		b.WriteString("ISSUE_REPO=" + issueRepo + "\n")
+	}
 	b.WriteString("BRANCH=" + branch + "\n")
 	b.WriteString("ID=" + id + "\n")
 	for _, r := range rows {
@@ -155,11 +251,35 @@ func treeDirs() []string {
 	return dirs
 }
 
-// treesForIssue 는 tracker 의 ISSUE_NUM 이나 폴더 이름 앞 번호가 같은 tree 다.
-func treesForIssue(num string) []string {
+// sameIssueRepo 는 두 이슈 저장소가 같은지다(대소문자 무시). 빈 값은 빈 값하고만 같다.
+func sameIssueRepo(a, b string) bool {
+	return strings.EqualFold(a, b)
+}
+
+// otherIssue 는 treeFor 가 다른 이슈의 tree 라서 쓸 수 없는 폴더에 주는 까닭의 앞부분이다.
+const otherIssue = "다른 이슈"
+
+// treeFor 는 이슈 번호와 태그가 쓰는 폴더다. 그 폴더가 같은 이슈의 tree 면 tree 가 true 이고,
+// 쓸 수 없는 폴더면 conflict 에 까닭을 준다.
+func treeFor(num, tag, issueRepo string) (dir string, tree bool, conflict string) {
+	dir = filepath.Join(worktreeDir, issueSuffix(num, tag))
+	switch {
+	case hasTracker(dir):
+		if r := trackerGet(dir, "ISSUE_REPO"); !sameIssueRepo(r, issueRepo) {
+			return dir, false, otherIssue + " · " + issueLabel(r, num)
+		}
+		return dir, true, ""
+	case exists(dir):
+		return dir, false, "tracker 없음"
+	}
+	return dir, false, ""
+}
+
+// treesForIssue 는 tracker 의 ISSUE_NUM 이나 폴더 이름 앞 번호가 같고 이슈 저장소가 어긋나지 않는 tree 다.
+func treesForIssue(num, issueRepo string) []string {
 	var out []string
 	for _, dir := range treeDirs() {
-		if trackerGet(dir, "ISSUE_NUM") == num || treeNum(dir) == num {
+		if (trackerGet(dir, "ISSUE_NUM") == num || treeNum(dir) == num) && sameIssueRepo(trackerGet(dir, "ISSUE_REPO"), issueRepo) {
 			out = append(out, dir)
 		}
 	}

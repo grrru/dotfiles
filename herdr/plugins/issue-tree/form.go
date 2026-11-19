@@ -29,7 +29,9 @@ func formPut(s, key, val string) {
 
 type formState struct {
 	Issue, Num, Tag, Tree string
+	InputRepo, IssueRepo  string // 입력한 링크의 저장소, 만들 tree 에 남을 저장소
 	Locked, Conflict      bool
+	ConflictWhy           string
 	Suffix, Dir, Branch   string
 	Have, Repos           []string
 }
@@ -39,19 +41,24 @@ func formDerive(s string) formState {
 	var f formState
 	f.Issue = formGet(s, "issue")
 	f.Num, _ = parseIssueRef(f.Issue)
+	f.InputRepo = parseIssueRepo(f.Issue)
+	f.IssueRepo = f.InputRepo
 	f.Tag = sanitizeTag(formGet(s, "tag"))
 	f.Tree = formGet(s, "tree")
 	f.Locked = formGet(s, "locked") == "1"
 	if f.Tree == "" && f.Num != "" {
-		d := filepath.Join(worktreeDir, issueSuffix(f.Num, f.Tag))
-		if hasTracker(d) {
+		if d, tree, why := treeFor(f.Num, f.Tag, f.InputRepo); tree {
 			f.Tree = d
-		} else if exists(d) {
-			f.Conflict = true
+		} else if why != "" {
+			f.Conflict, f.ConflictWhy = true, why
 		}
 	}
 	if f.Tree != "" {
 		f.Dir, f.Suffix, f.Branch = f.Tree, base(f.Tree), trackerGet(f.Tree, "BRANCH")
+		// 기존 tree 에 ISSUE_REPO 가 있으면 doSetup 이 그 값을 남기므로 그것을 보여 준다.
+		if r := trackerGet(f.Tree, "ISSUE_REPO"); r != "" {
+			f.IssueRepo = r
+		}
 		for _, r := range repoRows(f.Tree) {
 			f.Have = append(f.Have, r.Repo)
 		}
@@ -86,13 +93,13 @@ func formRows(s string) []formRow {
 
 	switch {
 	case f.Locked:
-		mark, value = OK, "#"+f.Num
+		mark, value = OK, "#"+f.Num+issueRepoNote(f.IssueRepo)
 	case f.Issue == "":
 		mark, value = MUTED+"1"+RESET, MUTED+"번호 · #번호 · URL"+RESET
 	case f.Num == "":
 		mark, value = FAIL, f.Issue+"  "+RED+"번호 인식 실패"+RESET
 	default:
-		mark, value = OK, BLUE+"#"+f.Num+RESET
+		mark, value = OK, BLUE+"#"+f.Num+RESET+issueRepoNote(f.IssueRepo)
 	}
 	rows = append(rows, formRow{"issue", mark + "  이슈   " + value})
 
@@ -100,7 +107,7 @@ func formRows(s string) []formRow {
 	case f.Num == "":
 		mark, value = MUTED+"2"+RESET, ""
 	case f.Conflict:
-		mark, value = FAIL, f.Tag+"  "+RED+"폴더 충돌 · "+base(f.Dir)+"/ (tracker 없음)"+RESET
+		mark, value = FAIL, f.Tag+"  "+RED+"폴더 충돌 · "+base(f.Dir)+"/ ("+f.ConflictWhy+")"+RESET
 	case f.Tree != "":
 		mark, value = OK, BOLD+f.Suffix+RESET+"  "+BLUE+"↺"+RESET+" 기존 tree"
 	default:
@@ -113,7 +120,7 @@ func formRows(s string) []formRow {
 	rows = append(rows, formRow{"tag", mark + "  태그   " + value})
 	// 기존 tree 줄은 고른 뒤에도 남겨 둔다. 이동 중에 줄 수가 바뀌면 fzf 가 pos 를 이전 목록 기준으로 적용한다.
 	if f.Num != "" && !f.Locked {
-		for _, dir := range treesForIssue(f.Num) {
+		for _, dir := range treesForIssue(f.Num, f.InputRepo) {
 			if dir == f.Tree {
 				rows = append(rows, formRow{"tree:" + dir, "         " + OK + " " + BOLD + base(dir) + RESET + "  " + MUTED + repoNames(dir) + RESET})
 			} else {
@@ -292,9 +299,13 @@ func cmdFormPreview(s, id, q string) int {
 			fmt.Printf("%s 번호 인식 실패\n", FAIL)
 			return 0
 		}
-		fmt.Printf("%s%s#%s%s\n", BLUE, BOLD, num, RESET)
+		issueRepo := parseIssueRepo(q)
+		if f.Locked {
+			issueRepo = f.IssueRepo
+		}
+		fmt.Printf("%s%s#%s%s%s\n", BLUE, BOLD, num, RESET, issueRepoNote(issueRepo))
 		fmt.Println()
-		trees := treesForIssue(num)
+		trees := treesForIssue(num, issueRepo)
 		for _, dir := range trees {
 			fmt.Printf("%s↺%s %s%s%s  %s\n", BLUE, RESET, BOLD, base(dir), RESET, repoNames(dir))
 		}
@@ -308,8 +319,10 @@ func cmdFormPreview(s, id, q string) int {
 			if q != formGet(s, "tag") {
 				f.Tree = ""
 			}
-			if d := filepath.Join(worktreeDir, issueSuffix(f.Num, f.Tag)); f.Tree == "" && f.Num != "" && hasTracker(d) {
-				f.Tree = d
+			if f.Tree == "" && f.Num != "" {
+				if d, tree, _ := treeFor(f.Num, f.Tag, f.InputRepo); tree {
+					f.Tree = d
+				}
 			}
 		} else if strings.HasPrefix(id, "tree:") {
 			f.Tree = strings.TrimPrefix(id, "tree:")
@@ -339,9 +352,12 @@ func cmdFormPreview(s, id, q string) int {
 			fmt.Println()
 			fmt.Printf("%s태그 정리 → %s (영숫자 · - · _ 만)%s\n", YELLOW, f.Tag, RESET)
 		}
-		if d := filepath.Join(worktreeDir, p); exists(d) && !hasTracker(d) {
+		if _, _, why := treeFor(f.Num, f.Tag, f.InputRepo); why != "" {
 			fmt.Println()
-			fmt.Printf("%s 폴더 충돌 · tracker 없음\n", FAIL)
+			fmt.Printf("%s 폴더 충돌 · %s\n", FAIL, why)
+			if strings.HasPrefix(why, otherIssue) {
+				fmt.Printf("%s같은 이슈면 목록 ^E 로 그 tree 의 이슈 저장소 수정 · 다른 이슈면 태그 변경%s\n", MUTED, RESET)
+			}
 		}
 	case id == "repos" || id == "go":
 		if f.Num == "" {
@@ -512,7 +528,7 @@ func formRun(s string) bool {
 	if !f.ready() {
 		return false
 	}
-	if doSetup(f.Dir, f.Num, f.Branch, f.Repos) {
+	if doSetup(f.Dir, f.Num, f.IssueRepo, f.Branch, f.Repos) {
 		if _, _, err := openTree(f.Dir, ""); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 		}

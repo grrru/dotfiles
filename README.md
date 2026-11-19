@@ -238,13 +238,19 @@ OSC 52 and Sidekick talks to herdr panes (see [Sidekick](#sidekick)).
 `herdr/plugins/issue-tree/` is a herdr plugin for issue trees: an issue branch such as
 `issue/42-auth-refactor` checked out as a worktree in several repositories at once, grouped
 in one folder per issue under `WORKTREE`. Repositories are the Git checkouts directly below
-`WORKSPACE`, and the folder's `.issue-tracker` file records the issue, branch, and
-worktrees. The plugin opens a tree as a herdr workspace with a shell in the issue folder on
-the left and `claude agents` on the right.
+`WORKSPACE`, and the folder's `.issue-tracker` file records the issue number, branch, and
+worktrees. A tree created from an issue link rather than a number, or given one with `C-e`,
+also records the issue's `host/owner/repo` as `ISSUE_REPO`, which the list preview shows.
+Issues are told apart by that repository and the number, so a tree without `ISSUE_REPO`
+matches only a bare number and a tree with it matches only a link to that repository.
+Folder and branch names carry only the number and tag, so two issues with the same number
+need different tags. The plugin opens a tree as a herdr workspace with a shell in the issue
+folder on the left and `claude agents` on the right.
 
 `C-a i` lists the trees, most recently worked on first, with each tree's repositories and
 their state in the preview. In the list, `Enter` opens the tree, `C-o` creates a new one,
-`C-r` adds repositories to the selected tree, and `C-x` removes its worktrees and branches,
+`C-r` adds repositories to the selected tree, `C-e` sets or clears its `ISSUE_REPO` from an
+issue link or `host/owner/repo`, and `C-x` removes its worktrees and branches,
 keeping or deleting the remote branch. When the cleanup would lose uncommitted changes,
 commits found nowhere else, or other files in the issue folder, `C-x` lists them and asks
 for the tree's folder name before deleting. `C-a I` goes straight to the new-tree form.

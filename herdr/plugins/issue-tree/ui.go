@@ -81,6 +81,14 @@ func badges(dirty, ahead int) string {
 }
 
 // stateWords 는 상세의 레포 상태 "변경 4 · push 전 2" 다. 둘 다 0 이면 "✓ clean".
+// issueRepoNote 는 이슈 번호 뒤에 붙이는 "  <host>/<owner>/<repo>" 다. 없으면 빈 값.
+func issueRepoNote(issueRepo string) string {
+	if issueRepo == "" {
+		return ""
+	}
+	return "  " + MUTED + issueRepo + RESET
+}
+
 func stateWords(dirty, ahead int) string {
 	out := ""
 	if dirty > 0 {

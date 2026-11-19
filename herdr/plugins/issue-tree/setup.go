@@ -32,13 +32,17 @@ func setupRepo(repo, branch, wp string) (string, error) {
 
 // doSetup 은 레포마다 브랜치와 worktree 를 만들고 tracker 를 쓴다. 하나라도 성공했으면 true.
 // tracker 에는 성공한 레포만 남고, 새로 만든 폴더는 모두 실패하면 지운다. Ctrl-C 는 지금 레포까지만 하고 멈춘다.
-func doSetup(dir, num, branch string, repos []string) bool {
+// tracker 에 이미 ISSUE_REPO 가 있으면 issueRepo 대신 그 값을 그대로 둔다.
+func doSetup(dir, num, issueRepo, branch string, repos []string) bool {
 	var entries []repoRow
 	id := ""
 	newDir := false
 	if hasTracker(dir) {
 		id = treeID(dir)
 		entries = repoRows(dir)
+		if r := trackerGet(dir, "ISSUE_REPO"); r != "" {
+			issueRepo = r
+		}
 	} else {
 		newDir = true
 		os.MkdirAll(dir, 0o755)
@@ -108,7 +112,7 @@ func doSetup(dir, num, branch string, repos []string) bool {
 		if id == "" {
 			id = newID()
 		}
-		writeTracker(dir, num, branch, id, entries)
+		writeTracker(dir, num, issueRepo, branch, id, entries)
 	} else if newDir {
 		os.Remove(dir)
 	}
@@ -170,19 +174,23 @@ func cmdSetupCLI(args []string) int {
 		fmt.Fprintf(os.Stderr, "이슈 번호 인식 실패 · '%s'\n", ref)
 		return 2
 	}
+	issueRepo := parseIssueRepo(ref)
 	if here != "" && (pane != "" || !open) {
 		fmt.Fprintln(os.Stderr, "--here 는 --pane, --no-open 과 같이 쓸 수 없음")
 		return 2
 	}
 	tag = sanitizeTag(tag)
-	dir := filepath.Join(worktreeDir, issueSuffix(num, tag))
+	dir, isTree, why := treeFor(num, tag, issueRepo)
 	branch := ""
 	switch {
-	case hasTracker(dir):
+	case isTree:
 		branch = trackerGet(dir, "BRANCH")
 		num = trackerGet(dir, "ISSUE_NUM")
-	case exists(dir):
-		fmt.Fprintf(os.Stderr, "폴더 충돌 · %s (tracker 없음)\n", tilde(dir))
+	case why != "":
+		fmt.Fprintf(os.Stderr, "폴더 충돌 · %s (%s)\n", tilde(dir), why)
+		if strings.HasPrefix(why, otherIssue) {
+			fmt.Fprintln(os.Stderr, "같은 이슈면 이슈 tree 목록 ^E 로 그 tree 의 이슈 저장소 수정 · 다른 이슈면 --tag 변경")
+		}
 		return 1
 	default:
 		branch = "issue/" + issueSuffix(num, tag)
@@ -218,12 +226,15 @@ func cmdSetupCLI(args []string) int {
 		return 1
 	}
 	if len(picked) > 0 {
-		if !doSetup(dir, num, branch, picked) {
+		if !doSetup(dir, num, issueRepo, branch, picked) {
 			return 1
 		}
 		fmt.Println()
 	}
 	fmt.Printf("tree       %s\n", tilde(dir))
+	if r := trackerGet(dir, "ISSUE_REPO"); r != "" {
+		fmt.Printf("issue      %s#%s\n", r, num)
+	}
 	switch {
 	case here != "":
 		ws, p, err := attachHere(dir, here)

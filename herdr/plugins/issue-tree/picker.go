@@ -148,9 +148,9 @@ func cmdPicker() int {
 			timer, flashArgs, flashEnv = startFlash(plain)
 		}
 		args := []string{
-			"--read0", "--delimiter=\t", "--with-nth=2..", "--expect=ctrl-o,ctrl-r,ctrl-x",
+			"--read0", "--delimiter=\t", "--with-nth=2..", "--expect=ctrl-o,ctrl-r,ctrl-e,ctrl-x",
 			"--gap", "--no-sort",
-			"--input-label= ↵ 열기 · ^O 새 tree · ^R 레포 추가 · ^X 정리 · esc 닫기 ", "--input-label-pos=-2",
+			"--input-label= ↵ 열기 · ^O 새 tree · ^R 레포 추가 · ^E 이슈 · ^X 정리 ", "--input-label-pos=-2",
 			"--list-label=" + label, "--list-label-pos=2",
 			"--preview=ISSUE_TREE_COLOR=1 " + selfCmd + " preview {1}",
 			"--preview-window=right,55%,<60(down,50%)", "--preview-label= 상세 ", "--preview-label-pos=2",
@@ -181,6 +181,10 @@ func cmdPicker() int {
 			if dir != "" && wizardAdd(dir) {
 				return 0
 			}
+		case "ctrl-e":
+			if dir != "" {
+				flash = editIssue(dir)
+			}
 		case "ctrl-x":
 			if dir != "" && cleanFlow(dir) {
 				flash = OK + " " + base(dir) + " 정리 완료"
@@ -196,6 +200,75 @@ func cmdPicker() int {
 			return 0
 		}
 	}
+}
+
+// editIssue 는 tree 의 이슈 저장소(ISSUE_REPO)를 고친다. 받을 수 없는 입력이면 까닭을 보이고 다시 묻는다.
+// 저장했으면 목록에 띄울 문구를 돌려준다. esc 나 같은 값이면 아무것도 쓰지 않는다.
+func editIssue(dir string) string {
+	num := issueNum(dir)
+	cur := trackerGet(dir, "ISSUE_REPO")
+	query, problem := cur, ""
+	for {
+		header := "이슈 링크나 <host>/<owner>/<repo> · 빈 값은 지우기"
+		if problem != "" {
+			header = RED + "✗ " + problem + RESET
+		}
+		header += "\n↵ 저장 · esc 취소"
+		out, rc := fz("", nil, "--disabled", "--print-query", "--query="+query,
+			"--input-label= 이슈 링크 · "+base(dir)+" ", "--input-label-pos=2",
+			"--header="+header,
+			"--preview=ISSUE_TREE_COLOR=1 "+selfCmd+" issue-preview "+shellQuote(dir)+" {q}",
+			"--preview-window=right,62%,wrap", "--preview-label= 이슈 ", "--preview-label-pos=2")
+		if rc == 130 {
+			return ""
+		}
+		if rc > 1 {
+			fzfFailed(rc)
+			return ""
+		}
+		q := strings.SplitN(out, "\n", 2)[0]
+		repo, why := issueRepoInput(q, num)
+		if why == "" && repo != cur {
+			if err := setIssueRepo(dir, repo); err != nil {
+				why = "저장 실패 · " + err.Error()
+			}
+		}
+		switch {
+		case why != "":
+			query, problem = q, why
+		case repo == cur:
+			return ""
+		case repo == "":
+			return OK + " " + base(dir) + " 이슈 저장소 지움"
+		default:
+			return OK + " " + base(dir) + " · " + repo
+		}
+	}
+}
+
+// cmdIssuePreview 는 ^E 입력 칸의 미리보기다. 지금 값과 저장될 값을 보인다.
+func cmdIssuePreview(dir, q string) int {
+	num := issueNum(dir)
+	cur := trackerGet(dir, "ISSUE_REPO")
+	fmt.Printf("%s%s%s\n", BOLD, base(dir), RESET)
+	fmt.Println()
+	fmt.Printf("지금   %s\n", issueLabel(cur, num))
+	repo, why := issueRepoInput(q, num)
+	switch {
+	case why != "":
+		fmt.Printf("%s %s\n", FAIL, why)
+	case repo == cur:
+		fmt.Printf("%s변경 없음%s\n", MUTED, RESET)
+	default:
+		fmt.Printf("저장   %s%s%s\n", BLUE+BOLD, issueLabel(repo, num), RESET)
+	}
+	fmt.Println()
+	if repo == "" && why == "" {
+		fmt.Printf("%s번호만 넣은 이슈와 같은 tree%s\n", MUTED, RESET)
+	} else if why == "" {
+		fmt.Printf("%s이 저장소의 #%s 링크로 찾는 tree%s\n", MUTED, num, RESET)
+	}
+	return 0
 }
 
 // otherEntries 는 이슈 폴더에서 tracker 와 tracker 의 worktree 를 뺀 항목이다. 폴더는 끝에 / 를 붙이고
@@ -229,7 +302,7 @@ func cmdPreview(dir string) int {
 	if tagText == "" {
 		tagText = MUTED + "태그 없음"
 	}
-	fmt.Printf("%s#%s%s  %s%s%s\n", BLUE+BOLD, treeNum(dir), RESET, BOLD, tagText, RESET)
+	fmt.Printf("%s#%s%s  %s%s%s%s\n", BLUE+BOLD, treeNum(dir), RESET, BOLD, tagText, RESET, issueRepoNote(trackerGet(dir, "ISSUE_REPO")))
 	if ws, how, ok := workspaceFor(dir); ok {
 		label := workspaceLabel(ws)
 		if label == "" {
