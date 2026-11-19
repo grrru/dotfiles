@@ -263,18 +263,21 @@ tree's workspace instead, `--pane <pane_id>` moves that pane into the new worksp
 `--no-open` only creates the tree. An agent running in herdr passes its own pane as
 `"$HERDR_PANE_ID"`.
 
-`./install.sh` does not build or link the plugin:
+`herdr/plugins/issue-tree/install.sh` builds the plugin and links it to herdr; `./install.sh`
+does not run it:
 
 ```sh
-cd herdr/plugins/issue-tree
-go build -o issue-tree .
-herdr plugin link "$PWD"
+herdr/plugins/issue-tree/install.sh           # build and link
+herdr/plugins/issue-tree/install.sh --build   # build only
 ```
 
-Building needs Go 1.27.3 or newer; running needs herdr 0.9.5 or newer and fzf 0.58 or
-newer. The binary is not tracked, so rebuild it after pulling changes. Relinking is needed
-only when `herdr-plugin.toml` changes. `WORKTREE` and `WORKSPACE` come from the herdr
-server's environment, or from `KEY=VALUE` lines in
+It builds with the first Go 1.27.3 or newer found on `PATH`, under `~/sdk/go*/`, or in
+`/usr/local/go/`, ignoring `GOROOT` from the shell; `ISSUE_TREE_GO=/path/to/go` picks one.
+The binary is not tracked, so run the script again after pulling changes.
+
+Running the plugin needs herdr 0.9.5 or newer and fzf 0.58 or newer. The script warns when
+fzf is missing or older, or when `WORKTREE` or `WORKSPACE` is not set. Those two come from the
+herdr server's environment, or from `KEY=VALUE` lines in
 `$(herdr plugin config-dir dotfiles.issue-tree)/config.sh`, which can also set the right
 pane's command, its working directory, and the split ratio (listed at the top of
 `main.go`).
