@@ -264,6 +264,8 @@ func cmdCleanPlan(dir, mode string) int {
 }
 
 // cleanFlow 는 확인을 받고 정리한다. 정리했으면 true.
+// 원격 브랜치 삭제는 기본 선택이고 되돌리기 어려워서 언제나 tree 이름을 입력받는다. 원격 브랜치를 남기면
+// 잃는 것이 있을 때만 입력받는다.
 func cleanFlow(dir string) bool {
 	cs, errText := cleanScan(dir)
 	if cs == nil {
@@ -274,7 +276,7 @@ func cleanFlow(dir string) bool {
 	}
 	name := base(dir)
 	qd := shellQuote(dir)
-	out, rc := fz("cancel\t취소\nkeep\t정리 · 원격 브랜치 유지\ndelete\t정리 · 원격 브랜치 삭제\n", nil,
+	out, rc := fz("delete\t정리 · 원격 브랜치 삭제\nkeep\t정리 · 원격 브랜치 유지\ncancel\t취소\n", nil,
 		"--delimiter=\t", "--with-nth=2", "--no-sort", "--disabled",
 		"--input-label= 정리 · "+name+" ", "--input-label-pos=2",
 		"--header=↑↓ 선택 · ↵ 실행 · esc 취소",
@@ -289,11 +291,18 @@ func cleanFlow(dir string) bool {
 		return false
 	}
 
-	if warn := cs.warnings(mode); len(warn) > 0 {
-		header := YELLOW + "⚠ 복구 불가" + RESET
-		for _, w := range warn {
-			header += "\n  " + w
+	if warn := cs.warnings(mode); len(warn) > 0 || mode == "delete" {
+		var lines []string
+		if len(warn) > 0 {
+			lines = append(lines, YELLOW+"⚠ 복구 불가"+RESET)
+			for _, w := range warn {
+				lines = append(lines, "  "+w)
+			}
 		}
+		if mode == "delete" {
+			lines = append(lines, "원격 브랜치 삭제 · origin/"+cs.branch)
+		}
+		header := strings.Join(lines, "\n")
 		out, rc := fz("", nil, "--disabled", "--print-query",
 			"--input-label= 확인 · "+name+" 입력 시 삭제 ", "--input-label-pos=2",
 			"--header="+header,

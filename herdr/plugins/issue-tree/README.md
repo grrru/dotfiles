@@ -35,10 +35,11 @@ In the list:
 | `C-o` | Create a tree |
 | `C-r` | Add repositories to the tree |
 | `C-e` | Set or clear the tree's issue repository from an issue link or `host/owner/repo` |
-| `C-x` | Remove the tree's worktrees and branches, keeping or deleting the remote branch |
+| `C-x` | Remove the tree's worktrees and branches, deleting the remote branch by default |
 
-When the cleanup would lose uncommitted changes, commits found nowhere else, or other
-files in the issue folder, `C-x` lists them and asks for the tree's folder name first.
+Deleting the remote branch always asks for the tree's folder name first. Keeping it asks
+only when the cleanup would lose uncommitted changes, commits found nowhere else, or other
+files in the issue folder; `C-x` lists those either way.
 
 ## Issues and trees
 
