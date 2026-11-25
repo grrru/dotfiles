@@ -161,10 +161,10 @@ return {
           },
           {
             function()
-              return "󰦒 " .. vim.g.gitsigns_review_base
+              return "󰦒 " .. vim.t.gitsigns_review_base
             end,
             cond = function()
-              return vim.g.gitsigns_review_base ~= nil
+              return vim.t.gitsigns_review_base ~= nil
             end,
           },
           {

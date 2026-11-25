@@ -4,7 +4,13 @@
 -- role of the reset target: base HEAD~2 == `git reset HEAD~2`. For a whole
 -- branch, prefer the merge base with its upstream (<leader>gru) over counting
 -- commits back by hand: it is the same range a PR shows.
--- `vim.g.gitsigns_review_base` is what lualine shows.
+--
+-- Review mode belongs to the tab it was turned on in and covers the buffers of
+-- that tab's worktree only. Other repositories, and other worktrees of the same
+-- repository, stay diffed against the index. gitsigns has a single global base
+-- for every buffer, so that one stays at the index and the review base is set
+-- buffer by buffer. `vim.t.gitsigns_review_base` is what lualine shows.
+
 -- Quickfix jumps skip any window whose buffer has a 'buftype' (the dashboard is
 -- "nofile"), so from the dashboard every file opens in a new split instead of
 -- reusing the window. Put an empty normal buffer there instead.
@@ -27,55 +33,79 @@ end
 -- there and leaves an unrelated list (grep results, diagnostics) alone.
 local QF_TITLE = "Changed Files"
 
--- setqflist() emits one entry per hunk and has no option to group them
--- (Gitsigns.SetqflistOpts is only use_location_list/nr/open), so collapse the
--- list ourselves: one entry per file, pointing at its first hunk. ]h/[h still
--- walk the hunks once the file is open.
-local function collapse_to_files()
+-- One entry per file in a `git diff -U0` listing, at its first hunk. ]h/[h
+-- walk the rest once the file is open. File headers are only read between
+-- `diff --git` and the first `@@`, where a removed line such as "-- a/x" cannot
+-- pass for one.
+local function diff_to_items(root, lines)
   local items = {} --- @type table[]
-  local seen = {} --- @type table<integer, integer> bufnr -> index into items
-  for _, item in ipairs(vim.fn.getqflist()) do
-    local idx = seen[item.bufnr]
-    if idx then
-      items[idx].hunks = items[idx].hunks + 1
-    else
-      seen[item.bufnr] = #items + 1
-      items[#items + 1] = { bufnr = item.bufnr, lnum = item.lnum, hunks = 1 }
+  local item, in_header, old_path
+  for _, line in ipairs(lines) do
+    if vim.startswith(line, "diff --git ") then
+      item, in_header, old_path = nil, true, nil
+    elseif in_header and vim.startswith(line, "--- a/") then
+      -- git ends a header path that has a space in it with a tab
+      old_path = (line:sub(7):gsub("\t$", ""))
+    elseif in_header and vim.startswith(line, "+++ ") then
+      local deleted = line == "+++ /dev/null"
+      local path = deleted and old_path or (vim.startswith(line, "+++ b/") and (line:sub(7):gsub("\t$", "")))
+      if path then
+        item = { filename = root .. "/" .. path, lnum = 1, hunks = 0, deleted = deleted }
+        items[#items + 1] = item
+      end
+    elseif vim.startswith(line, "@@ ") then
+      in_header = false
+      if item then
+        item.hunks = item.hunks + 1
+        if item.hunks == 1 then
+          -- A pure deletion starts at the line before it, which may be 0
+          item.lnum = math.max(tonumber(line:match("^@@ %-%S+ %+(%d+)")) or 1, 1)
+        end
+      end
     end
   end
-  for _, item in ipairs(items) do
-    item.text = ("%d hunk%s"):format(item.hunks, item.hunks > 1 and "s" or "")
-    item.hunks = nil
+  for _, it in ipairs(items) do
+    it.text = it.deleted and "deleted" or ("%d hunk%s"):format(it.hunks, it.hunks > 1 and "s" or "")
+    it.hunks, it.deleted = nil, nil
   end
-  vim.fn.setqflist({}, "r", { items = items, title = QF_TITLE })
+  return items
 end
 
--- Tear down what fill_qflist() put up. gitsigns opens the list with `copen`
--- (the `trouble` branch of its setqflist needs config.trouble, which is off),
--- so `cclose` is the matching undo. Scheduled because change_base() resumes its
--- callback wherever the async task landed, and `:cclose` in a fast event
--- context is an E5560.
-local function close_qflist()
-  vim.schedule(function()
-    if vim.fn.getqflist({ title = 0 }).title == QF_TITLE then
-      vim.cmd.cclose()
-    end
-  end)
-end
-
-local function fill_qflist()
-  -- Hunks of every changed file vs. the base, across the whole repo. Only swap
-  -- the dashboard out once the list is up: a picker restores the buffer of the
-  -- window it was opened from as it closes, which would undo an earlier swap.
-  require("gitsigns").setqflist("all", {}, function()
+-- Files changed in the worktree {root} since {base} (the index when nil). This
+-- is `git diff` rather than gitsigns' setqflist("all"), which takes in every
+-- repository with an attached buffer and diffs them all against the global base.
+local function fill_qflist(root, base)
+  local cmd = { "git", "-C", root, "-c", "core.quotePath=false", "diff", "-U0", "--no-color", "--no-ext-diff" }
+  vim.list_extend(cmd, { "--src-prefix=a/", "--dst-prefix=b/", "--ignore-submodules" })
+  if base then
+    cmd[#cmd + 1] = base
+  end
+  cmd[#cmd + 1] = "--"
+  -- Asynchronous so the list goes up after a picker that is closing has put
+  -- back the buffer of the window it was opened from; swapping the dashboard
+  -- out before that would be undone.
+  vim.system(cmd, { text = true }, function(out)
     vim.schedule(function()
-      collapse_to_files()
+      if out.code ~= 0 then
+        vim.notify("git diff: " .. vim.trim(out.stderr or ""), vim.log.levels.ERROR)
+        return
+      end
+      vim.fn.setqflist({}, " ", { items = diff_to_items(root, vim.split(out.stdout, "\n")), title = QF_TITLE })
+      vim.cmd.copen()
       leave_dashboard()
     end)
   end)
 end
 
--- `git` in the repo of the current buffer, returning trimmed stdout or nil.
+-- Tear down what fill_qflist() put up: it opens the list with `copen`, so
+-- `cclose` is the matching undo.
+local function close_qflist()
+  if vim.fn.getqflist({ title = 0 }).title == QF_TITLE then
+    vim.cmd.cclose()
+  end
+end
+
+-- `git` in the tab's cwd, returning trimmed stdout or nil.
 local function git(...)
   local out = vim.system({ "git", ... }, { text = true, cwd = vim.fn.getcwd() }):wait()
   if out.code ~= 0 then
@@ -100,16 +130,104 @@ local function upstream_branch()
   end
 end
 
-local function set_review_base(base, label)
+--- @class gruvim.GitReview
+--- @field root string Toplevel of the worktree under review.
+--- @field base string
+
+-- Reviews by tab handle. A tab reviews one worktree and a worktree is reviewed
+-- from one tab. Kept here and not only in vim.t: a tab's variables are gone by
+-- the time TabClosed fires, and the closed tab's worktree still has to go back
+-- to the index.
+local reviews = {} --- @type table<integer, gruvim.GitReview>
+
+-- Buffers mid-attach on a base already chosen for them. on_attach skips its
+-- review check for these, which would otherwise turn the attach down again.
+local attaching = {} --- @type table<integer, true>
+
+local function review_of(root)
+  for _, review in pairs(reviews) do
+    if review.root == root then
+      return review
+    end
+  end
+end
+
+-- Attach {buf} afresh against {base} (the index when nil). change_base() on a
+-- buffer whose update is still running (one just opened, or just brought into
+-- view) loses to that update, which caches the old base's text and keeps
+-- diffing against it. A fresh attach starts from an empty cache.
+local function attach_on(buf, base, callback)
   local gs = require("gitsigns")
-  gs.change_base(base, true, function(err)
+  gs.detach(buf)
+  attaching[buf] = true
+  local ctx = { file = vim.api.nvim_buf_get_name(buf), base = base or ":0" }
+  gs.attach({ bufnr = buf, ctx = ctx }, function(err)
+    attaching[buf] = nil
+    if callback then
+      callback(err)
+    end
+  end)
+end
+
+-- Put every loaded buffer gitsigns placed in the worktree {root} on {base},
+-- then call {done} with the first error.
+local function set_root_base(root, base, done)
+  local bufs = {} --- @type integer[]
+  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+    local status = vim.api.nvim_buf_is_loaded(buf) and vim.b[buf].gitsigns_status_dict
+    if status and status.root == root then
+      bufs[#bufs + 1] = buf
+    end
+  end
+  local pending, first_err = #bufs, nil
+  local function finish()
+    vim.schedule(function()
+      done(first_err)
+    end)
+  end
+  if pending == 0 then
+    return finish()
+  end
+  for _, buf in ipairs(bufs) do
+    attach_on(buf, base, function(err)
+      first_err = first_err or err
+      pending = pending - 1
+      if pending == 0 then
+        finish()
+      end
+    end)
+  end
+end
+
+-- Turn review mode on in the current tab with {base}, or off when it is nil.
+local function set_review_base(base, label)
+  local tab = vim.api.nvim_get_current_tabpage()
+  local old = reviews[tab]
+  -- Off goes by the worktree the review was turned on for, which a later :tcd
+  -- does not change.
+  local root = base and git("rev-parse", "--show-toplevel") or (old and old.root)
+  if not root then
+    vim.notify(base and "Not in a git repository" or "Review mode is not on in this tab", vim.log.levels.WARN)
+    return
+  end
+  for t, review in pairs(reviews) do
+    if t ~= tab and review.root == root then
+      reviews[t] = nil
+      vim.t[t].gitsigns_review_base = nil
+    end
+  end
+  if old and old.root ~= root then
+    set_root_base(old.root, nil, function() end)
+  end
+  reviews[tab] = base and { root = root, base = base } or nil
+  vim.t[tab].gitsigns_review_base = base and (label or base) or nil
+  set_root_base(root, base, function(err)
     if err then
       vim.notify("gitsigns: " .. err, vim.log.levels.ERROR)
       return
     end
-    vim.g.gitsigns_review_base = base and (label or base)
     if base then
-      fill_qflist()
+      fill_qflist(root, base)
     else
       close_qflist()
       vim.notify("Review mode off (base: index)")
@@ -123,6 +241,20 @@ return {
   {
     "lewis6991/gitsigns.nvim",
     event = "VeryLazy",
+    init = function()
+      vim.api.nvim_create_autocmd("TabClosed", {
+        group = vim.api.nvim_create_augroup("gruvim_git_review", { clear = true }),
+        desc = "Put the worktree a closed tab reviewed back on the index",
+        callback = function()
+          for tab, review in pairs(reviews) do
+            if not vim.api.nvim_tabpage_is_valid(tab) then
+              reviews[tab] = nil
+              set_root_base(review.root, nil, function() end)
+            end
+          end
+        end,
+      })
+    end,
     keys = {
       {
         "<leader>gro",
@@ -172,7 +304,13 @@ return {
       {
         "<leader>gq",
         function()
-          fill_qflist()
+          local review = reviews[vim.api.nvim_get_current_tabpage()]
+          local root = review and review.root or git("rev-parse", "--show-toplevel")
+          if not root then
+            vim.notify("Not in a git repository", vim.log.levels.WARN)
+            return
+          end
+          fill_qflist(root, review and review.base)
         end,
         desc = "Changed Files to Quickfix",
       },
@@ -180,6 +318,20 @@ return {
     opts = {
       on_attach = function(bufnr)
         local gs = require("gitsigns")
+
+        -- A buffer opened (from the Changed Files list, say) or re-read while
+        -- its worktree is under review attaches on the index like any other:
+        -- turn that attach down and attach it again on the review base.
+        local status = vim.b[bufnr].gitsigns_status_dict
+        local review = not attaching[bufnr] and status and review_of(status.root)
+        if review then
+          vim.schedule(function()
+            if vim.api.nvim_buf_is_loaded(bufnr) then
+              attach_on(bufnr, review.base)
+            end
+          end)
+          return false
+        end
 
         local function map(mode, l, r, desc)
           vim.keymap.set(mode, l, r, { buffer = bufnr, desc = desc, silent = true })
