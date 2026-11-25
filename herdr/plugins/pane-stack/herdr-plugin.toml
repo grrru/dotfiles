@@ -1,0 +1,67 @@
+# 설치: ./install.sh (빌드 후 링크) · 빌드만: ./install.sh --build · 키는 dotfiles herdr/config.toml 에 있다
+id = "dotfiles.pane-stack"
+name = "Pane Stack"
+version = "0.4.3"
+min_herdr_version = "0.9.5"
+description = "pane 한 자리에 여러 터미널을 스택으로 쌓아 두고 하나씩 바꿔 보여 준다. 보이지 않는 터미널은 같은 workspace 의 보관 탭에 둔다"
+platforms = ["linux", "macos"]
+
+[[startup]]
+command = ["./pane-stack", "restore"]
+
+# 보이던 터미널이 exit 하거나 닫히면 그 자리를 스택의 다음 터미널로 다시 채운다.
+[[events]]
+on = "pane.exited"
+command = ["./pane-stack", "hook"]
+
+[[events]]
+on = "pane.closed"
+command = ["./pane-stack", "hook"]
+
+# 스택 자리 주변이 바뀌면 자리 정보를 다시 저장한다.
+[[events]]
+on = "pane.created"
+command = ["./pane-stack", "hook"]
+
+[[events]]
+on = "pane.moved"
+command = ["./pane-stack", "hook"]
+
+[[actions]]
+id = "pick"
+title = "Pane stack: 목록"
+contexts = ["pane"]
+command = ["./pane-stack", "pick"]
+
+[[actions]]
+id = "new"
+title = "Pane stack: 새 터미널"
+contexts = ["pane"]
+command = ["./pane-stack", "new"]
+
+[[actions]]
+id = "next"
+title = "Pane stack: 다음 터미널"
+contexts = ["pane"]
+command = ["./pane-stack", "next"]
+
+[[actions]]
+id = "prev"
+title = "Pane stack: 이전 터미널"
+contexts = ["pane"]
+command = ["./pane-stack", "prev"]
+
+[[actions]]
+id = "close"
+title = "Pane stack: 터미널 닫기"
+contexts = ["pane"]
+command = ["./pane-stack", "close"]
+
+# 스택 목록 popup 본체. 고른 터미널을 자리로 가져오고, 터미널 화면을 미리 보여 준다.
+[[panes]]
+id = "picker"
+title = "pane 스택"
+placement = "popup"
+width = "72%"
+height = "62%"
+command = ["./pane-stack", "picker"]

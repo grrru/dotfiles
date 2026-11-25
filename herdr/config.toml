@@ -57,6 +57,44 @@ type = "shell"
 command = "~/.config/herdr/scripts/pane-layout.sh three 1lines"
 description = "3분할 (왼쪽 아래 최소 높이 + 오른쪽)"
 
+# 아래 herdr-mark.* 는 herdr-mark 플러그인(herdr plugin install y4le/herdr-mark)이 있어야 동작한다.
+# prefix+m 으로 pane 을 표시한 뒤, 붙일 pane 으로 포커스를 옮겨 join/swap 한다.
+[[keys.command]]
+key = "prefix+m"
+type = "plugin_action"
+command = "herdr-mark.toggle"
+description = "pane 표시/해제"
+
+[[keys.command]]
+key = "prefix+ctrl+h"
+type = "plugin_action"
+command = "herdr-mark.join-left"
+description = "표시한 pane 을 이 pane 왼쪽에 붙이기"
+
+[[keys.command]]
+key = "prefix+ctrl+j"
+type = "plugin_action"
+command = "herdr-mark.join-down"
+description = "표시한 pane 을 이 pane 아래에 붙이기"
+
+[[keys.command]]
+key = "prefix+ctrl+k"
+type = "plugin_action"
+command = "herdr-mark.join-up"
+description = "표시한 pane 을 이 pane 위에 붙이기"
+
+[[keys.command]]
+key = "prefix+ctrl+l"
+type = "plugin_action"
+command = "herdr-mark.join-right"
+description = "표시한 pane 을 이 pane 오른쪽에 붙이기"
+
+[[keys.command]]
+key = "prefix+ctrl+s"
+type = "plugin_action"
+command = "herdr-mark.swap"
+description = "표시한 pane 과 이 pane 자리 바꾸기"
+
 [[keys.command]]
 key = "prefix+i"
 type = "plugin_action"
@@ -68,3 +106,35 @@ key = "prefix+shift+i"
 type = "plugin_action"
 command = "dotfiles.issue-tree.new"
 description = "새 이슈 tree"
+
+# pane 한 자리에 쌓은 터미널 스택은 목록 popup(t)에서 고르거나, herdr 의 탭 키(c/n/p)와 pane
+# 닫기(x)에 alt 를 더한 키로 다룬다.
+[[keys.command]]
+key = "prefix+t"
+type = "plugin_action"
+command = "dotfiles.pane-stack.pick"
+description = "이 pane 자리의 스택 목록"
+
+[[keys.command]]
+key = "prefix+alt+c"
+type = "plugin_action"
+command = "dotfiles.pane-stack.new"
+description = "이 pane 스택에 새 터미널"
+
+[[keys.command]]
+key = "prefix+alt+n"
+type = "plugin_action"
+command = "dotfiles.pane-stack.next"
+description = "이 pane 스택의 다음 터미널"
+
+[[keys.command]]
+key = "prefix+alt+p"
+type = "plugin_action"
+command = "dotfiles.pane-stack.prev"
+description = "이 pane 스택의 이전 터미널"
+
+[[keys.command]]
+key = "prefix+alt+x"
+type = "plugin_action"
+command = "dotfiles.pane-stack.close"
+description = "이 pane 스택의 터미널 닫기"
