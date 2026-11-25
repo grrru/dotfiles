@@ -1,14 +1,25 @@
 local function bufferline_highlights()
-  if not (vim.g.colors_name or ""):find("^catppuccin") then
+  if (vim.g.colors_name or ""):find("^catppuccin") then
+    local ok, bufferline_theme = pcall(require, "catppuccin.special.bufferline")
+    return ok and bufferline_theme.get_theme() or {}
+  end
+
+  if vim.api.nvim_get_hl(0, { name = "Normal" }).bg then
     return {}
   end
 
-  local ok, bufferline_theme = pcall(require, "catppuccin.special.bufferline")
-  if not ok then
-    return {}
-  end
-
-  return bufferline_theme.get_theme()
+  -- bufferline shades its own colors from Normal's background. Without one
+  -- (a transparent colorscheme) every background stays clear, as wanted, but
+  -- the separators get no color and draw in Normal's foreground. Color them
+  -- like window separators, as catppuccin's bufferline theme does.
+  local separator = { fg = { attribute = "fg", highlight = "WinSeparator" } }
+  return {
+    separator = separator,
+    separator_visible = separator,
+    separator_selected = separator,
+    tab_separator = separator,
+    tab_separator_selected = separator,
+  }
 end
 
 local function bufferline_opts()
@@ -54,6 +65,7 @@ return {
     priority = 1001,
     opts = {
       options = {
+        transparent = true,
         -- Leave the 16-color palette of terminal buffers to Ghostty, which
         -- toggle-theme switches too. A palette set here is fixed into each
         -- terminal (lazygit) when it opens, so its diff colors stayed nightfox
@@ -77,6 +89,19 @@ return {
           GitSignsAddInline = { fg = "bg0", bg = "git.add", style = "bold" },
           GitSignsChangeInline = { fg = "bg0", bg = "git.add", style = "bold" },
           GitSignsDeleteInline = { fg = "bg0", bg = "git.removed", style = "bold" },
+          -- Ghostty draws a background image (ghostty/local.conf). `transparent`
+          -- above clears only Normal, NormalNC, WinBar and the tree, so floats
+          -- and bars still covered it. Clear them as catppuccin's
+          -- transparent_background and float.transparent do; line highlights
+          -- (CursorLine, Folded, diffs) keep their backgrounds.
+          NormalFloat = { bg = "NONE" },
+          StatusLine = { bg = "NONE" },
+          StatusLineNC = { bg = "NONE" },
+          TabLineFill = { bg = "NONE" },
+          Pmenu = { bg = "NONE" },
+          BlinkCmpDoc = { bg = "NONE" },
+          BlinkCmpDocBorder = { bg = "NONE" },
+          TreesitterContext = { bg = "NONE" },
         },
       },
     },
@@ -88,9 +113,13 @@ return {
     lazy = false,
     priority = 1000,
     opts = {
+      transparent_background = true,
+      float = {
+        transparent = true,
+      },
       integrations = {
         blink_cmp = true,
-        gitsigns = true,
+        gitsigns = { enabled = true, transparent = false },
         noice = true,
         nvimtree = false,
         snacks = true,
