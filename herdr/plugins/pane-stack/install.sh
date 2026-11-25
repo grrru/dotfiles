@@ -110,7 +110,7 @@ echo "$OK 링크 · $(show "$dir")"
 
 fzf_ver="$(fzf --version 2>/dev/null | awk 'NR == 1 { print $1 }')" || fzf_ver=""
 if [ -z "$fzf_ver" ]; then
-  echo "$WARN fzf 없음 · 스택 목록(C-a t)에 0.58 이상 필요"
+  echo "$WARN fzf 없음 · 스택 목록(C-a S)에 0.58 이상 필요"
 elif ! version_at_least "$fzf_ver" 0.58; then
-  echo "$WARN fzf $fzf_ver · 스택 목록(C-a t)에 0.58 이상 필요"
+  echo "$WARN fzf $fzf_ver · 스택 목록(C-a S)에 0.58 이상 필요"
 fi

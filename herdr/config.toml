@@ -107,10 +107,10 @@ type = "plugin_action"
 command = "dotfiles.issue-tree.new"
 description = "새 이슈 tree"
 
-# pane 한 자리에 쌓은 터미널 스택은 목록 popup(t)에서 고르거나, herdr 의 탭 키(c/n/p)와 pane
+# pane 한 자리에 쌓은 터미널 스택은 목록 popup(S)에서 고르거나, herdr 의 탭 키(c/n/p)와 pane
 # 닫기(x)에 alt 를 더한 키로 다룬다.
 [[keys.command]]
-key = "prefix+t"
+key = "prefix+shift+s"
 type = "plugin_action"
 command = "dotfiles.pane-stack.pick"
 description = "이 pane 자리의 스택 목록"

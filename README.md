@@ -75,7 +75,7 @@ literal `C-a` to the pane. Its theme is set by `toggle-theme` (see
 | `M-3` | Two panes stacked on the left (70:30) and one on the right, left:right 65:35 |
 | `M-#` | `M-3` with the bottom-left pane as short as herdr allows (10% of the tab) |
 | `i` / `I` | Issue tree list / new issue tree ([issue-tree](herdr/plugins/issue-tree/README.md)) |
-| `t` | List of this pane's stack, with a preview of each terminal ([pane-stack](herdr/plugins/pane-stack/README.md)) |
+| `S` | List of this pane's stack, with a preview of each terminal ([pane-stack](herdr/plugins/pane-stack/README.md)) |
 | `M-c` / `M-n` / `M-p` / `M-x` | Add / next / previous / close terminal in this pane's stack |
 | `m` | Mark or unmark this pane ([herdr-mark](https://github.com/y4le/herdr-mark)) |
 | `C-h` / `C-j` / `C-k` / `C-l` | Join the marked pane left of / below / above / right of this pane |

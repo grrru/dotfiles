@@ -26,7 +26,7 @@ script again after pulling changes. The keys are in `herdr/config.toml`.
 
 | Key | Action |
 | --- | --- |
-| `C-a t` | List this pane's stack in a popup, with the screen of the terminal under the cursor |
+| `C-a S` | List this pane's stack in a popup, with the screen of the terminal under the cursor |
 | `C-a M-c` | Add a shell (in the same directory) to this pane's stack and show it |
 | `C-a M-n` / `C-a M-p` | Show the stack's next / previous terminal, wrapping around |
 | `C-a M-x` | Close this terminal and show the stack's next one |
