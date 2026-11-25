@@ -60,8 +60,26 @@ return {
     config = function(_, opts)
       require("treesitter-context").setup(opts)
 
+      -- scope.nvim unlists a tab's buffers when the tab is left, which fires
+      -- BufDelete, and treesitter-context detaches a buffer on BufDelete.
+      -- Listing them again on return fires only BufAdd, and the plugin
+      -- reattaches only on BufReadPost/FileType, so its context never showed
+      -- again in a buffer after a tab switch. Run just its own attach handler
+      -- (the one BufReadPost autocmd in its group) when a buffer is relisted.
+      vim.api.nvim_create_autocmd("BufAdd", {
+        group = vim.api.nvim_create_augroup("gruvim_treesitter_context_attach", { clear = true }),
+        callback = function(ev)
+          pcall(vim.api.nvim_exec_autocmds, "BufReadPost", {
+            group = "treesitter_context_update",
+            buffer = ev.buf,
+            modeline = false,
+          })
+        end,
+      })
+
       -- catppuccin's treesitter_context integration underlines the last
-      -- context line, which reads as a dark rule under the context on latte.
+      -- context line, which reads as a dark rule under the context on latte,
+      -- and Ghostty draws any underline too thick for a quiet divider.
       -- Clearing the group is undone by every `:colorscheme`, and config.theme
       -- runs one on each toggle, so re-apply after every colorscheme change.
       local function clear_context_underline()
