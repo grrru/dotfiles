@@ -113,10 +113,10 @@ return {
     lazy = false,
     priority = 1000,
     opts = {
-      transparent_background = true,
-      float = {
-        transparent = true,
-      },
+      -- transparent_background = true,
+      -- float = {
+      --   transparent = true,
+      -- },
       integrations = {
         blink_cmp = true,
         gitsigns = { enabled = true, transparent = false },
