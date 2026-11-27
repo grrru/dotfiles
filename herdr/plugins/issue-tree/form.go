@@ -10,9 +10,10 @@ import (
 )
 
 // 새 tree · 레포 추가 폼.
-// 한 화면에 1 이슈 · 2 태그 · 3 레포 · 만들기 줄이 차례로 있고, ↵ 는 그 줄을 확정하고 다음 줄로 내려간다.
-// 이슈와 태그는 위 입력 칸에 쓰고, 레포 줄에서 ↵ 를 누르면 여러 개를 고르는 목록이 열린다.
-// 상태는 임시 폴더의 파일(issue, tag, tree, repos, step, locked)에 두고, fzf 의 start·focus·enter
+// 한 화면에 1 이슈 · 2 태그 · 3 레포 · 세션 · 만들기 줄이 차례로 있고, ↵ 는 그 줄을 확정하고 다음 줄로 내려간다.
+// 이슈와 태그는 위 입력 칸에 쓰고, 레포 줄에서 ↵ 를 누르면 여러 개를 고르는 목록이 열린다. 레포를 고르면
+// 세션 폴더 목록이 이어서 열리고(커서는 처음 고른 레포), 닫으면 만들기 줄로 간다.
+// 상태는 임시 폴더의 파일(issue, tag, tree, repos, session, step, locked)에 두고, fzf 의 start·focus·enter
 // 이벤트마다 form-event 가 읽고 써서 다음 fzf 동작을 돌려준다. 커서를 옮기면 떠나는 줄에 입력을 확정한다.
 
 func formGet(s, key string) string {
@@ -34,6 +35,22 @@ type formState struct {
 	ConflictWhy           string
 	Suffix, Dir, Branch   string
 	Have, Repos           []string
+	// Session 은 오른쪽 패널 폴더(빈 값은 기본값), SessionSet 은 폼에서 골랐는지다. 안 골랐으면 기존 tree 의
+	// 값을 그대로 둔다.
+	Session    string
+	SessionSet bool
+}
+
+// sessionRows 는 만들 tree 의 레포 줄이다. 아직 없는 worktree 는 doSetup 이 만들 경로로 채운다.
+func (f formState) sessionRows() []repoRow {
+	var rows []repoRow
+	if f.Tree != "" {
+		rows = repoRows(f.Tree)
+	}
+	for _, r := range f.Repos {
+		rows = append(rows, repoRow{r, filepath.Join(f.Dir, base(r)+"_"+f.Suffix)})
+	}
+	return rows
 }
 
 // formDerive 는 상태 파일에서 지금 만들 tree 를 계산한다. 태그가 기존 tree 와 같으면 그 tree 에 더한다.
@@ -75,6 +92,11 @@ func formDerive(s string) formState {
 		if r != "" && !have[r] {
 			f.Repos = append(f.Repos, r)
 		}
+	}
+	if key := formGet(s, "session"); key != "" {
+		f.Session, f.SessionSet = resolveSession(key, f.Dir, f.sessionRows()), true
+	} else if f.Tree != "" {
+		f.Session = trackerGet(f.Tree, "SESSION_CWD")
 	}
 	return f
 }
@@ -139,6 +161,20 @@ func formRows(s string) []formRow {
 	}
 	rows = append(rows, formRow{"repos", mark + "  레포   " + value})
 
+	if f.Num == "" {
+		mark, value = MUTED+"·"+RESET, ""
+	} else {
+		mark = MUTED + "·" + RESET
+		if f.Session != "" {
+			mark = OK
+		}
+		value = sessionText(f.Dir, f.sessionRows(), f.Session)
+		if f.Session == "" {
+			value = MUTED + value + RESET
+		}
+	}
+	rows = append(rows, formRow{"session", mark + "  세션   " + value})
+
 	if f.ready() {
 		action := "생성"
 		if f.Tree != "" {
@@ -184,6 +220,8 @@ func formLabel(id string) string {
 		return " 기존 tree "
 	case id == "repos":
 		return " 레포 "
+	case id == "session":
+		return " 세션 폴더 "
 	default:
 		return " 생성 "
 	}
@@ -216,6 +254,31 @@ func formPickRepos(s string) string {
 		selfCmd, shellQuote(s), selfCmd, shellQuote(s))
 }
 
+// formPickSession 은 세션 폴더 목록을 열고, 닫히면 만들기(준비됐으면) 또는 세션 줄로 간다.
+func formPickSession(s string) string {
+	formPut(s, "step", "session")
+	return fmt.Sprintf(`execute(%s form-session %s)+transform(%s form-event %s after-session "" session)`,
+		selfCmd, shellQuote(s), selfCmd, shellQuote(s))
+}
+
+// cmdFormSession 은 세션 폴더를 골라 상태 파일에 키로 적는다. 커서는 지금 값, 정한 적 없으면 기본값이
+// 가리키는 폴더에 둔다.
+func cmdFormSession(s string) int {
+	f := formDerive(s)
+	if f.Num == "" {
+		return 0
+	}
+	rows := f.sessionRows()
+	cur := f.Session
+	if cur == "" {
+		cur = defaultSessionCwd(f.Dir, rows)
+	}
+	if key, ok := pickSession(f.Dir, rows, sessionKey(cur, f.Dir, rows), f.Suffix); ok {
+		formPut(s, "session", key)
+	}
+	return 0
+}
+
 func cmdFormEvent(s, event, q, id string) int {
 	step := formGet(s, "step")
 	switch event {
@@ -237,9 +300,15 @@ func cmdFormEvent(s, event, q, id string) int {
 			return 0
 		}
 		if len(f.Repos) > 0 {
-			fmt.Print(formGoto(s, "go"))
+			fmt.Print(formPickSession(s))
 		} else {
 			fmt.Print(formGoto(s, "repos"))
+		}
+	case "after-session":
+		if formDerive(s).ready() {
+			fmt.Print(formGoto(s, "go"))
+		} else {
+			fmt.Print(formGoto(s, "session"))
 		}
 	case "enter":
 		formCommit(s, step, q)
@@ -264,6 +333,12 @@ func cmdFormEvent(s, event, q, id string) int {
 			fmt.Print(formPickRepos(s))
 		case id == "repos":
 			fmt.Print(formPickRepos(s))
+		case id == "session":
+			if f.Num == "" {
+				fmt.Print(formGoto(s, "issue"))
+			} else {
+				fmt.Print(formPickSession(s))
+			}
 		case id == "go":
 			switch {
 			case f.ready():
@@ -359,6 +434,24 @@ func cmdFormPreview(s, id, q string) int {
 				fmt.Printf("%s같은 이슈면 목록 ^E 로 그 tree 의 이슈 저장소 수정 · 다른 이슈면 태그 변경%s\n", MUTED, RESET)
 			}
 		}
+	case id == "session":
+		if f.Num == "" {
+			fmt.Printf("%s이슈 미입력%s\n", MUTED, RESET)
+			return 0
+		}
+		rows := f.sessionRows()
+		path := f.Session
+		if path == "" {
+			path = defaultSessionCwd(f.Dir, rows)
+		}
+		fmt.Printf("%s%s%s\n", BOLD, sessionText(f.Dir, rows, f.Session), RESET)
+		fmt.Printf("%s%s%s\n", MUTED, tilde(path), RESET)
+		fmt.Println()
+		fmt.Println("오른쪽 claude agents 패널과 새 Claude 세션의 시작 폴더")
+		fmt.Println()
+		fmt.Println(sessionCleanNote(f.Dir, path))
+		fmt.Println()
+		fmt.Printf("%s↵ 폴더 선택 · 목록 ^S 로 변경 가능%s\n", MUTED, RESET)
 	case id == "repos" || id == "go":
 		if f.Num == "" {
 			fmt.Printf("%s이슈 미입력%s\n", MUTED, RESET)
@@ -376,6 +469,8 @@ func cmdFormPreview(s, id, q string) int {
 		if len(f.Repos) == 0 {
 			fmt.Printf("%s선택 없음%s\n", MUTED, RESET)
 		}
+		fmt.Println()
+		fmt.Printf("%s세션 %s%s\n", MUTED, sessionText(f.Dir, f.sessionRows(), f.Session), RESET)
 	}
 	return 0
 }
@@ -426,10 +521,6 @@ func cmdRepoKey(s, key string) int {
 // 미리 고르기는 목록을 다 읽은 뒤(load)에 한다. start 에서는 항목이 아직 없을 수 있다.
 func cmdFormRepos(s string) int {
 	f := formDerive(s)
-	chosen := map[string]bool{}
-	for _, r := range f.Repos {
-		chosen[r] = true
-	}
 	have := map[string]bool{}
 	for _, r := range f.Have {
 		have[r] = true
@@ -460,11 +551,16 @@ func cmdFormRepos(s string) int {
 		return 0
 	}
 	var items strings.Builder
-	start := ""
+	index := map[string]int{}
 	for i, r := range cands {
 		fmt.Fprintf(&items, "%s\t%s  %s%s%s\n", r, pad(base(r), w), MUTED, currentBranch(r), RESET)
-		if chosen[r] {
-			start += fmt.Sprintf("pos(%d)+select+", i+1)
+		index[r] = i + 1
+	}
+	// fzf 는 고른 순서대로 돌려준다. 다시 열 때도 처음 고른 레포가 첫 레포로 남게 전에 고른 순서로 고른다.
+	start := ""
+	for _, r := range f.Repos {
+		if i, ok := index[r]; ok {
+			start += fmt.Sprintf("pos(%d)+select+", i)
 		}
 	}
 
@@ -528,7 +624,10 @@ func formRun(s string) bool {
 	if !f.ready() {
 		return false
 	}
-	if doSetup(f.Dir, f.Num, f.IssueRepo, f.Branch, f.Repos) {
+	if doSetup(f.Dir, f.Num, f.IssueRepo, f.Branch, f.Session, f.Repos) {
+		if f.SessionSet {
+			setSessionCwd(f.Dir, f.Session)
+		}
 		if _, _, err := openTree(f.Dir, ""); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 		}

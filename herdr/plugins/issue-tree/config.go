@@ -12,6 +12,7 @@ import (
 // 실행 환경과 설정. main 에서 loadConfig 로 한 번 채운다.
 var (
 	herdrBin     string
+	claudeBin    string
 	pluginID     string
 	selfCmd      string // fzf 콜백에서 이 바이너리를 부르는 셸 명령
 	rightCmd     string
@@ -45,6 +46,7 @@ func envOr(name, def string) string {
 func loadConfig() {
 	homeDir, _ = os.UserHomeDir()
 	herdrBin = envOr("HERDR_BIN_PATH", "herdr")
+	claudeBin = envOr("ISSUE_TREE_CLAUDE_BIN", "claude")
 	pluginID = envOr("HERDR_PLUGIN_ID", "dotfiles.issue-tree")
 	exe, err := os.Executable()
 	if err == nil {

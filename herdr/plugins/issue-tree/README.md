@@ -5,7 +5,8 @@
 A herdr plugin for issue trees: one folder per issue under `WORKTREE`, holding a worktree
 of the issue branch (`issue/<number>[-<tag>]`) for each repository involved. It opens a
 tree as a herdr workspace with a shell in the issue folder on the left and
-`claude agents` on the right.
+`claude agents` on the right. Claude sessions made from that pane start in its folder, the
+tree's session folder.
 
 ## Install
 
@@ -35,11 +36,23 @@ In the list:
 | `C-o` | Create a tree |
 | `C-r` | Add repositories to the tree |
 | `C-e` | Set or clear the tree's issue repository from an issue link or `host/owner/repo` |
-| `C-x` | Remove the tree's worktrees and branches, deleting the remote branch by default |
+| `C-s` | Choose the tree's session folder: a repository's main checkout, the issue folder, or a typed path |
+| `C-x` | Remove the tree's worktrees and branches, deleting the remote branch by default, and stop and remove from `claude agents` the Claude background sessions started in the issue folder |
 
-Deleting the remote branch always asks for the tree's folder name first. Keeping it asks
-only when the cleanup would lose uncommitted changes, commits found nowhere else, or other
-files in the issue folder; `C-x` lists those either way.
+Deleting the remote branch always asks for `y` first. Keeping it asks only when the cleanup
+would lose uncommitted changes, commits found nowhere else, or other files in the issue
+folder; `C-x` lists those either way.
+
+## Session folder
+
+In the new tree form the session folder list opens right after the repositories are chosen,
+with the cursor on the main checkout of the first repository picked, so `Enter` keeps it.
+It also lists the other repositories' main checkouts and the issue folder; typing a path
+that starts with `/` or `~` uses that folder instead. `Esc` leaves it to
+`ISSUE_TREE_RIGHT_CWD` (the first repository's main checkout unless set). The choice is
+saved as `SESSION_CWD` in `.issue-tracker` and used the next time the tree's workspace is
+created, so a workspace that is already open keeps its pane. Cleanup removes only sessions
+running inside the issue folder: a session started in a main checkout stays.
 
 ## Issues and trees
 
@@ -60,7 +73,8 @@ This creates the tree, or adds the repositories to the issue's tree with that ta
 opens it in a new workspace. `--here <pane_id>` turns that pane's workspace into the
 tree's workspace instead, `--pane <pane_id>` moves that pane into the new workspace, and
 `--no-open` only creates the tree. An agent running in herdr passes its own pane as
-`"$HERDR_PANE_ID"`.
+`"$HERDR_PANE_ID"`. `--session issue|worktree[:<repo>]|main[:<repo>]|<path>` sets the
+session folder, using the first repository when none is named.
 
 ## Settings
 

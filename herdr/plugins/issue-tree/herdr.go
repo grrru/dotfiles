@@ -230,27 +230,6 @@ func cmdRestoreTags() int {
 	return 0
 }
 
-func rightCwdFor(dir string) string {
-	path := dir
-	rows := repoRows(dir)
-	switch rightCwd {
-	case "main":
-		path = ""
-		if len(rows) > 0 {
-			path = rows[0].Repo
-		}
-	case "worktree":
-		path = ""
-		if len(rows) > 0 {
-			path = rows[0].Worktree
-		}
-	}
-	if path != "" && isDir(path) {
-		return path
-	}
-	return dir
-}
-
 // openTree 는 tree 워크스페이스로 전환하고, 없으면 만든다. pane 을 주면 오른쪽 패널을 새로 띄우지 않고
 // 그 패널을 옮겨 온다. 결과 워크스페이스와 옮긴 패널을 돌려준다.
 func openTree(dir, pane string) (string, string, error) {

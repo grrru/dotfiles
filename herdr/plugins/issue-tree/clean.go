@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -20,11 +21,52 @@ type cleanExtra struct {
 	dirty, lost int
 }
 
+// bgSession 은 `claude agents --json` 의 백그라운드 세션 한 줄이다.
+type bgSession struct {
+	ID    string `json:"id"`
+	Kind  string `json:"kind"`
+	Cwd   string `json:"cwd"`
+	Name  string `json:"name"`
+	State string `json:"state"`
+}
+
+// bgSessions 는 dir 안에서 시작해 아직 떠 있는 Claude 백그라운드 세션이다. claude 가 없거나 목록을
+// 못 읽으면 빈 목록이다. 세션 cwd 는 심볼릭 링크를 푼 경로라서 dir 도 풀어서 비교한다.
+func bgSessions(dir string) []bgSession {
+	out, _, code := run("", nil, claudeBin, "agents", "--json")
+	if code != 0 {
+		return nil
+	}
+	var all []bgSession
+	if json.Unmarshal([]byte(out), &all) != nil {
+		return nil
+	}
+	real, err := filepath.EvalSymlinks(dir)
+	if err != nil {
+		real = dir
+	}
+	var found []bgSession
+	for _, s := range all {
+		if s.Kind == "background" && s.ID != "" && (under(s.Cwd, dir) || under(s.Cwd, real)) {
+			found = append(found, s)
+		}
+	}
+	return found
+}
+
+func (s bgSession) label() string {
+	if s.Name != "" {
+		return s.Name
+	}
+	return s.ID
+}
+
 type cleanPlan struct {
 	dir, branch                 string
 	rows                        []cleanRow
 	extras                      []cleanExtra
 	files, links, agents        []string
+	sessions                    []bgSession
 	repos                       []string
 	ws, wsLabel                 string
 	wsClose                     bool
@@ -100,6 +142,8 @@ func cleanScan(dir string) (*cleanPlan, string) {
 		}
 		cs.files = append(cs.files, name)
 	}
+
+	cs.sessions = bgSessions(dir)
 
 	// 워크스페이스: 토큰이 붙은 워크스페이스는 그 tree 의 것이라 닫는다. 경로로 추정한 워크스페이스는
 	// 패널이 모두 이슈 폴더나 tracker 레포 main 체크아웃 안에 있을 때만 닫는다.
@@ -260,11 +304,23 @@ func cmdCleanPlan(dir, mode string) int {
 	default:
 		fmt.Printf("  %s %s 유지 %s· 이슈 폴더 밖 패널%s\n", SKIP, label, MUTED, RESET)
 	}
+
+	if len(cs.sessions) > 0 {
+		fmt.Println()
+		fmt.Printf("%sClaude 백그라운드 세션%s\n", MUTED, RESET)
+		for _, s := range cs.sessions {
+			busy := ""
+			if s.State == "working" {
+				busy = fmt.Sprintf("  %s작업 중%s", YELLOW, RESET)
+			}
+			fmt.Printf("  %s %s 종료·목록에서 제거 %s· %s%s%s\n", FAIL, s.label(), MUTED, s.ID, RESET, busy)
+		}
+	}
 	return 0
 }
 
 // cleanFlow 는 확인을 받고 정리한다. 정리했으면 true.
-// 원격 브랜치 삭제는 기본 선택이고 되돌리기 어려워서 언제나 tree 이름을 입력받는다. 원격 브랜치를 남기면
+// 원격 브랜치 삭제는 기본 선택이고 되돌리기 어려워서 언제나 y 를 입력받는다. 원격 브랜치를 남기면
 // 잃는 것이 있을 때만 입력받는다.
 func cleanFlow(dir string) bool {
 	cs, errText := cleanScan(dir)
@@ -304,7 +360,7 @@ func cleanFlow(dir string) bool {
 		}
 		header := strings.Join(lines, "\n")
 		out, rc := fz("", nil, "--disabled", "--print-query",
-			"--input-label= 확인 · "+name+" 입력 시 삭제 ", "--input-label-pos=2",
+			"--input-label= 확인 · "+name+" · y 입력 후 ↵ 삭제 ", "--input-label-pos=2",
 			"--header="+header,
 			"--preview=ISSUE_TREE_COLOR=1 "+selfCmd+" clean-plan "+qd+" "+mode,
 			"--preview-window=right,62%,wrap", "--preview-label= 정리 내용 ", "--preview-label-pos=2")
@@ -315,9 +371,9 @@ func cleanFlow(dir string) bool {
 		if rc == 130 {
 			return false
 		}
-		if strings.SplitN(out, "\n", 2)[0] != name {
+		if q := strings.TrimSpace(strings.SplitN(out, "\n", 2)[0]); q != "y" && q != "Y" {
 			clearScreen()
-			fmt.Printf("%s 입력 불일치 · 삭제 취소\n", SKIP)
+			fmt.Printf("%s y 아님 · 삭제 취소\n", SKIP)
 			pause("↵ 돌아가기")
 			return false
 		}
@@ -326,13 +382,35 @@ func cleanFlow(dir string) bool {
 	return true
 }
 
-// doClean 은 계획대로 지운다. 지우다 실패하면 이슈 폴더는 남긴다. popup 을 연 워크스페이스를 닫으면
-// popup 도 같이 끝나서, 워크스페이스는 다른 정리를 마친 뒤 맨 끝에 닫는다.
+// doClean 은 계획대로 지운다. worktree 를 지우다 실패하면 이슈 폴더는 남긴다. 백그라운드 세션은
+// 폴더를 지우기 전에 끄고 목록에서 지운다. popup 을 연 워크스페이스를 닫으면 popup 도 같이 끝나서, 워크스페이스는
+// 다른 정리를 마친 뒤 맨 끝에 닫는다.
 func doClean(cs *cleanPlan, mode string) {
 	clearScreen()
 	fmt.Printf("%s정리%s  %s%s/%s\n", BOLD, RESET, MUTED, tilde(cs.dir), RESET)
 	fmt.Println()
 	failed := 0
+
+	// claude stop 은 세션을 목록에 남기므로 claude rm 으로 끄고 목록에서도 지운다. rm 은 세션이 만든
+	// worktree 를 지우기 위험하면 거절하는데, 그때는 stop 으로 끄기만 한다.
+	for _, s := range cs.sessions {
+		out, stderr, code := run("", nil, claudeBin, "rm", s.ID)
+		if code == 0 {
+			fmt.Printf("  %s %s  Claude 세션 제거\n", OK, s.label())
+			continue
+		}
+		why := errMsg(stderr)
+		if why == "" {
+			why = errMsg(out)
+		}
+		if _, stderr, code := run("", nil, claudeBin, "stop", s.ID); code == 0 {
+			fmt.Printf("  %s %s  Claude 세션 종료 · 목록 남음  %s%s%s\n", SKIP, s.label(), YELLOW, why, RESET)
+		} else {
+			fmt.Printf("  %s %s  Claude 세션  %s%s%s\n", FAIL, s.label(), RED, errMsg(stderr), RESET)
+		}
+		failed++
+	}
+	sessionFailed := failed
 
 	for _, r := range cs.rows {
 		if !isDir(r.repo) {
@@ -364,7 +442,7 @@ func doClean(cs *cleanPlan, mode string) {
 		}
 	}
 
-	if failed == 0 {
+	if failed == sessionFailed {
 		os.RemoveAll(cs.dir)
 		fmt.Printf("  %s 이슈 폴더 삭제\n", OK)
 	} else {

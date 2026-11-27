@@ -28,10 +28,22 @@ func TestMain(m *testing.M) {
 		os.MkdirAll(filepath.Join(root, d), 0o755)
 	}
 	for _, k := range []string{"HERDR_SOCKET_PATH", "HERDR_PANE_ID", "HERDR_WORKSPACE_ID", "HERDR_TAB_ID",
-		"HERDR_PLUGIN_CONFIG_DIR", "ISSUE_TREE_RIGHT_CMD", "XDG_STATE_HOME"} {
+		"HERDR_PLUGIN_CONFIG_DIR", "ISSUE_TREE_RIGHT_CMD", "XDG_STATE_HOME", "ISSUE_TREE_CLAUDE_BIN"} {
 		os.Unsetenv(k)
 	}
 	os.Setenv("HERDR_BIN_PATH", stub)
+	claudeStub := filepath.Join(root, "claude-stub")
+	os.WriteFile(claudeStub, []byte(`#!/bin/sh
+case "$1" in
+agents) cat "$CLAUDE_STUB_LIST" 2>/dev/null || echo '[]' ;;
+rm | stop)
+  echo "$1 $2" >> "$CLAUDE_STUB_LOG"
+  if [ "$1" = rm ] && [ "$2" = "$CLAUDE_STUB_RM_FAIL" ]; then echo "unpushed commits" >&2; exit 1; fi ;;
+esac
+`), 0o755)
+	os.Setenv("ISSUE_TREE_CLAUDE_BIN", claudeStub)
+	os.Setenv("CLAUDE_STUB_LIST", filepath.Join(root, "claude-list.json"))
+	os.Setenv("CLAUDE_STUB_LOG", filepath.Join(root, "claude-calls.log"))
 	os.Setenv("HOME", filepath.Join(root, "home"))
 	os.Setenv("WORKTREE", filepath.Join(root, "wt"))
 	os.Setenv("WORKSPACE", filepath.Join(root, "ws"))
@@ -166,7 +178,7 @@ func TestLostCommits(t *testing.T) {
 func TestSetupAndCleanScan(t *testing.T) {
 	alpha, beta := newRepo(t, "alpha"), newRepo(t, "beta")
 	dir := filepath.Join(worktreeDir, "20-scan")
-	if !doSetup(dir, "20", "", "issue/20-scan", []string{alpha, beta, filepath.Join(workspaceDir, "missing")}) {
+	if !doSetup(dir, "20", "", "issue/20-scan", "", []string{alpha, beta, filepath.Join(workspaceDir, "missing")}) {
 		t.Fatal("doSetup")
 	}
 	rows := repoRows(dir)
@@ -174,7 +186,7 @@ func TestSetupAndCleanScan(t *testing.T) {
 		t.Fatalf("tracker = %v", trackerLines(dir))
 	}
 	// 같은 레포를 다시 더해도 tracker 에 두 번 들어가지 않는다.
-	doSetup(dir, "20", "", "issue/20-scan", []string{alpha})
+	doSetup(dir, "20", "", "issue/20-scan", "", []string{alpha})
 	if len(repoRows(dir)) != 2 {
 		t.Errorf("중복 REPO 줄: %v", trackerLines(dir))
 	}
@@ -207,17 +219,65 @@ func TestSetupAndCleanScan(t *testing.T) {
 	}
 }
 
+func TestCleanStopsBackgroundSessions(t *testing.T) {
+	alpha := newRepo(t, "alpha-bg")
+	dir := filepath.Join(worktreeDir, "21-bg")
+	if !doSetup(dir, "21", "", "issue/21-bg", "", []string{alpha}) {
+		t.Fatal("doSetup")
+	}
+	wt := repoRows(dir)[0].Worktree
+	list := `[
+  {"id":"aaaa1111","kind":"background","cwd":"` + wt + `","name":"in-tree","state":"working"},
+  {"id":"bbbb2222","kind":"background","cwd":"` + dir + `","state":"done"},
+  {"id":"cccc3333","kind":"background","cwd":"` + dir + `-other","name":"other-tree"},
+  {"id":"dddd4444","kind":"background","cwd":"` + alpha + `","name":"main-checkout"},
+  {"id":"eeee5555","kind":"interactive","cwd":"` + wt + `","name":"pane"}
+]`
+	os.WriteFile(os.Getenv("CLAUDE_STUB_LIST"), []byte(list), 0o644)
+	defer os.Remove(os.Getenv("CLAUDE_STUB_LIST"))
+	logPath := os.Getenv("CLAUDE_STUB_LOG")
+	os.Remove(logPath)
+	// rm 이 거절한 세션은 stop 으로 끄기만 한다.
+	os.Setenv("CLAUDE_STUB_RM_FAIL", "bbbb2222")
+	defer os.Unsetenv("CLAUDE_STUB_RM_FAIL")
+
+	cs, errText := cleanScan(dir)
+	if cs == nil {
+		t.Fatal(errText)
+	}
+	var ids []string
+	for _, s := range cs.sessions {
+		ids = append(ids, s.ID)
+	}
+	if !reflect.DeepEqual(ids, []string{"aaaa1111", "bbbb2222"}) {
+		t.Errorf("sessions = %v", ids)
+	}
+	if w := cs.warnings("keep"); len(w) != 0 {
+		t.Errorf("세션은 확인 입력 대상이 아니다: %v", w)
+	}
+
+	doClean(cs, "keep")
+	data, _ := os.ReadFile(logPath)
+	want := []string{"rm aaaa1111", "rm bbbb2222", "stop bbbb2222"}
+	if got := strings.Split(strings.TrimSpace(string(data)), "\n"); !reflect.DeepEqual(got, want) {
+		t.Errorf("claude 호출 = %q, want %q", got, want)
+	}
+	if exists(dir) {
+		t.Error("정리 후 폴더가 남음")
+	}
+}
+
 func TestIssueRepoKept(t *testing.T) {
 	kept, kept2 := newRepo(t, "kept"), newRepo(t, "kept2")
 	// 링크로 만든 tree 는 ISSUE_REPO 를 ISSUE_NUM 바로 뒤에 둔다. ^R 처럼 번호로 레포를 더해도 남는다.
 	dir := filepath.Join(worktreeDir, "40-link")
-	if !doSetup(dir, "40", "example.com/o/r", "issue/40-link", []string{kept}) {
+	if !doSetup(dir, "40", "example.com/o/r", "issue/40-link", "", []string{kept}) {
 		t.Fatal("doSetup")
 	}
 	if got := trackerLines(dir); len(got) < 2 || got[1] != "ISSUE_REPO=example.com/o/r" {
 		t.Fatalf("tracker = %q", got)
 	}
-	doSetup(dir, "40", "", "issue/40-link", []string{kept2})
+	doSetup(dir, "40", "", "issue/40-link", "", []string{kept2})
 	if got := trackerGet(dir, "ISSUE_REPO"); got != "example.com/o/r" || len(repoRows(dir)) != 2 {
 		t.Errorf("tracker = %q", trackerLines(dir))
 	}
@@ -369,7 +429,7 @@ func TestFormRows(t *testing.T) {
 		}
 		return out
 	}
-	if got := ids(); !reflect.DeepEqual(got, []string{"issue", "tag", "repos", "go"}) {
+	if got := ids(); !reflect.DeepEqual(got, []string{"issue", "tag", "repos", "session", "go"}) {
 		t.Errorf("빈 폼 = %v", got)
 	}
 	dir := filepath.Join(worktreeDir, "30-old")
@@ -377,10 +437,10 @@ func TestFormRows(t *testing.T) {
 	defer os.RemoveAll(dir)
 	os.WriteFile(filepath.Join(dir, trackerName), []byte("ISSUE_NUM=30\nBRANCH=issue/30-old\n"), 0o644)
 	formPut(s, "issue", "30")
-	if got := ids(); !reflect.DeepEqual(got, []string{"issue", "tag", "tree:" + dir, "repos", "go"}) {
+	if got := ids(); !reflect.DeepEqual(got, []string{"issue", "tag", "tree:" + dir, "repos", "session", "go"}) {
 		t.Errorf("기존 tree 가 있는 이슈 = %v", got)
 	}
-	if formIndex(s, "go") != "5" {
+	if formIndex(s, "go") != "6" {
 		t.Errorf("go 위치 = %s", formIndex(s, "go"))
 	}
 	formCommit(s, "tag", "old")
@@ -395,5 +455,104 @@ func TestFormRows(t *testing.T) {
 	setIssueRepo(dir, "example.com/o/r")
 	if f := formDerive(s); f.Tree != dir || f.Conflict || f.IssueRepo != "example.com/o/r" {
 		t.Errorf("저장소를 지정한 tree: %+v", f)
+	}
+}
+
+func TestSessionCwd(t *testing.T) {
+	alpha, beta := newRepo(t, "alpha-sess"), newRepo(t, "beta-sess")
+	dir := filepath.Join(worktreeDir, "60-sess")
+	if !doSetup(dir, "60", "", "issue/60-sess", "", []string{alpha}) {
+		t.Fatal("doSetup")
+	}
+	wt := repoRows(dir)[0].Worktree
+	// 정하지 않으면 ISSUE_TREE_RIGHT_CWD 기본값(main)이다.
+	if got := rightCwdFor(dir); got != alpha {
+		t.Errorf("기본 = %s", got)
+	}
+	tracker := filepath.Join(dir, trackerName)
+	old := time.Now().Add(-time.Hour).Truncate(time.Second)
+	os.Chtimes(tracker, old, old)
+	if err := setSessionCwd(dir, resolveSession("path:"+wt, dir, repoRows(dir))); err != nil {
+		t.Fatal(err)
+	}
+	if got := rightCwdFor(dir); got != wt {
+		t.Errorf("worktree 로 정함 = %s", got)
+	}
+	if fi, _ := os.Stat(tracker); !fi.ModTime().Equal(old) {
+		t.Errorf("세션 폴더를 바꾸면 수정 시각이 그대로여야 함: %v", fi.ModTime())
+	}
+	// 레포를 더해도 정한 폴더는 남는다.
+	doSetup(dir, "60", "", "issue/60-sess", "", []string{beta})
+	if got := trackerGet(dir, "SESSION_CWD"); got != wt || len(repoRows(dir)) != 2 {
+		t.Errorf("레포 추가 뒤 SESSION_CWD = %q, rows %v", got, repoRows(dir))
+	}
+	if got := sessionText(dir, repoRows(dir), wt); got != "worktree · "+base(wt) {
+		t.Errorf("sessionText = %q", got)
+	}
+	// 정한 폴더가 없어지면 기본값으로 연다.
+	setSessionCwd(dir, filepath.Join(dir, "gone"))
+	if got := rightCwdFor(dir); got != alpha {
+		t.Errorf("없는 폴더 = %s", got)
+	}
+	setSessionCwd(dir, "")
+	if trackerGet(dir, "SESSION_CWD") != "" || sessionKey("", dir, repoRows(dir)) != "default" {
+		t.Errorf("기본값으로 되돌리기: %v", trackerLines(dir))
+	}
+
+	rows := repoRows(dir)
+	for _, c := range []struct{ arg, want string }{
+		{"issue", dir}, {"worktree", wt}, {"main", alpha}, {"main:beta-sess", beta}, {wt, wt},
+	} {
+		if got, err := sessionArg(c.arg, dir, rows); err != nil || got != c.want {
+			t.Errorf("sessionArg(%s) = %s, %v", c.arg, got, err)
+		}
+	}
+	for _, bad := range []string{"main:nope", "issue:x", filepath.Join(dir, "gone")} {
+		if _, err := sessionArg(bad, dir, rows); err == nil {
+			t.Errorf("sessionArg(%s) 는 오류여야 함", bad)
+		}
+	}
+}
+
+func TestSetupSessionFlag(t *testing.T) {
+	newRepo(t, "alpha-flag")
+	if code := cmdSetupCLI([]string{"61", "--tag", "flag", "--repo", "alpha-flag", "--session", "nope:x", "--no-open"}); code != 2 {
+		t.Errorf("잘못된 --session = %d", code)
+	}
+	dir := filepath.Join(worktreeDir, "61-flag")
+	if exists(dir) {
+		t.Error("잘못된 --session 이면 tree 를 만들지 않는다")
+	}
+	if code := cmdSetupCLI([]string{"61", "--tag", "flag", "--repo", "alpha-flag", "--session", "worktree", "--no-open"}); code != 0 {
+		t.Fatalf("setup = %d", code)
+	}
+	if got := trackerGet(dir, "SESSION_CWD"); got != repoRows(dir)[0].Worktree {
+		t.Errorf("SESSION_CWD = %q", got)
+	}
+}
+
+func TestFormSession(t *testing.T) {
+	alpha := newRepo(t, "alpha-form")
+	s := t.TempDir()
+	formPut(s, "issue", "62")
+	formPut(s, "tag", "a")
+	formPut(s, "repos", alpha)
+	formPut(s, "session", "main:"+alpha)
+	if f := formDerive(s); !f.SessionSet || f.Session != alpha {
+		t.Errorf("세션 = %+v", f)
+	}
+	// 태그를 바꾸면 같은 키가 새 폴더를 가리킨다.
+	formPut(s, "session", "issue")
+	formCommit(s, "tag", "b")
+	if f := formDerive(s); f.Session != filepath.Join(worktreeDir, "62-b") {
+		t.Errorf("태그 변경 뒤 세션 = %s", f.Session)
+	}
+	formPut(s, "session", "path:"+testRoot)
+	if f := formDerive(s); f.Session != testRoot || sessionKey(testRoot, f.Dir, f.sessionRows()) != "path:"+testRoot {
+		t.Errorf("직접 입력 = %s", f.Session)
+	}
+	formPut(s, "session", "default")
+	if f := formDerive(s); !f.SessionSet || f.Session != "" {
+		t.Errorf("기본값 = %+v", f)
 	}
 }

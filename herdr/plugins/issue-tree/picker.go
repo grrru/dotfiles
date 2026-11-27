@@ -148,9 +148,9 @@ func cmdPicker() int {
 			timer, flashArgs, flashEnv = startFlash(plain)
 		}
 		args := []string{
-			"--read0", "--delimiter=\t", "--with-nth=2..", "--expect=ctrl-o,ctrl-r,ctrl-e,ctrl-x",
+			"--read0", "--delimiter=\t", "--with-nth=2..", "--expect=ctrl-o,ctrl-r,ctrl-e,ctrl-s,ctrl-x",
 			"--gap", "--no-sort",
-			"--input-label= ↵ 열기 · ^O 새 tree · ^R 레포 추가 · ^E 이슈 · ^X 정리 ", "--input-label-pos=-2",
+			"--input-label= ↵ 열기 · ^O 새 tree · ^R 레포 추가 · ^E 이슈 · ^S 세션 · ^X 정리 ", "--input-label-pos=-2",
 			"--list-label=" + label, "--list-label-pos=2",
 			"--preview=ISSUE_TREE_COLOR=1 " + selfCmd + " preview {1}",
 			"--preview-window=right,55%,<60(down,50%)", "--preview-label= 상세 ", "--preview-label-pos=2",
@@ -184,6 +184,10 @@ func cmdPicker() int {
 		case "ctrl-e":
 			if dir != "" {
 				flash = editIssue(dir)
+			}
+		case "ctrl-s":
+			if dir != "" {
+				flash = sessionFlow(dir)
 			}
 		case "ctrl-x":
 			if dir != "" && cleanFlow(dir) {
@@ -317,8 +321,9 @@ func cmdPreview(dir string) int {
 		fmt.Printf("%s○ 워크스페이스 없음 · ↵ 새로 열기%s\n", MUTED, RESET)
 	}
 	fmt.Printf("%s%s%s\n", MUTED, branch, RESET)
-
 	rows := repoRows(dir)
+	fmt.Printf("%s세션 %s%s\n", MUTED, sessionText(dir, rows, trackerGet(dir, "SESSION_CWD")), RESET)
+
 	w := 0
 	tracked := map[string]bool{}
 	for _, r := range rows {

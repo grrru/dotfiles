@@ -32,8 +32,9 @@ func setupRepo(repo, branch, wp string) (string, error) {
 
 // doSetup 은 레포마다 브랜치와 worktree 를 만들고 tracker 를 쓴다. 하나라도 성공했으면 true.
 // tracker 에는 성공한 레포만 남고, 새로 만든 폴더는 모두 실패하면 지운다. Ctrl-C 는 지금 레포까지만 하고 멈춘다.
-// tracker 에 이미 ISSUE_REPO 가 있으면 issueRepo 대신 그 값을 그대로 둔다.
-func doSetup(dir, num, issueRepo, branch string, repos []string) bool {
+// tracker 에 이미 ISSUE_REPO 가 있으면 issueRepo 대신 그 값을 그대로 둔다. session 이 비면 tracker 의
+// SESSION_CWD 를 그대로 둔다.
+func doSetup(dir, num, issueRepo, branch, session string, repos []string) bool {
 	var entries []repoRow
 	id := ""
 	newDir := false
@@ -42,6 +43,9 @@ func doSetup(dir, num, issueRepo, branch string, repos []string) bool {
 		entries = repoRows(dir)
 		if r := trackerGet(dir, "ISSUE_REPO"); r != "" {
 			issueRepo = r
+		}
+		if session == "" {
+			session = trackerGet(dir, "SESSION_CWD")
 		}
 	} else {
 		newDir = true
@@ -112,7 +116,7 @@ func doSetup(dir, num, issueRepo, branch string, repos []string) bool {
 		if id == "" {
 			id = newID()
 		}
-		writeTracker(dir, num, issueRepo, branch, id, entries)
+		writeTracker(dir, num, issueRepo, branch, id, session, entries)
 	} else if newDir {
 		os.Remove(dir)
 	}
@@ -134,13 +138,13 @@ func doSetup(dir, num, issueRepo, branch string, repos []string) bool {
 
 // cmdSetupCLI 는 명령줄 setup 이다. 레포 이름과 워크스페이스를 모두 확인한 뒤에만 만든다.
 func cmdSetupCLI(args []string) int {
-	ref, tag, pane, here := "", "", "", ""
+	ref, tag, pane, here, session := "", "", "", "", ""
 	open := true
 	var want []string
 	for i := 0; i < len(args); i++ {
 		a := args[i]
 		switch a {
-		case "--tag", "--repo", "--pane", "--here":
+		case "--tag", "--repo", "--pane", "--here", "--session":
 			if i+1 >= len(args) {
 				fmt.Fprintf(os.Stderr, "%s 에 값 필요\n", a)
 				return 2
@@ -155,6 +159,8 @@ func cmdSetupCLI(args []string) int {
 				pane = args[i]
 			case "--here":
 				here = args[i]
+			case "--session":
+				session = args[i]
 			}
 		case "--no-open":
 			open = false
@@ -225,16 +231,38 @@ func cmdSetupCLI(args []string) int {
 		fmt.Fprintf(os.Stderr, "패널 없음 · %s\n", pane)
 		return 1
 	}
+	if session != "" {
+		// 만들 worktree 까지 넣어 tree 를 만들기 전에 확인한다.
+		rows := repoRows(dir)
+		for _, p := range picked {
+			rows = append(rows, repoRow{p, filepath.Join(dir, base(p)+"_"+base(dir))})
+		}
+		if _, err := sessionArg(session, dir, rows); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return 2
+		}
+	}
 	if len(picked) > 0 {
-		if !doSetup(dir, num, issueRepo, branch, picked) {
+		if !doSetup(dir, num, issueRepo, branch, "", picked) {
 			return 1
 		}
 		fmt.Println()
+	}
+	if session != "" {
+		path, err := sessionArg(session, dir, repoRows(dir))
+		if err == nil {
+			err = setSessionCwd(dir, path)
+		}
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return 1
+		}
 	}
 	fmt.Printf("tree       %s\n", tilde(dir))
 	if r := trackerGet(dir, "ISSUE_REPO"); r != "" {
 		fmt.Printf("issue      %s#%s\n", r, num)
 	}
+	fmt.Printf("session    %s\n", tilde(rightCwdFor(dir)))
 	switch {
 	case here != "":
 		ws, p, err := attachHere(dir, here)

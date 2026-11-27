@@ -16,6 +16,7 @@ import (
 // 이미 있는 tree 에 레포를 더하거나 정리할 때는 폴더 이름이 아니라 tracker 의 ISSUE_NUM, BRANCH 를 쓴다.
 // tracker 의 ID 는 tree 마다 무작위로 만든 식별자로, 그 tree 의 워크스페이스를 찾는 데 쓴다.
 // ISSUE_REPO 는 그 이슈의 <host>/<owner>/<repo> 로, 이슈 링크로 만들었거나 목록의 ^E 로 지정한 tree 에 있다.
+// SESSION_CWD 는 워크스페이스 오른쪽 패널(Claude 세션을 만드는 곳)의 폴더로, 정한 tree 에만 있다.
 // 이슈는 ISSUE_REPO 와 번호로 구분하고, ISSUE_REPO 가 없는 tree 는 번호만 넣은 이슈와 같다.
 // 폴더 이름에는 저장소가 없어서, 번호가 같은 다른 이슈는 태그가 달라야 한다.
 
@@ -183,29 +184,39 @@ func ensureTreeID(dir string) string {
 	return id
 }
 
-// setIssueRepo 는 tracker 의 ISSUE_REPO 줄을 바꾸고 다른 줄은 순서까지 그대로 둔다. 줄이 없으면 ISSUE_NUM 줄
-// 뒤에 넣고, 빈 값이면 줄을 지운다. 목록의 최근 작업순이 tracker 수정 시각을 쓰므로 그 시각은 그대로 둔다.
+// setIssueRepo 는 tracker 의 ISSUE_REPO 줄을 바꾼다. 줄이 없으면 ISSUE_NUM 줄 뒤에 넣는다.
 func setIssueRepo(dir, issueRepo string) error {
+	return trackerSet(dir, "ISSUE_REPO", issueRepo, "ISSUE_NUM")
+}
+
+// setSessionCwd 는 tracker 의 SESSION_CWD 줄을 바꾼다. 줄이 없으면 ID 줄 뒤에 넣는다.
+func setSessionCwd(dir, path string) error {
+	return trackerSet(dir, "SESSION_CWD", path, "ID")
+}
+
+// trackerSet 은 key 줄을 바꾸고 다른 줄은 순서까지 그대로 둔다. 줄이 없으면 after 줄 뒤(그것도 없으면 맨
+// 뒤)에 넣고, 빈 값이면 줄을 지운다. 목록의 최근 작업순이 tracker 수정 시각을 쓰므로 그 시각은 그대로 둔다.
+func trackerSet(dir, key, val, after string) error {
 	path := filepath.Join(dir, trackerName)
 	fi, statErr := os.Stat(path)
 	var out []string
-	done := issueRepo == ""
+	done := val == ""
 	for _, l := range trackerLines(dir) {
-		if strings.HasPrefix(l, "ISSUE_REPO=") {
+		if strings.HasPrefix(l, key+"=") {
 			if !done {
-				out = append(out, "ISSUE_REPO="+issueRepo)
+				out = append(out, key+"="+val)
 				done = true
 			}
 			continue
 		}
 		out = append(out, l)
-		if !done && strings.HasPrefix(l, "ISSUE_NUM=") {
-			out = append(out, "ISSUE_REPO="+issueRepo)
+		if !done && strings.HasPrefix(l, after+"=") {
+			out = append(out, key+"="+val)
 			done = true
 		}
 	}
 	if !done {
-		out = append(out, "ISSUE_REPO="+issueRepo)
+		out = append(out, key+"="+val)
 	}
 	if err := writeAtomic(path, strings.Join(out, "\n")+"\n"); err != nil {
 		return err
@@ -224,8 +235,8 @@ func issueNum(dir string) string {
 	return treeNum(dir)
 }
 
-// writeTracker 는 tracker 를 통째로 쓴다. issueRepo 가 비면 ISSUE_REPO 줄을 쓰지 않는다.
-func writeTracker(dir, num, issueRepo, branch, id string, rows []repoRow) error {
+// writeTracker 는 tracker 를 통째로 쓴다. issueRepo, session 이 비면 그 줄을 쓰지 않는다.
+func writeTracker(dir, num, issueRepo, branch, id, session string, rows []repoRow) error {
 	var b strings.Builder
 	b.WriteString("ISSUE_NUM=" + num + "\n")
 	if issueRepo != "" {
@@ -233,6 +244,9 @@ func writeTracker(dir, num, issueRepo, branch, id string, rows []repoRow) error 
 	}
 	b.WriteString("BRANCH=" + branch + "\n")
 	b.WriteString("ID=" + id + "\n")
+	if session != "" {
+		b.WriteString("SESSION_CWD=" + session + "\n")
+	}
 	for _, r := range rows {
 		b.WriteString("REPO\t" + r.Repo + "\t" + r.Worktree + "\n")
 	}

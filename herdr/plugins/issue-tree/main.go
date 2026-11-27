@@ -2,10 +2,10 @@
 //
 //	issue-tree pick            이슈 tree 목록 popup 을 띄운다 (action)
 //	issue-tree new             새 이슈 tree popup 을 띄운다 (action)
-//	issue-tree picker          목록 popup 본체. ↵ 열기 · ^O 새 tree · ^R 레포 추가 · ^E 이슈 링크 · ^X 정리
+//	issue-tree picker          목록 popup 본체. ↵ 열기 · ^O 새 tree · ^R 레포 추가 · ^E 이슈 링크 · ^S 세션 폴더 · ^X 정리
 //	issue-tree creator         새 이슈 tree popup 본체
 //	issue-tree open <dir>      이슈 tree 를 연다
-//	issue-tree setup <issue> [--tag <tag>] [--repo <repo>]... [--here <pane_id> | --pane <pane_id> | --no-open]
+//	issue-tree setup <issue> [--tag <tag>] [--repo <repo>]... [--session <where>] [--here <pane_id> | --pane <pane_id> | --no-open]
 //	                           대화 없이 tree 를 만들거나(같은 태그의 tree 가 있으면 레포를 더한다) 연다.
 //	                           새 tree 는 --repo 가 하나 이상 있어야 한다.
 //	                           <issue> 는 번호, #번호, 이슈 링크. 링크의 <host>/<owner>/<repo> 는 tracker 의
@@ -14,6 +14,8 @@
 //	                           --here 는 그 패널이 있는 워크스페이스를 tree 워크스페이스로 바꾼다.
 //	                           --pane 은 새 tree 워크스페이스를 만들고 그 패널을 오른쪽으로 옮긴다.
 //	                           에이전트는 대화 중인 패널을 "$HERDR_PANE_ID" 로 넘긴다.
+//	                           --session 은 tree 의 세션 폴더(오른쪽 패널 폴더)를 정한다. issue | worktree[:<레포>] |
+//	                           main[:<레포>] | 폴더 경로. 레포를 빼면 첫 레포다.
 //	issue-tree restore-tags    서버 시작 때 워크스페이스 토큰을 다시 붙인다 (startup hook)
 //	issue-tree sync-tags       워크스페이스 토큰 목록을 state 파일에 맞춘다 (workspace.closed hook)
 //
@@ -22,7 +24,8 @@
 // 설정은 환경 변수와 "$(herdr plugin config-dir dotfiles.issue-tree)/config.sh" 의 KEY=VALUE 줄로 정한다.
 //
 //	ISSUE_TREE_RIGHT_CMD   오른쪽 패널에서 실행할 명령. 빈 값이면 셸만 연다 (기본 "claude agents")
-//	ISSUE_TREE_RIGHT_CWD   오른쪽 패널 cwd. main(첫 레포 main 체크아웃) | worktree(첫 레포 worktree) | issue
+//	ISSUE_TREE_RIGHT_CWD   세션 폴더를 정하지 않은 tree 의 오른쪽 패널 cwd. main(첫 레포 main 체크아웃) |
+//	                       worktree(첫 레포 worktree) | issue
 //	ISSUE_TREE_RATIO       왼쪽 패널 너비 비율 (기본 0.65)
 //	WORKTREE, WORKSPACE    이슈 tree 폴더와 레포 폴더. herdr 서버 환경에 없을 때만 지정한다.
 //
@@ -36,7 +39,7 @@ import (
 )
 
 const usage = `issue-tree pick | new | picker | creator | open <dir>
-issue-tree setup <issue> [--tag <tag>] [--repo <repo>]... [--here <pane_id> | --pane <pane_id> | --no-open]
+issue-tree setup <issue> [--tag <tag>] [--repo <repo>]... [--session <where>] [--here <pane_id> | --pane <pane_id> | --no-open]
 issue-tree restore-tags | sync-tags
 `
 
@@ -116,6 +119,11 @@ func dispatch(args []string) int {
 			return 2
 		}
 		return cmdFormRepos(args[1])
+	case "form-session":
+		if !need(args, 2) {
+			return 2
+		}
+		return cmdFormSession(args[1])
 	case "repo-key":
 		if !need(args, 3) {
 			return 2
